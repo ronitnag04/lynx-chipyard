@@ -234,6 +234,16 @@ lazy val nvdla = (project in file("generators/nvdla"))
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(commonSettings)
 
+lazy val protoacc = (project in file("generators/protoacc"))
+  .dependsOn(rocketchip, midasTargetUtils)
+  .settings(libraryDependencies ++= rocketLibDeps.value)
+  .settings(commonSettings)
+
+lazy val compressacc = (project in file("generators/compress-acc"))
+  .dependsOn(rocketchip, midasTargetUtils)
+  .settings(libraryDependencies ++= rocketLibDeps.value)
+  .settings(commonSettings)
+
 lazy val iocell = Project(id = "iocell", base = file("./tools/barstools/") / "iocell")
   .settings(chiselSettings)
   .settings(commonSettings)

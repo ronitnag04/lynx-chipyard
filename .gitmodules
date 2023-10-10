@@ -133,3 +133,9 @@
 [submodule "generators/hardfloat"]
 	path = generators/hardfloat
 	url = https://github.com/ucb-bar/berkeley-hardfloat.git
+[submodule "generators/protoacc"]
+	path = generators/protoacc
+	url = https://github.com/ucb-bar/protoacc.git
+[submodule "generators/compress-acc"]
+	path = generators/compress-acc
+	url = https://github.com/sagark/compress-acc.git
