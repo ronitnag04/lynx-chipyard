@@ -138,4 +138,4 @@
 	url = https://github.com/ucb-bar/protoacc.git
 [submodule "generators/compress-acc"]
 	path = generators/compress-acc
-	url = https://github.com/sagark/compress-acc.git
+	url = https://github.com/ucb-bar/compress-acc.git

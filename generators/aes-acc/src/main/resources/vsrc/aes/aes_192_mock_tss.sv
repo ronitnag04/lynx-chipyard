@@ -9,7 +9,7 @@
 //************************************************************************
 `timescale 1ns/1ns
 
-module aes_192_mock_tss import llki_pkg::*; (
+module aes_192_mock_tss (
 
     // Clock and Reset
     input wire            clk,
@@ -20,7 +20,7 @@ module aes_192_mock_tss import llki_pkg::*; (
     input wire [127:0]    state,
     input wire [191:0]    key,
     output wire [127:0]   out,
-    output wire           out_valid,
+    output wire           out_valid
 );
 
   // The following parameters are used by the AES instance of the Mock Technique Specific Shim (TSS)
@@ -33,19 +33,6 @@ module aes_192_mock_tss import llki_pkg::*; (
   // Internal signals & localparams
   localparam KEY_WORDS          = AES_MOCK_TSS_NUM_KEY_WORDS;
   wire [(64*KEY_WORDS) - 1:0]   mock_tss_state;
-
-  //------------------------------------------------------------------
-  // Instantiate the Mock TSS Finite State Machine
-  //------------------------------------------------------------------
-  mock_tss_fsm #(
-    .KEY_WORDS            (KEY_WORDS)
-  ) mock_tss_fsm_inst (
-    .clk                  (clk),
-    .rst                  (rst),
-  );
-  //------------------------------------------------------------------
-
-
 
   //------------------------------------------------------------------
   // Create the Mock TSS input into the original core

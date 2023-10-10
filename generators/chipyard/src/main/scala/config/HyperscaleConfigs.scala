@@ -1,7 +1,6 @@
 package chipyard
 
-import freechips.rocketchip.config.{Config}
-import freechips.rocketchip.diplomacy.{AsynchronousCrossing}
+import org.chipsalliance.cde.config.{Config}
 import freechips.rocketchip.subsystem._
 
 // --------------------------------------------------------------------------------------
@@ -11,7 +10,7 @@ import freechips.rocketchip.subsystem._
 class HyperscaleRocketBaseConfig extends Config(
   new freechips.rocketchip.subsystem.WithInclusiveCache(nWays=16, capacityKB=2048) ++
   new freechips.rocketchip.subsystem.WithNBanks(8) ++
-  new WithExtMemIdBits(7) ++
+  new chipyard.config.WithExtMemIdBits(7) ++
   new freechips.rocketchip.subsystem.WithNMemoryChannels(4) ++
   new Config ((site, here, up) => {
     case SystemBusKey => up(SystemBusKey, site).copy(beatBytes = 32)
@@ -117,7 +116,7 @@ class HyperscaleMegaBoomBaseConfig extends Config(
   //new testchipip.WithTSI ++
   new freechips.rocketchip.subsystem.WithInclusiveCache(nWays=16, capacityKB=2048) ++
   new freechips.rocketchip.subsystem.WithNBanks(8) ++
-  new WithExtMemIdBits(7) ++
+  new chipyard.config.WithExtMemIdBits(7) ++
   new freechips.rocketchip.subsystem.WithNMemoryChannels(4) ++
   new Config ((site, here, up) => {
     case SystemBusKey => up(SystemBusKey, site).copy(beatBytes = 32)
@@ -151,3 +150,29 @@ class ProtoDeserMegaBoomConfig extends Config(
 class SnappyDecompressorHyperscaleMegaBoomConfig extends Config(
   new compressacc.WithSnappyDecompressor ++
   new HyperscaleMegaBoomBaseConfig)
+
+// NEW CONFIGS
+
+class IntegrationConfig extends Config(
+  new chipyard.config.WithMultiRoCC ++
+
+  // small
+  new chipyard.config.WithMultiRoCCSnappyDecompressor(0) ++
+  new chipyard.config.WithMultiRoCCSnappyCompressor(0) ++
+  new chipyard.config.WithMultiRoCCProtoAccelDeser(0) ++
+  new chipyard.config.WithMultiRoCCProtoAccelSer(0) ++
+  new chipyard.config.WithAES192(0x70000000L, 0xFFL, "aes_small") ++
+  new chipyard.harness.WithLoopbackNIC ++
+  new icenet.WithIceNIC ++
+
+  // big
+  new compressacc.WithHufSpeculationAmount(32) ++
+  new chipyard.config.WithMultiRoCCZstdDecompressor(1) ++
+  new chipyard.config.WithMultiRoCCZstdCompressor(1) ++
+  new chipyard.config.WithMultiRoCCProtoAccelDeser(1) ++
+  new chipyard.config.WithMultiRoCCProtoAccelSer(1) ++
+  new chipyard.config.WithAES192(0x70010000L, 0xFFL, "aes_large") ++
+
+
+  new freechips.rocketchip.subsystem.WithNBigCores(2) ++
+  new HyperscaleRocketBaseConfig)

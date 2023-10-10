@@ -85,3 +85,86 @@ class WithMultiRoCCGemmini[T <: Data : Arithmetic, U <: Data, V <: Data](
     }))
   }
 })
+
+// other multirocc
+import protoacc._
+import compressacc._
+import aes._
+import freechips.rocketchip.rocket.{TLBConfig}
+
+class WithMultiRoCCSnappyCompressor(harts: Int*) extends Config((site, here, up) => {
+  case CompressAccelTLB => Some(TLBConfig(nSets = 4, nWays = 4, nSectors = 1, nSuperpageEntries = 1))
+  case MultiRoCCKey => up(MultiRoCCKey, site) ++ harts.distinct.map { i =>
+    (i -> Seq((p: Parameters) => {
+      val compress_accel_compressor = LazyModule.apply(new SnappyCompressor(OpcodeSet.custom1)(p))
+      compress_accel_compressor
+    }))
+  }
+})
+
+class WithMultiRoCCSnappyDecompressor(harts: Int*) extends Config((site, here, up) => {
+  case CompressAccelTLB => Some(TLBConfig(nSets = 4, nWays = 4, nSectors = 1, nSuperpageEntries = 1))
+  case MultiRoCCKey => up(MultiRoCCKey, site) ++ harts.distinct.map { i =>
+    (i -> Seq((p: Parameters) => {
+      val compress_accel_decompressor = LazyModule.apply(new SnappyDecompressor(OpcodeSet.custom0)(p))
+      compress_accel_decompressor
+    }))
+  }
+})
+
+class WithMultiRoCCZstdCompressor(harts: Int*) extends Config((site, here, up) => {
+  case CompressAccelTLB => Some(TLBConfig(nSets = 4, nWays = 4, nSectors = 1, nSuperpageEntries = 1))
+  case ZstdCompressorKey => Some(ZstdCompressorConfig(
+    queDepth = 4
+    ))
+  case HufCompressUnrollCnt => 2
+  case HufCompressDicBuilderProcessedStatBytesPerCycle => 2
+  case HufCompressDicBuilderProcessedHeaderBytesPerCycle => 4
+  case FSECompressDicBuilderProcessedStatBytesPerCycle => 4
+  case RemoveSnappyFromMergedAccelerator => true
+  case CompressAccelPrintfEnable => true
+  case MultiRoCCKey => up(MultiRoCCKey, site) ++ harts.distinct.map { i =>
+    (i -> Seq((p: Parameters) => {
+      val zstd_compressor = LazyModule(new ZstdCompressor(OpcodeSet.custom1)(p))
+      zstd_compressor
+    }))
+  }
+})
+
+class WithMultiRoCCZstdDecompressor(harts: Int*) extends Config((site, here, up) => {
+  case CompressAccelTLB => Some(TLBConfig(nSets = 4, nWays = 4, nSectors = 1, nSuperpageEntries = 1))
+  case ZstdDecompressorCmdQueDepth => 4
+  case HufDecompressDecompAtOnce => 4
+  case NoSnappy => true
+  case CompressAccelPrintfEnable => true
+  case MultiRoCCKey => up(MultiRoCCKey, site) ++ harts.distinct.map { i =>
+    (i -> Seq((p: Parameters) => {
+      val zstd_decompressor = LazyModule.apply(new ZstdDecompressor(OpcodeSet.custom0)(p))
+      zstd_decompressor
+    }))
+  }
+})
+
+class WithAES192(base_addr: BigInt, depth: BigInt, dev_name: String) extends Config((site, here, up) => {
+  case PeripheryAES192Key => up(PeripheryAES192Key, site) :+ AES192Params(base_addr, depth, dev_name)
+})
+
+class WithMultiRoCCProtoAccelSer(harts: Int*) extends Config((site, here, up) => {
+  case ProtoTLB => Some(TLBConfig(nSets = 4, nWays = 4, nSectors = 1, nSuperpageEntries = 1))
+  case MultiRoCCKey => up(MultiRoCCKey, site) ++ harts.distinct.map { i =>
+    (i -> Seq((p: Parameters) => {
+      val protoaccser = LazyModule.apply(new ProtoAccelSerializer(OpcodeSet.custom3)(p))
+      protoaccser
+    }))
+  }
+})
+
+class WithMultiRoCCProtoAccelDeser(harts: Int*) extends Config((site, here, up) => {
+  case ProtoTLB => Some(TLBConfig(nSets = 4, nWays = 4, nSectors = 1, nSuperpageEntries = 1))
+  case MultiRoCCKey => up(MultiRoCCKey, site) ++ harts.distinct.map { i =>
+    (i -> Seq((p: Parameters) => {
+      val protoacc = LazyModule.apply(new ProtoAccel(OpcodeSet.custom2)(p))
+      protoacc
+    }))
+  }
+})
