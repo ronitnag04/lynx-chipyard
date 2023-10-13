@@ -26,6 +26,7 @@ class AbstractConfig extends Config(
   new chipyard.harness.WithClockAndResetFromHarness ++             // all Clock/Reset I/O in ChipTop should be driven by harnessClockInstantiator
   new chipyard.harness.WithAbsoluteFreqHarnessClockInstantiator ++ // generate clocks in harness with unsynthesizable ClockSourceAtFreqMHz
 
+
   // The IOBinders instantiate ChipTop IOs to match desired digital IOs
   // IOCells are generated for "Chip-like" IOs
   new chipyard.iobinders.WithSerialTLIOCells ++
@@ -46,6 +47,8 @@ class AbstractConfig extends Config(
   new chipyard.iobinders.WithTraceIOPunchthrough ++
   new chipyard.iobinders.WithUARTTSIPunchthrough ++
   new chipyard.iobinders.WithNMITiedOff ++
+  new chipyard.iobinders.WithTLMMIOPunchthrough ++
+  new chipyard.iobinders.WithTLSlavePunchthrough ++
 
   // By default, punch out IOs to the Harness
   new chipyard.clocking.WithPassthroughClockGenerator ++

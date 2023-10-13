@@ -134,7 +134,7 @@ class WithMultiRoCCZstdCompressor(harts: Int*) extends Config((site, here, up) =
 class WithMultiRoCCZstdDecompressor(harts: Int*) extends Config((site, here, up) => {
   case CompressAccelTLB => Some(TLBConfig(nSets = 4, nWays = 4, nSectors = 1, nSuperpageEntries = 1))
   case ZstdDecompressorCmdQueDepth => 4
-  case HufDecompressDecompAtOnce => 4
+  case HufDecompressDecompAtOnce => 12
   case NoSnappy => true
   case CompressAccelPrintfEnable => true
   case MultiRoCCKey => up(MultiRoCCKey, site) ++ harts.distinct.map { i =>

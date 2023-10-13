@@ -24,7 +24,7 @@ import barstools.iocell.chisel._
 
 import testchipip._
 import icenet.{CanHavePeripheryIceNIC, SimNetwork, NicLoopback, NICKey, NICIOvonly}
-import chipyard.{CanHaveMasterTLMemPort}
+import chipyard.{CanHaveMasterTLMemPort, CanHaveCustomMasterTLMMIOPort, CanHaveCustomSlaveTLPort}
 
 import scala.reflect.{ClassTag}
 
@@ -349,6 +349,26 @@ class WithAXI4MMIOPunchthrough extends OverrideLazyIOBinder({
         p
       }).toSeq
       (ports, Nil)
+    }
+  }
+})
+
+class WithTLMMIOPunchthrough extends OverrideLazyIOBinder({
+  (system: CanHaveCustomMasterTLMMIOPort) => {
+    InModuleBody {
+      val io_tl_mem_pins_temp = IO(DataMirror.internal.chiselTypeClone[HeterogeneousBag[TLBundle]](system.mmio_tl)).suggestName("tl_mmio_wire")
+      io_tl_mem_pins_temp <> system.mmio_tl
+      (Seq(io_tl_mem_pins_temp), Nil)
+    }
+  }
+})
+
+class WithTLSlavePunchthrough extends OverrideLazyIOBinder({
+  (system: CanHaveCustomSlaveTLPort) => {
+    InModuleBody {
+      val io_tl_mem_pins_temp = IO(DataMirror.internal.chiselTypeClone[HeterogeneousBag[TLBundle]](system.l2_frontend_bus_tl)).suggestName("tl_slave_wire")
+      io_tl_mem_pins_temp <> system.l2_frontend_bus_tl
+      (Seq(io_tl_mem_pins_temp), Nil)
     }
   }
 })

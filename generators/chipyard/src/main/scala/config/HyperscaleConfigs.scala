@@ -8,13 +8,12 @@ import freechips.rocketchip.subsystem._
 // --------------------------------------------------------------------------------------
 
 class HyperscaleRocketBaseConfig extends Config(
+
   new freechips.rocketchip.subsystem.WithInclusiveCache(nWays=16, capacityKB=2048) ++
   new freechips.rocketchip.subsystem.WithNBanks(8) ++
   new chipyard.config.WithExtMemIdBits(7) ++
   new freechips.rocketchip.subsystem.WithNMemoryChannels(4) ++
-  new Config ((site, here, up) => {
-    case SystemBusKey => up(SystemBusKey, site).copy(beatBytes = 32)
-  }) ++
+  new chipyard.config.WithSystemBusWidth(256) ++
   new RocketConfig)
 
 class HyperscaleRocketBaseConfig16MBL2 extends Config(
@@ -119,7 +118,7 @@ class HyperscaleMegaBoomBaseConfig extends Config(
   new chipyard.config.WithExtMemIdBits(7) ++
   new freechips.rocketchip.subsystem.WithNMemoryChannels(4) ++
   new Config ((site, here, up) => {
-    case SystemBusKey => up(SystemBusKey, site).copy(beatBytes = 32)
+    case SystemBusKey => up(SystemBusKey).copy(beatBytes = 32)
   }) ++
   new boom.common.WithBoomCommitLogPrintf ++
   new boom.common.WithNMegaBooms(1) ++
@@ -176,3 +175,73 @@ class IntegrationConfig extends Config(
 
   new freechips.rocketchip.subsystem.WithNBigCores(2) ++
   new HyperscaleRocketBaseConfig)
+
+import freechips.rocketchip.subsystem.{ExtBus, ExtMem, MemoryPortParams, MasterPortParams, SlavePortParams, MemoryBusKey}
+import freechips.rocketchip.diplomacy._
+import testchipip.{SerialTLKey}
+
+// needs to be able to access the memory space of the smartnic
+class AppSoCConfig extends Config(
+  new Config((site, here, up) => {
+    case ExtBus => Some(MasterPortParams(
+      base = x"a000_0000",
+      size = x"1000_0000",
+      beatBytes = site(MemoryBusKey).beatBytes, // 64b of data per xfer
+      idBits = 4, // 4b of source
+      executable = true // left true otherwise it will add extra bundle fields
+    ))
+  }) ++
+  new HyperscaleRocketBaseConfig)
+
+class SmartNICSoCConfig extends Config(
+  // setup memory to be at different location
+  new Config((site, here, up) => {
+    case ExtMem => Some(MemoryPortParams(MasterPortParams(
+      base = x"a000_0000",
+      size = x"1000_0000",
+      beatBytes = site(MemoryBusKey).beatBytes,
+      idBits = 4), // ?? changes nothing
+      1 // 1 mem. channels
+    ))
+  }) ++
+  // setup slave port (slave to AppSoC)
+  new Config((site, here, up) => {
+    case ExtIn => Some(SlavePortParams(
+      beatBytes = 8, // 64b of data per xfer
+      idBits = 4, // 4b of source
+      sourceBits = 1 // ?? changes nothing
+    ))
+  }) ++
+  // disable tsi on this soc
+  new Config((site, here, up) => {
+    case SerialTLKey => None
+  }) ++
+  new chipyard.harness.WithLoopbackNIC ++
+  new icenet.WithIceNIC ++
+  new HyperscaleRocketBaseConfig)
+
+import chipyard.harness.{MultiHarnessBinder, HasHarnessInstantiators}
+import freechips.rocketchip.util.{HeterogeneousBag}
+import freechips.rocketchip.tilelink.{TLBundle}
+
+class WithMultiChipTLBus(chip0: Int, chip1: Int) extends MultiHarnessBinder(chip0, chip1, (
+  (system0: CanHaveCustomMasterTLMMIOPort, system1: CanHaveCustomSlaveTLPort,
+    th: HasHarnessInstantiators,
+    ports0: Seq[HeterogeneousBag[TLBundle]], ports1: Seq[HeterogeneousBag[TLBundle]]
+  ) => {
+    require(ports0.size == ports1.size)
+    (ports0 zip ports1).map { case (l, r) =>
+      println(s"Size of ports to connect: ${l} ${r} ${l.getWidth} ${r.getWidth}")
+      require(l.asUInt.getWidth == r.asUInt.getWidth)
+      l <> r
+    }
+  }
+))
+
+class IntegrationConfig2 extends Config(
+  new chipyard.harness.WithAbsoluteFreqHarnessClockInstantiator ++   // use absolute freqs for sims in the harness
+  new WithMultiChipTLBus(0, 1) ++
+  new chipyard.harness.WithMultiChip(0,
+    new AppSoCConfig) ++
+  new chipyard.harness.WithMultiChip(1,
+    new SmartNICSoCConfig))
