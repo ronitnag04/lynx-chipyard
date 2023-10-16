@@ -29,7 +29,7 @@ include libgloss.mk
 
 PROGRAMS = pwm blkdev accum charcount nic-loopback big-blkdev pingd \
            streaming-passthrough streaming-fir nvdla spiflashread spiflashwrite fft gcd \
-           hello mt-hello
+           hello mt-hello smartnic appsoc
 
 
 .DEFAULT_GOAL := default
@@ -46,10 +46,10 @@ spiflash.img: spiflash.py
 	$(GCC) $(CFLAGS) -D__ASSEMBLY__=1 -c $< -o $@
 
 %.o: %.c mmio.h spiflash.h
-	$(GCC) $(CFLAGS) -c $< -o $@
+	$(GCC) $(CFLAGS) -I $(PWD)/uartprint/include -I $(PWD)/uartprint -c $< -o $@
 
-%.riscv: %.o $(libgloss)
-	$(GCC) $(LDFLAGS) $< -o $@
+%.riscv: %.o $(libgloss) uartprint/kprintf.o
+	$(GCC) $(LDFLAGS) uartprint/kprintf.o $< -o $@
 
 %.dump: %.riscv
 	$(OBJDUMP) -D $< > $@
@@ -61,11 +61,11 @@ spiflash.img: spiflash.py
 
 .PHONY: clean
 clean:
-	rm -f *.riscv *.o *.dump
+	rm -f *.riscv *.o *.dump uartprint/kprintf.o
 	$(if $(libgloss),rm -rf $(libgloss_builddir)/)
 
 .PHONY: default
-default: $(addsuffix .riscv, $(PROGRAMS)) spiflash.img
+default: uartprint/kprintf.o $(addsuffix .riscv, $(PROGRAMS)) spiflash.img
 
 .PHONY: dumps
 dumps: $(addsuffix .dump, $(PROGRAMS))

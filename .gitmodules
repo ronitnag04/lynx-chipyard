@@ -3,7 +3,7 @@
 	url = https://github.com/chipsalliance/rocket-chip.git
 [submodule "testchipip"]
 	path = generators/testchipip
-	url = https://github.com/ucb-bar/testchipip.git
+	url = https://github.com/abejgonzalez/hyperscale-grpc-testchipip.git
 [submodule "barstools"]
 	path = tools/barstools
 	url = https://github.com/ucb-bar/barstools.git

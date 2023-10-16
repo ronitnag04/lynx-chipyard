@@ -106,22 +106,29 @@ trait CanHaveCustomMasterTLMMIOPort { this: BaseSubsystem =>
   private val portName = "mmio_port_tl"
   private val device = new SimpleBus(portName.kebab, Nil)
 
+  // needs to access:
+  //   dev: addr,size
+  //   dram: a000_0000,1000_0000
+  //   icenic: 1001_6000,1000
+  //   clint: b000_0000,1_0000
+
   val mmioTLNode = TLManagerNode(
-    mmioPortParamsOpt.map(params =>
+    mmioPortParamsOpt.map(params => {
+      val dramAS = AddressSet.misaligned(params.base, params.size)
+      val icenicAS = AddressSet(x"1001_6000", x"fff")
+      val clintAS = AddressSet(x"b000_0000", x"ffff")
+      val overallAS = dramAS :+ icenicAS :+ clintAS
       TLSlavePortParameters.v1(
         managers = Seq(TLSlaveParameters.v1(
-          address            = AddressSet.misaligned(params.base, params.size),
+          address            = overallAS,
           resources          = device.ranges,
           executable         = params.executable,
-          //regionType         = RegionType.UNCACHED,
           supportsGet        = TransferSizes(1, 4096),
-          //supportsAcquireB   = TransferSizes(1, 4096),
-          //supportsAcquireT   = TransferSizes(1, 4096),
           supportsPutFull    = TransferSizes(1, 4096),
           supportsPutPartial = TransferSizes(1, 4096))),
         beatBytes = params.beatBytes,
-        //endSinkId = 256
-      )).toSeq)
+      )
+    }).toSeq)
 
   mmioPortParamsOpt.map { params =>
     sbus.coupleTo(s"port_named_$portName") {
@@ -152,9 +159,6 @@ trait CanHaveCustomSlaveTLPort { this: BaseSubsystem =>
         clients = Seq(TLMasterParameters.v1(
           name     = portName.kebab,
           sourceId = IdRange(0, 1 << params.idBits),
-          //supportsGet        = TransferSizes(1, fbus.blockBytes),
-          //supportsPutFull    = TransferSizes(1, fbus.blockBytes),
-          //supportsPutPartial = TransferSizes(1, fbus.blockBytes)
         )),
         )).toSeq)
 
@@ -164,7 +168,6 @@ trait CanHaveCustomSlaveTLPort { this: BaseSubsystem =>
         := TLFilter(TLFilter.mMaskCacheable)
         := TLSourceShrinker(1 << params.sourceBits)
         := TLWidthWidget(params.beatBytes)
-        //:= TLFragmenter(fbus.beatBytes, fbus.blockBytes)
         := l2FrontendTLNode )
     }
   }

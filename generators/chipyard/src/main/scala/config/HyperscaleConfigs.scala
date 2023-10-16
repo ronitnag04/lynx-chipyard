@@ -117,9 +117,7 @@ class HyperscaleMegaBoomBaseConfig extends Config(
   new freechips.rocketchip.subsystem.WithNBanks(8) ++
   new chipyard.config.WithExtMemIdBits(7) ++
   new freechips.rocketchip.subsystem.WithNMemoryChannels(4) ++
-  new Config ((site, here, up) => {
-    case SystemBusKey => up(SystemBusKey).copy(beatBytes = 32)
-  }) ++
+  new chipyard.config.WithSystemBusWidth(256) ++
   new boom.common.WithBoomCommitLogPrintf ++
   new boom.common.WithNMegaBooms(1) ++
   new chipyard.config.AbstractConfig)
@@ -193,6 +191,9 @@ class AppSoCConfig extends Config(
   }) ++
   new HyperscaleRocketBaseConfig)
 
+import freechips.rocketchip.devices.tilelink.{CLINTParams, CLINTKey}
+import testchipip.{BootAddrRegKey}
+
 class SmartNICSoCConfig extends Config(
   // setup memory to be at different location
   new Config((site, here, up) => {
@@ -212,9 +213,14 @@ class SmartNICSoCConfig extends Config(
       sourceBits = 1 // ?? changes nothing
     ))
   }) ++
-  // disable tsi on this soc
+  // TODO: have this be autoconfigured by the ExtMem key
   new Config((site, here, up) => {
+    // disable tsi on this soc
     case SerialTLKey => None
+    // move CLINT to know addr
+    case CLINTKey => Some(CLINTParams(baseAddress = x"b000_0000"))
+    // have bootrom jump to proper dram loc
+    case BootAddrRegKey => up(BootAddrRegKey).map(_.copy(defaultBootAddress = x"a000_0000", defaultClintAddress = x"b000_0000"))
   }) ++
   new chipyard.harness.WithLoopbackNIC ++
   new icenet.WithIceNIC ++
