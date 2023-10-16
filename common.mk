@@ -267,22 +267,27 @@ $(SFC_MFC_TARGETS) &: $(TAPEOUT_CLASSPATH_TARGETS) $(FIRRTL_FILE) $(FINAL_ANNO_F
 # DOC include end: FirrtlCompiler
 
 $(TOP_MODS_FILELIST) $(MODEL_MODS_FILELIST) $(ALL_MODS_FILELIST) $(BB_MODS_FILELIST) $(MFC_MODEL_HRCHY_JSON_UNIQUIFIED) &: $(MFC_MODEL_HRCHY_JSON) $(MFC_TOP_HRCHY_JSON) $(MFC_FILELIST) $(MFC_BB_MODS_FILELIST)
-	$(base_dir)/scripts/uniquify-module-names.py \
-		--model-hier-json $(MFC_MODEL_HRCHY_JSON) \
-		--top-hier-json $(MFC_TOP_HRCHY_JSON) \
-		--in-all-filelist $(MFC_FILELIST) \
-		--dut $(TOP) \
-		--model $(MODEL) \
-		--target-dir $(GEN_COLLATERAL_DIR) \
-		--out-dut-filelist $(TOP_MODS_FILELIST) \
-		--out-model-filelist $(MODEL_MODS_FILELIST) \
-		--out-model-hier-json $(MFC_MODEL_HRCHY_JSON_UNIQUIFIED) \
-		--gcpath $(GEN_COLLATERAL_DIR)
 	$(SED) -e 's;^;$(GEN_COLLATERAL_DIR)/;' $(MFC_BB_MODS_FILELIST) > $(BB_MODS_FILELIST)
-	$(SED) -i 's/\.\///' $(TOP_MODS_FILELIST)
-	$(SED) -i 's/\.\///' $(MODEL_MODS_FILELIST)
-	$(SED) -i 's/\.\///' $(BB_MODS_FILELIST)
-	sort -u $(TOP_MODS_FILELIST) $(MODEL_MODS_FILELIST) $(BB_MODS_FILELIST) > $(ALL_MODS_FILELIST)
+	$(SED) -e 's/\.\///' $(MFC_FILELIST) > $(MODEL_MODS_FILELIST)
+	$(SED) -i 's;^;$(GEN_COLLATERAL_DIR)/;' $(MODEL_MODS_FILELIST)
+	sort -u $(BB_MODS_FILELIST) $(MODEL_MODS_FILELIST) > $(ALL_MODS_FILELIST)
+	cp $(MFC_MODEL_HRCHY_JSON) $(MFC_MODEL_HRCHY_JSON_UNIQUIFIED)
+	#$(base_dir)/scripts/uniquify-module-names.py \
+	#	--model-hier-json $(MFC_MODEL_HRCHY_JSON) \
+	#	--top-hier-json $(MFC_TOP_HRCHY_JSON) \
+	#	--in-all-filelist $(MFC_FILELIST) \
+	#	--dut $(TOP) \
+	#	--model $(MODEL) \
+	#	--target-dir $(GEN_COLLATERAL_DIR) \
+	#	--out-dut-filelist $(TOP_MODS_FILELIST) \
+	#	--out-model-filelist $(MODEL_MODS_FILELIST) \
+	#	--out-model-hier-json $(MFC_MODEL_HRCHY_JSON_UNIQUIFIED) \
+	#	--gcpath $(GEN_COLLATERAL_DIR)
+	#$(SED) -e 's;^;$(GEN_COLLATERAL_DIR)/;' $(MFC_BB_MODS_FILELIST) > $(BB_MODS_FILELIST)
+	#$(SED) -i 's/\.\///' $(TOP_MODS_FILELIST)
+	#$(SED) -i 's/\.\///' $(MODEL_MODS_FILELIST)
+	#$(SED) -i 's/\.\///' $(BB_MODS_FILELIST)
+	#sort -u $(TOP_MODS_FILELIST) $(MODEL_MODS_FILELIST) $(BB_MODS_FILELIST) > $(ALL_MODS_FILELIST)
 
 $(TOP_SMEMS_CONF) $(MODEL_SMEMS_CONF) &:  $(MFC_SMEMS_CONF) $(MFC_MODEL_HRCHY_JSON_UNIQUIFIED)
 	$(base_dir)/scripts/split-mems-conf.py \

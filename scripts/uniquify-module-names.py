@@ -42,7 +42,7 @@ def bfs_collect_modules(tree, child_to_ignore = None):
     (inst, mod, child) = front
     modules.append(mod)
     for c in child:
-      if c['module_name'] != child_to_ignore:
+      if (not child_to_ignore) or (not c['module_name'].startswith(child_to_ignore)):
         q.append((c['instance_name'], c['module_name'], c['instances']))
   return modules
 

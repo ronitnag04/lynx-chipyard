@@ -151,7 +151,8 @@ lazy val chipyard = (project in file("generators/chipyard"))
     dsptools, rocket_dsp_utils,
     gemmini, icenet, tracegen, cva6, nvdla, sodor, ibex, fft_generator,
     constellation, mempress, barf, shuttle,
-    compressacc, protoacc, aesacc
+    compressacc, protoacc, aesacc, latency_injection_queue,
+    midasTargetUtils
   )
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(
@@ -287,6 +288,11 @@ lazy val rocket_dsp_utils = freshProject("rocket-dsp-utils", file("./tools/rocke
   .settings(commonSettings)
 
 lazy val sifive_blocks = (project in file("generators/sifive-blocks"))
+  .dependsOn(rocketchip)
+  .settings(libraryDependencies ++= rocketLibDeps.value)
+  .settings(commonSettings)
+
+lazy val latency_injection_queue = freshProject("latency-injection-queue", file("generators/latency-injection-queue"))
   .dependsOn(rocketchip)
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(commonSettings)
