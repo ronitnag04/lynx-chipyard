@@ -17,9 +17,11 @@ SOC2_BIN=$PWD/tests/smartnic.smartnic.riscv
 
 pushd sims/vcs
 rm -rf uartpty*
-make clean
+#make clean
 # payload should load the 2nd binary (provided it has the right addresses)
+    #EXTRA_SIM_FLAGS="+payload=${SOC2_BIN} +cross_link_latency=32" \
 make CONFIG=IntegrationConfig \
     BINARY=../../tests/appsoc.riscv \
+    #EXTRA_SIM_FLAGS="+payload=${SOC2_BIN}" \
     EXTRA_SIM_FLAGS="+payload=${SOC2_BIN} +cross_link_latency=32" \
-    run-binary
+    run-binary-debug

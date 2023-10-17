@@ -12,7 +12,7 @@ import testchipip.{SerialTLKey}
 import freechips.rocketchip.devices.tilelink.{CLINTParams, CLINTKey}
 import testchipip.{BootAddrRegKey}
 import chipyard.harness.{MultiHarnessBinder, HasHarnessInstantiators}
-import freechips.rocketchip.util.{HeterogeneousBag, PlusArg}
+import freechips.rocketchip.util.{HeterogeneousBag, PlusArg, AsyncResetReg}
 import freechips.rocketchip.tilelink.{TLBundle, TLBundleA, TLBundleD}
 
 class BaseAppSoCConfig extends Config(
@@ -82,27 +82,29 @@ class WithMultiChipTLBus(chip0: Int, chip1: Int, isFiresim: Boolean = false) ext
         require(ll.params == rr.params, "DEBUG: Ensure the TLBundles can be connected")
         require(!ll.params.hasBCE, "DEBUG: Only supports TL-UC")
 
+        // HACK! Using the same clock as the buses they are connected to
+        val tClk = th.harnessClockInstantiator.requestClockMHz("clock_500MHz", 500)
+        val tReset = AsyncResetReg(false.B, tClk, th.harnessBinderReset.asBool, true, None)
+
         // connect the fields of the TLBundle
         DataMirror.specifiedDirectionOf(ll.a.ready) match {
           case SpecifiedDirection.Input =>
             val qa = Module(new latqueue.LatencyInjectionQueue(DataMirror.internal.chiselTypeClone[TLBundleA](ll.a.bits), 128))
+            qa.clock := tClk
+            qa.reset := tReset
             val qd = Module(new latqueue.LatencyInjectionQueue(DataMirror.internal.chiselTypeClone[TLBundleD](rr.d.bits), 128))
+            qd.clock := tClk
+            qd.reset := tReset
             qa.io.latency_cycles := latency
             qd.io.latency_cycles := latency
             qa.io.enq <> ll.a
             rr.a <> qa.io.deq
             qd.io.enq <> rr.d
             ll.d <> qd.io.deq
-          case SpecifiedDirection.Output =>
-            val qa = Module(new latqueue.LatencyInjectionQueue(DataMirror.internal.chiselTypeClone[TLBundleA](rr.a.bits), 128))
-            val qd = Module(new latqueue.LatencyInjectionQueue(DataMirror.internal.chiselTypeClone[TLBundleD](ll.d.bits), 128))
-            qa.io.latency_cycles := latency
-            qd.io.latency_cycles := latency
-            qa.io.enq <> rr.a
-            ll.a <> qa.io.deq
-            qd.io.enq <> ll.d
-            rr.d <> qd.io.deq
-          case _ =>
+            //rr.a <> ll.a
+            //ll.d <> rr.d
+          case SpecifiedDirection.Output => require(false, "Not supported")
+          case _ => require(false, "Not supported")
         }
       }
     }
@@ -116,21 +118,21 @@ class WithMultiChipTLBus(chip0: Int, chip1: Int, isFiresim: Boolean = false) ext
 // ---------------------------------------------------------------------------
 
 class AppSoCConfig extends Config(
-  new compressacc.WithSnappyDecompressor ++
-  new compressacc.WithSnappyCompressor ++
-  new protoacc.WithProtoAccelSerOnly ++
-  new protoacc.WithProtoAccelDeserOnly ++
-  new chipyard.config.WithAES192(0x70000000L, 0xFFL, "aes_small") ++
+  //new compressacc.WithSnappyDecompressor ++
+  //new compressacc.WithSnappyCompressor ++
+  //new protoacc.WithProtoAccelSerOnly ++
+  //new protoacc.WithProtoAccelDeserOnly ++
+  //new chipyard.config.WithAES192(0x70000000L, 0xFFL, "aes_small") ++
   new BaseAppSoCConfig)
 
 class SmartNICSoCConfig extends Config(
   new chipyard.harness.WithLoopbackNIC ++
   new icenet.WithIceNIC ++
-  new compressacc.WithZstdDecompressor32 ++
-  new compressacc.WithZstdCompressor ++
-  new protoacc.WithProtoAccelSerOnly ++
-  new protoacc.WithProtoAccelDeserOnly ++
-  new chipyard.config.WithAES192(0x70000000L, 0xFFL, "aes_large") ++
+  //new compressacc.WithZstdDecompressor32 ++
+  //new compressacc.WithZstdCompressor ++
+  //new protoacc.WithProtoAccelSerOnly ++
+  //new protoacc.WithProtoAccelDeserOnly ++
+  //new chipyard.config.WithAES192(0x70000000L, 0xFFL, "aes_large") ++
   new BaseSmartNICSoCConfig)
 
 class BaseIntegrationConfig(isFiresim: Boolean = false) extends Config(

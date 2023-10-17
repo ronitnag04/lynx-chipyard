@@ -21,6 +21,7 @@ trait HarnessClockInstantiator {
 
   // request a clock at a particular frequency
   def requestClockHz(name: String, freqHzRequested: Double): Clock = {
+    println(s"Clock requested: ${name} ${freqHzRequested}")
     if (clockMap.contains(name)) {
       require(freqHzRequested == clockMap(name)._1,
         s"Request clock freq = $freqHzRequested != previously requested ${clockMap(name)._2} for requested clock $name")
