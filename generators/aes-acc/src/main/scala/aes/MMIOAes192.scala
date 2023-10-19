@@ -129,10 +129,10 @@ class aesTLModuleImp(coreparams: AES192Params, outer: aesTLModule) extends LazyM
 
     // Add the SystemVerilog/Verilog files associated with the BlackBox
     // Relative to ./src/main/resources
-    addResource("/vsrc/aes/aes_192_mock_tss.sv")
-    addResource("/vsrc/aes/aes_192.v")
-    addResource("/vsrc/aes/round.v")
-    addResource("/vsrc/aes/table.v")
+    addResource("/vsrc/aes/aes192/aes_192_mock_tss.sv")
+    addResource("/vsrc/aes/aes192/aes_192.v")
+    addResource("/vsrc/aes/aes192/round.v")
+    addResource("/vsrc/aes/aes192/table.v")
 
     //Common Resources used by all modules (LLKI, Opentitan, etc.)
 

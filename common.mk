@@ -270,7 +270,8 @@ $(TOP_MODS_FILELIST) $(MODEL_MODS_FILELIST) $(ALL_MODS_FILELIST) $(BB_MODS_FILEL
 	$(SED) -e 's;^;$(GEN_COLLATERAL_DIR)/;' $(MFC_BB_MODS_FILELIST) > $(BB_MODS_FILELIST)
 	$(SED) -e 's/\.\///' $(MFC_FILELIST) > $(MODEL_MODS_FILELIST)
 	$(SED) -i 's;^;$(GEN_COLLATERAL_DIR)/;' $(MODEL_MODS_FILELIST)
-	sort -u $(BB_MODS_FILELIST) $(MODEL_MODS_FILELIST) > $(ALL_MODS_FILELIST)
+	#sort -u $(BB_MODS_FILELIST) $(MODEL_MODS_FILELIST) > $(ALL_MODS_FILELIST)
+	cat -n $(BB_MODS_FILELIST) $(MODEL_MODS_FILELIST) | sort -k2 -k1n  | uniq -f1 | sort -nk1,1 | cut -f2- > $(ALL_MODS_FILELIST)
 	cp $(MFC_MODEL_HRCHY_JSON) $(MFC_MODEL_HRCHY_JSON_UNIQUIFIED)
 	#$(base_dir)/scripts/uniquify-module-names.py \
 	#	--model-hier-json $(MFC_MODEL_HRCHY_JSON) \
@@ -313,7 +314,7 @@ $(MODEL_SMEMS_FILE) $(MODEL_SMEMS_FIR) &: $(TAPEOUT_CLASSPATH_TARGETS) $(MODEL_S
 #       however it is really unneeded since ALL_MODS_FILELIST includes all BB files
 ########################################################################################
 $(sim_common_files): $(sim_files) $(ALL_MODS_FILELIST) $(TOP_SMEMS_FILE) $(MODEL_SMEMS_FILE) $(BB_MODS_FILELIST)
-	sort -u $(sim_files) $(ALL_MODS_FILELIST) | grep -v '.*\.\(svh\|h\)$$' > $@
+	cat -n $(sim_files) $(ALL_MODS_FILELIST) | sort -k2 -k1n  | uniq -f1 | sort -nk1,1 | cut -f2- | grep -v '.*\.\(svh\|h\)$$' > $@
 	echo "$(TOP_SMEMS_FILE)" >> $@
 	echo "$(MODEL_SMEMS_FILE)" >> $@
 

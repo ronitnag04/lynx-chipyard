@@ -13,15 +13,15 @@ set -ex
 #./build-for-smartnic.sh smartnic
 #popd
 
+#SOC1_BIN=$PWD/tests/appsoc.riscv
+SOC1_BIN=$PWD/tests/nic-loopback.riscv
 SOC2_BIN=$PWD/tests/smartnic.smartnic.riscv
 
 pushd sims/vcs
 rm -rf uartpty*
 #make clean
 # payload should load the 2nd binary (provided it has the right addresses)
-    #EXTRA_SIM_FLAGS="+payload=${SOC2_BIN} +cross_link_latency=32" \
 make CONFIG=IntegrationConfig \
-    BINARY=../../tests/appsoc.riscv \
-    #EXTRA_SIM_FLAGS="+payload=${SOC2_BIN}" \
-    EXTRA_SIM_FLAGS="+payload=${SOC2_BIN} +cross_link_latency=32" \
+    BINARY=${SOC1_BIN} \
+    EXTRA_SIM_FLAGS="+payload=${SOC2_BIN} +cross_link_latency=10" \
     run-binary-debug
