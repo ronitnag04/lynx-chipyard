@@ -151,7 +151,7 @@ lazy val chipyard = (project in file("generators/chipyard"))
     dsptools, rocket_dsp_utils,
     gemmini, icenet, tracegen, cva6, nvdla, sodor, ibex, fft_generator,
     constellation, mempress, barf, shuttle,
-    compressacc, protoacc, aesacc, latency_injection_queue,
+    compressacc, protoacc, aesacc, latency_injection_queue, memcpyacc
     midasTargetUtils
   )
   .settings(libraryDependencies ++= rocketLibDeps.value)
@@ -248,6 +248,11 @@ lazy val compressacc = (project in file("generators/compress-acc"))
   .settings(commonSettings)
 
 lazy val aesacc = (project in file("generators/aes-acc"))
+  .dependsOn(rocketchip, midasTargetUtils)
+  .settings(libraryDependencies ++= rocketLibDeps.value)
+  .settings(commonSettings)
+
+lazy val memcpyacc = (project in file("generators/memcpy-acc"))
   .dependsOn(rocketchip, midasTargetUtils)
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(commonSettings)

@@ -142,3 +142,6 @@
 [submodule "generators/latency-injection-queue"]
 	path = generators/latency-injection-queue
 	url = https://github.com/joey0320/latency-injection-queue.git
+[submodule "generators/memcpy-acc"]
+	path = generators/memcpy-acc
+	url = https://github.com/junsunchoi/memcpy-acc
