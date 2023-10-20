@@ -15,6 +15,9 @@ PKG_FILES = \
 TB_FILES = \
     $(VSRC_DIR)/aes_cipher_core_tb.sv
 
+WRAPPER_FILES = \
+    $(VSRC_DIR)/aes_cipher_core_wrapper.sv
+
 AES_FILES = \
     $(VSRC_DIR)/rtl/aes_cipher_control_fsm_n.sv \
     $(VSRC_DIR)/rtl/aes_cipher_control_fsm_p.sv \
@@ -65,7 +68,7 @@ $(TB_FILE): $(PKG_FILES) $(TB_FILES) $(AES_FILES)
 
 CORE_FILE = $(VSRC_DIR)/core.sv
 core: $(CORE_FILE)
-$(CORE_FILE): $(PKG_FILES) $(AES_FILES)
+$(CORE_FILE): $(PKG_FILES) $(WRAPPER_FILES) $(AES_FILES)
 	mkdir -p $(dir $@)
 	$(foreach def,$(PREPROC_DEFINES),echo "\`define $(def)" >> def.v; )
 	$(foreach def,$(PREPROC_DEFINES),echo "\`undef $(def)" >> undef.v; )
