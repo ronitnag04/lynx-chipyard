@@ -5,14 +5,8 @@ import sys.process._
 import chisel3._
 import chisel3.util._
 import chisel3.util.random.{LFSR}
-import chisel3.experimental.{IntParam, BaseModule}
 
-import org.chipsalliance.cde.config.{Field, Parameters}
-
-import freechips.rocketchip.subsystem.{BaseSubsystem, PeripheryBusKey}
-import freechips.rocketchip.diplomacy._
-import freechips.rocketchip.regmapper._
-import freechips.rocketchip.tilelink._
+import freechips.rocketchip.util.{DecoupledHelper}
 
 // general resources used:
 //   https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38a.pdf
@@ -102,105 +96,105 @@ class AesCipherCoreDriver extends Module {
   acc.io.prd_clearing_i_0 := LFSR(64, acc.io.out_valid_o)
   acc.io.prd_clearing_i_1 := LFSR(64, acc.io.out_valid_o)
 
-  val INITIAL_IDLE :: INIT_RESEED :: IDLE :: ENCRYPT :: DEC_KEY_GEN :: DECRYPT :: Nil = Enum(6)
-  val state = RegInit(INITIAL_IDLE)
+  val s_initial_idle :: s_init_reseed :: s_idle :: s_encrypt :: s_dec_key_gen :: s_decrypt :: Nil = Enum(6)
+  val state = RegInit(s_initial_idle)
 
   switch (state) {
     // wait for core to be ready
-    is (INITIAL_IDLE) {
+    is (s_initial_idle) {
       when (acc.io.in_ready_o) {
-        state := INIT_RESEED
+        state := s_init_reseed
       }
     }
 
     // initially preseed the rng
-    is (INIT_RESEED) {
+    is (s_init_reseed) {
       when (acc.out_fire()) {
-        state := IDLE
+        state := s_idle
       }
     }
 
     // start here when switching from encrypt to decrypt
-    is (IDLE) {
+    is (s_idle) {
       when (io.in.valid) {
-        state := Mux(io.in.bits.encrypt, ENCRYPT, DEC_KEY_GEN)
+        state := Mux(io.in.bits.encrypt, s_encrypt, s_dec_key_gen)
       }
     }
 
-    is (ENCRYPT) {
+    is (s_encrypt) {
       when (io.in.valid) {
         when (io.in.bits.encrypt) {
-          state := ENCRYPT
+          state := s_encrypt
         } .otherwise {
-          state := IDLE
+          state := s_idle
         }
       } .otherwise {
-        state := IDLE
+        state := s_idle
       }
     }
 
     // create initial decryption key
-    is (DEC_KEY_GEN) {
+    is (s_dec_key_gen) {
       when (acc.out_fire()) {
-        state := DECRYPT
+        state := s_decrypt
       }
     }
 
-    is (DECRYPT) {
+    is (s_decrypt) {
       when (io.in.valid) {
         when (!io.in.bits.encrypt) {
-          state := DECRYPT
+          state := s_decrypt
         } .otherwise {
-          state := IDLE
+          state := s_idle
         }
       } .otherwise {
-        state := IDLE
+        state := s_idle
       }
     }
   }
 
-  // INIT_RESEED:
+  // s_init_reseed:
   //   in_fire := true
   //   crypt := false
   //   prng_reseed := 1
-  // ENCRYPT_SEND:
+  // s_encrypt_SEND:
   //   in_fire := true
   //   prng_reseed := 1
   //   state_init_0 := in_data ^ data_in_mask_0
   //   state_init_1 := data_in_mask_0
-  // ENCRYPT_RECV:
+  // s_encrypt_RECV:
   //   out_fire := true
   //   io.out.bits.data := acc.io.state_o_1 ^ acc.io.state_o_0
-  // DEC_KEY_GEN_SEND: // have to generate the start key for decryption before it always
+  // s_dec_key_gen_SEND: // have to generate the start key for decryption before it always
   //   in_fire := true
   //   dec_key_gen := true
   //   prng_reseed := 1
-  // DEC_KEY_GEN_RECV:
+  // s_dec_key_gen_RECV:
   //   out_fire := true
-  // DECRYPT_SEND:
+  // s_decrypt_SEND:
   //   in_fire := true
   //   op := decrypt
   //   prng_reseed := 1
   //   state_init_0 := in_data ^ data_in_mask_0
   //   state_init_1 := data_in_mask_0
-  // ENCRYPT_RECV:
+  // s_encrypt_RECV:
   //   out_fire := true
   //   io.out.bits.data := acc.io.state_o_1 ^ acc.io.state_o_0
 
   val op = RegInit(AesCipherCoreConsts.CIPH_FWD)
   val prng_reseed = RegInit(false.B)
   // kinda matches how this key is setup: https://github.com/lowRISC/opentitan/blob/fe702b60582f7c4e5549352a09e7992544d41bec/sw/device/lib/crypto/drivers/aes_test.c#L67
-  acc.io.key_init_i_0 := io.in.key
+  acc.io.key_init_i_0 := io.in.bits.key
   acc.io.key_init_i_1 := (-1).U
 
   val encrypt_send_helper = DecoupledHelper(
-    state === ENCRYPT,
+    state === s_encrypt,
     io.in.valid,
     io.in.ready
   )
 
   val decrypt_send_helper = DecoupledHelper(
-    state === DECRYPT,
+    state === s_decrypt,
     io.in.valid,
     io.in.ready
   )
@@ -213,18 +207,18 @@ class AesCipherCoreDriver extends Module {
     printf(":RESPOUT: Data(0x%x)\n", io.out.bits.data)
   }
 
-  acc.io.in_valid_i := (state === INIT_RESEED) || encrypt_send_helper.fire(io.in.ready) || decrypt_send_helper.fire(io.in.ready)
-  io.in.ready := (acc.io.in_ready_o && state =/= INITIAL_IDLE)
+  acc.io.in_valid_i := (state === s_init_reseed) || encrypt_send_helper.fire(io.in.ready) || decrypt_send_helper.fire(io.in.ready)
+  io.in.ready := (acc.io.in_ready_o && state =/= s_initial_idle)
 
-  io.out.valid := ((state === ENCRYPT) || (state === DECRYPT)) && acc.io.out_valid_o
-  acc.io.out_ready_i := io.out.ready || (state === DEC_KEY_GEN)
+  io.out.valid := ((state === s_encrypt) || (state === s_decrypt)) && acc.io.out_valid_o
+  acc.io.out_ready_i := io.out.ready || (state === s_dec_key_gen)
   io.out.bits.data := acc.io.state_o_1 ^ acc.io.state_o_0
 
-  acc.io.crypt_i := state =/= INIT_RESEED
+  acc.io.crypt_i := state =/= s_init_reseed
   acc.io.prng_reseed_i := true.B // reseed as much as possible?
 
   acc.io.state_init_i_0 := io.in.bits.data ^ acc.io.data_in_mask_o
   acc.io.state_init_i_1 := io.in.bits.data ^ acc.io.data_in_mask_o
 
-  acc.io.op_i := Mux(state === ENCRYPT, AesCipherCoreConsts.CIPH_FWD, AesCipherCoreConsts.CIPH_INV)
+  acc.io.op_i := Mux(state === s_encrypt, AesCipherCoreConsts.CIPH_FWD, AesCipherCoreConsts.CIPH_INV)
 }
