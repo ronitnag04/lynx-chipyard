@@ -1773,7 +1773,7 @@ module aes_cipher_core_tb #(
 
   import aes_pkg::*;
 
-  localparam bit          SecMasking   = 1;
+  localparam bit          SecMasking   = 0;
   localparam sbox_impl_e  SecSBoxImpl  = SecMasking ? SBoxImplDom : SBoxImplCanright;
   localparam int          NumShares    = SecMasking ?           2 :                1;
   localparam int unsigned EntropyWidth = edn_pkg::ENDPOINT_BUS_WIDTH;

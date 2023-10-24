@@ -7,17 +7,31 @@ import chisel3.util._
 import chisel3.util.random.{LFSR}
 
 import freechips.rocketchip.util.{DecoupledHelper}
+import accelip._
 
-// general resources used:
+// Non-exhaustive list of resources used to integrate:
 //   https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38a.pdf
-//   https://github.com/lowRISC/opentitan/blob/fe702b60582f7c4e5549352a09e7992544d41bec/hw/ip/aes/rtl/aes_core.sv
-//   https://github.com/lowRISC/opentitan/blob/fe702b60582f7c4e5549352a09e7992544d41bec/hw/ip/aes/rtl/aes_control_fsm.sv
-//   https://github.com/lowRISC/opentitan/blob/fe702b60582f7c4e5549352a09e7992544d41bec/hw/ip/aes/rtl/aes_reg_top.sv
-//   https://github.com/lowRISC/opentitan/blob/fe702b60582f7c4e5549352a09e7992544d41bec/sw/device/lib/crypto/drivers/aes.c
-//   https://github.com/lowRISC/opentitan/blob/fe702b60582f7c4e5549352a09e7992544d41bec/sw/device/lib/crypto/drivers/aes_test.c
+//   https://opentitan.org/book/doc/introduction.html
+//   https://github.com/lowRISC/opentitan/blob/fe702b60582f7c4e5549352a09e7992544d41bec/
+//     hw/ip/aes/rtl/aes_core.sv
+//     hw/ip/aes/rtl/aes_control_fsm.sv
+//     hw/ip/aes/rtl/aes_reg_top.sv
+//     sw/device/lib/crypto/drivers/aes.c
+//     sw/device/lib/crypto/drivers/aes_test.c
 
-// encrypt/decrypt 128b of data (16B) blocks with a 256b key
-class aes_cipher_core_wrapper extends BlackBox with HasBlackBoxPath {
+trait AESConsts {
+  val BLOCK_SZ_BYTES = 16
+  val BLOCK_SZ_BITS = BLOCK_SZ_BYTES * 8
+}
+
+object AES256Consts extends AESConsts {
+  val KEY_SZ_BYTES = 32
+  val KEY_SZ_BITS = KEY_SZ_BYTES * 8
+}
+import AES256Consts._
+
+// AES256 Encrypt/Decrypt Block (ECB-mode, no security masking)
+class AesCipherCoreWrapper_AES256_ECB_NoMask extends BlackBox with HasBlackBoxPath {
   val io = IO(new Bundle {
     val clk_i = Input(Clock())
     val rst_ni = Input(Reset())
@@ -35,19 +49,15 @@ class aes_cipher_core_wrapper extends BlackBox with HasBlackBoxPath {
     val prng_reseed_i = Input(Bool())
 
     val prd_clearing_i_0 = Input(UInt(64.W))
-    val prd_clearing_i_1 = Input(UInt(64.W))
 
-    val data_in_mask_o = Output(UInt(128.W))
+    val data_in_mask_o = Output(UInt(BLOCK_SZ_BITS.W))
     val entropy_req_o = Output(Bool())
     val entropy_ack_i = Input(Bool())
     val entropy_i = Input(UInt(32.W))
 
-    val state_init_i_0 = Input(UInt(128.W))
-    val state_init_i_1 = Input(UInt(128.W))
-    val key_init_i_0 = Input(UInt(256.W))
-    val key_init_i_1 = Input(UInt(256.W))
-    val state_o_0 = Output(UInt(128.W))
-    val state_o_1 = Output(UInt(128.W))
+    val state_init_i_0 = Input(UInt(BLOCK_SZ_BITS.W))
+    val key_init_i_0 = Input(UInt(KEY_SZ_BITS.W))
+    val state_o_0 = Output(UInt(BLOCK_SZ_BITS.W))
 
     val alert_o = Output(Bool())
     val force_masks_i = Input(Bool())
@@ -67,15 +77,16 @@ class aes_cipher_core_wrapper extends BlackBox with HasBlackBoxPath {
 
 class InCryptBundle extends Bundle {
   val encrypt = Input(Bool()) // if not then decrypt
-  val data = Input(UInt(128.W))
-  val key = Input(UInt(256.W))
+  val data = Input(UInt(BLOCK_SZ_BITS.W))
+  val key = Input(UInt(KEY_SZ_BITS.W))
 }
 
 class OutCryptBundle extends Bundle {
-  val data = Output(UInt(128.W))
+  val data = Output(UInt(BLOCK_SZ_BITS.W))
 }
 
-// ECB-mode AES-256 block driver (expects the key to stay the same throughout the entire time of an encrypt/decrypt "chain")
+// ECB-mode AES-256 block driver
+//   - Expects the key to stay the same throughout the entire time of {en,de}crypting
 class AesCipherCoreDriver extends Module {
   val io = IO(new Bundle {
     val in = Flipped(DecoupledIO(new InCryptBundle))
@@ -88,19 +99,19 @@ class AesCipherCoreDriver extends Module {
     val CIPH_FWD = "b01".U
     val CIPH_INV = "b10".U
   }
+  import AesCipherCoreConsts._
 
-  val acc = Module(new aes_cipher_core_wrapper)
+  val acc = Module(new AesCipherCoreWrapper_AES256_ECB_NoMask)
   acc.io.clk_i := clock
   acc.io.rst_ni := !reset.asBool
 
-  acc.io.key_len_i := AesCipherCoreConsts.AES_256
+  acc.io.key_len_i := AES_256
   acc.io.entropy_ack_i := true.B // entropy is always available
   acc.io.entropy_i := LFSR(32, acc.io.entropy_req_o)
   acc.io.prd_clearing_i_0 := LFSR(64, acc.io.out_valid_o)
-  acc.io.prd_clearing_i_1 := LFSR(64, acc.io.out_valid_o)
   acc.io.force_masks_i := false.B
 
-  val s_initial_idle :: s_init_reseed :: s_idle :: s_encrypt :: s_dec_key_gen :: s_decrypt :: Nil = Enum(6)
+  val s_initial_idle :: s_idle :: s_encrypt :: s_dec_key_gen :: s_decrypt :: Nil = Enum(5)
   val state = RegInit(s_initial_idle)
   val prev_state = RegNext(state)
 
@@ -108,13 +119,6 @@ class AesCipherCoreDriver extends Module {
     // wait for core to be ready
     is (s_initial_idle) {
       when (acc.io.in_ready_o) {
-        state := s_init_reseed
-      }
-    }
-
-    // initially preseed the rng
-    is (s_init_reseed) {
-      when (acc.out_fire()) {
         state := s_idle
       }
     }
@@ -122,12 +126,14 @@ class AesCipherCoreDriver extends Module {
     // start here when switching from encrypt to decrypt
     is (s_idle) {
       when (io.in.valid) {
+        // since we go back to idle after sending and encrypt/decrypt req, make sure to return to that state
+        // if you started in that state (i.e. only go to dec_key_gen when there is a switch from encrypt -> decrypt)
         state := Mux(io.in.bits.encrypt, s_encrypt, Mux(prev_state === s_decrypt, s_decrypt, s_dec_key_gen))
       }
     }
 
     is (s_encrypt) {
-      when (io.in.fire()) {
+      when (io.in.fire) {
         state := s_idle
       }
     }
@@ -140,17 +146,14 @@ class AesCipherCoreDriver extends Module {
     }
 
     is (s_decrypt) {
-      when (io.in.fire()) {
+      when (io.in.fire) {
         state := s_idle
       }
     }
   }
 
-  val op = RegInit(AesCipherCoreConsts.CIPH_FWD)
-  val prng_reseed = RegInit(false.B)
-  // kinda matches how this key is setup: https://github.com/lowRISC/opentitan/blob/fe702b60582f7c4e5549352a09e7992544d41bec/sw/device/lib/crypto/drivers/aes_test.c#L67
+  val op = RegInit(CIPH_FWD)
   acc.io.key_init_i_0 := io.in.bits.key
-  acc.io.key_init_i_1 := ((1 << acc.io.key_init_i_1.getWidth) - 1).U
 
   val encrypt_send_helper = DecoupledHelper(
     state === s_encrypt,
@@ -160,12 +163,6 @@ class AesCipherCoreDriver extends Module {
 
   val decrypt_send_helper = DecoupledHelper(
     state === s_decrypt,
-    io.in.valid,
-    io.in.ready
-  )
-
-  val reseed_send_helper = DecoupledHelper(
-    state === s_init_reseed,
     io.in.valid,
     io.in.ready
   )
@@ -187,31 +184,27 @@ class AesCipherCoreDriver extends Module {
     printf(":AES:RESPOUT: Data(0x%x)\n", io.out.bits.data)
   }
 
-  //val s_initial_idle :: s_init_reseed :: s_idle :: s_encrypt :: s_dec_key_gen :: s_decrypt :: Nil = Enum(6)
-
   val is_initial_state = (state === s_initial_idle)
-  val is_non_state = (state === s_init_reseed) || (state === s_dec_key_gen)
+  val is_non_state = (state === s_dec_key_gen)
   val is_all_non_state = is_initial_state || is_non_state
 
-  acc.io.in_valid_i := reseed_send_helper.fire(io.in.ready) ||
-    encrypt_send_helper.fire(io.in.ready) ||
+  acc.io.in_valid_i := encrypt_send_helper.fire(io.in.ready) ||
     dec_key_send_helper.fire(io.in.ready) ||
     decrypt_send_helper.fire(io.in.ready)
   io.in.ready := acc.io.in_ready_o && !is_all_non_state && (state =/= s_idle)
 
   io.out.valid := acc.io.out_valid_o && !is_all_non_state
   acc.io.out_ready_i := io.out.ready || is_all_non_state
-  io.out.bits.data := acc.io.state_o_1 ^ acc.io.state_o_0
+  io.out.bits.data := acc.io.state_o_0
 
-  acc.io.dec_key_gen_i := state === s_dec_key_gen
-  acc.io.crypt_i := state =/= s_init_reseed
-  acc.io.prng_reseed_i := true.B // reseed as much as possible?
+  acc.io.dec_key_gen_i := (state === s_dec_key_gen)
+  acc.io.crypt_i := true.B
+  acc.io.prng_reseed_i := true.B // TODO: unsure, reseed as much as possible?
 
-  acc.io.state_init_i_0 := io.in.bits.data ^ acc.io.data_in_mask_o
-  acc.io.state_init_i_1 := io.in.bits.data ^ acc.io.data_in_mask_o
+  acc.io.state_init_i_0 := io.in.bits.data
 
   acc.io.op_i := Mux(
     state === s_encrypt,
-    AesCipherCoreConsts.CIPH_FWD,
-    AesCipherCoreConsts.CIPH_INV)
+    CIPH_FWD,
+    CIPH_INV)
 }

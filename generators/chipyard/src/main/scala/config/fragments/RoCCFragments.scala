@@ -29,8 +29,8 @@ class WithMultiRoCC extends Config((site, here, up) => {
  */
 class WithMultiRoCCFromBuildRoCC(harts: Int*) extends Config((site, here, up) => {
   case BuildRoCC => Nil
-  case MultiRoCCKey => up(MultiRoCCKey, site) ++ harts.distinct.map { i =>
-    (i -> up(BuildRoCC, site))
+  case MultiRoCCKey => up(MultiRoCCKey) ++ harts.distinct.map { i =>
+    (i -> up(BuildRoCC))
   }
 })
 
@@ -49,7 +49,7 @@ class WithMultiRoCCHwacha(harts: Int*) extends Config(
   new chipyard.config.WithHwachaTest ++
   new Config((site, here, up) => {
     case MultiRoCCKey => {
-      up(MultiRoCCKey, site) ++ harts.distinct.map{ i =>
+      up(MultiRoCCKey) ++ harts.distinct.map{ i =>
         (i -> Seq((p: Parameters) => {
           val hwacha = LazyModule(new Hwacha()(p))
           hwacha
@@ -77,7 +77,7 @@ class WithHwachaTest extends Config((site, here, up) => {
   */
 class WithMultiRoCCGemmini[T <: Data : Arithmetic, U <: Data, V <: Data](
   harts: Int*)(gemminiConfig: GemminiArrayConfig[T,U,V] = GemminiConfigs.defaultConfig) extends Config((site, here, up) => {
-  case MultiRoCCKey => up(MultiRoCCKey, site) ++ harts.distinct.map { i =>
+  case MultiRoCCKey => up(MultiRoCCKey) ++ harts.distinct.map { i =>
     (i -> Seq((p: Parameters) => {
       implicit val q = p
       val gemmini = LazyModule(new Gemmini(gemminiConfig))
@@ -94,7 +94,7 @@ import freechips.rocketchip.rocket.{TLBConfig}
 
 class WithMultiRoCCSnappyCompressor(harts: Int*) extends Config((site, here, up) => {
   case CompressAccelTLB => Some(TLBConfig(nSets = 4, nWays = 4, nSectors = 1, nSuperpageEntries = 1))
-  case MultiRoCCKey => up(MultiRoCCKey, site) ++ harts.distinct.map { i =>
+  case MultiRoCCKey => up(MultiRoCCKey) ++ harts.distinct.map { i =>
     (i -> Seq((p: Parameters) => {
       val compress_accel_compressor = LazyModule.apply(new SnappyCompressor(OpcodeSet.custom1)(p))
       compress_accel_compressor
@@ -104,7 +104,7 @@ class WithMultiRoCCSnappyCompressor(harts: Int*) extends Config((site, here, up)
 
 class WithMultiRoCCSnappyDecompressor(harts: Int*) extends Config((site, here, up) => {
   case CompressAccelTLB => Some(TLBConfig(nSets = 4, nWays = 4, nSectors = 1, nSuperpageEntries = 1))
-  case MultiRoCCKey => up(MultiRoCCKey, site) ++ harts.distinct.map { i =>
+  case MultiRoCCKey => up(MultiRoCCKey) ++ harts.distinct.map { i =>
     (i -> Seq((p: Parameters) => {
       val compress_accel_decompressor = LazyModule.apply(new SnappyDecompressor(OpcodeSet.custom0)(p))
       compress_accel_decompressor
@@ -123,7 +123,7 @@ class WithMultiRoCCZstdCompressor(harts: Int*) extends Config((site, here, up) =
   case FSECompressDicBuilderProcessedStatBytesPerCycle => 4
   case RemoveSnappyFromMergedAccelerator => true
   case CompressAccelPrintfEnable => true
-  case MultiRoCCKey => up(MultiRoCCKey, site) ++ harts.distinct.map { i =>
+  case MultiRoCCKey => up(MultiRoCCKey) ++ harts.distinct.map { i =>
     (i -> Seq((p: Parameters) => {
       val zstd_compressor = LazyModule(new ZstdCompressor(OpcodeSet.custom1)(p))
       zstd_compressor
@@ -137,7 +137,7 @@ class WithMultiRoCCZstdDecompressor(harts: Int*) extends Config((site, here, up)
   case HufDecompressDecompAtOnce => 12
   case NoSnappy => true
   case CompressAccelPrintfEnable => true
-  case MultiRoCCKey => up(MultiRoCCKey, site) ++ harts.distinct.map { i =>
+  case MultiRoCCKey => up(MultiRoCCKey) ++ harts.distinct.map { i =>
     (i -> Seq((p: Parameters) => {
       val zstd_decompressor = LazyModule.apply(new ZstdDecompressor(OpcodeSet.custom0)(p))
       zstd_decompressor
@@ -145,13 +145,9 @@ class WithMultiRoCCZstdDecompressor(harts: Int*) extends Config((site, here, up)
   }
 })
 
-class WithAES192(base_addr: BigInt, depth: BigInt, dev_name: String) extends Config((site, here, up) => {
-  case PeripheryAES192Key => up(PeripheryAES192Key, site) :+ AES192Params(base_addr, depth, dev_name)
-})
-
 class WithMultiRoCCProtoAccelSer(harts: Int*) extends Config((site, here, up) => {
   case ProtoTLB => Some(TLBConfig(nSets = 4, nWays = 4, nSectors = 1, nSuperpageEntries = 1))
-  case MultiRoCCKey => up(MultiRoCCKey, site) ++ harts.distinct.map { i =>
+  case MultiRoCCKey => up(MultiRoCCKey) ++ harts.distinct.map { i =>
     (i -> Seq((p: Parameters) => {
       val protoaccser = LazyModule.apply(new ProtoAccelSerializer(OpcodeSet.custom3)(p))
       protoaccser
@@ -161,7 +157,7 @@ class WithMultiRoCCProtoAccelSer(harts: Int*) extends Config((site, here, up) =>
 
 class WithMultiRoCCProtoAccelDeser(harts: Int*) extends Config((site, here, up) => {
   case ProtoTLB => Some(TLBConfig(nSets = 4, nWays = 4, nSectors = 1, nSuperpageEntries = 1))
-  case MultiRoCCKey => up(MultiRoCCKey, site) ++ harts.distinct.map { i =>
+  case MultiRoCCKey => up(MultiRoCCKey) ++ harts.distinct.map { i =>
     (i -> Seq((p: Parameters) => {
       val protoacc = LazyModule.apply(new ProtoAccel(OpcodeSet.custom2)(p))
       protoacc

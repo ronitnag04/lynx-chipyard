@@ -1,32 +1,38 @@
-// Copied from compressacc
-package aes
+package accelip
 
-import Chisel._
-import chisel3.{Printable}
-import freechips.rocketchip.tile._
-import org.chipsalliance.cde.config._
+import chisel3._
+import chisel3.util._
+
+import org.chipsalliance.cde.config.{Parameters, Field}
+import freechips.rocketchip.tile.{HasCoreParameters}
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.rocket.{TLBConfig, TLBPTWIO, TLB, MStatus, PRV}
-import freechips.rocketchip.util.DecoupledHelper
-import freechips.rocketchip.rocket.constants.MemoryOpConstants
+import freechips.rocketchip.util.{DecoupledHelper}
+import freechips.rocketchip.rocket.constants.{MemoryOpConstants}
 import freechips.rocketchip.rocket.{RAS}
 import freechips.rocketchip.tilelink._
 
-case object AES256AccelTLB extends Field[Option[TLBConfig]](None)
+object L2MemHelperConsts {
+  val BUS_SZ_BITS = 256
+  val BUS_SZ_BYTES = BUS_SZ_BITS / 8
+  val BUS_SZ_BYTES_LG2UP = log2Up(BUS_SZ_BYTES)
+  val BUS_BIT_MASK = ((1 << BUS_SZ_BYTES_LG2UP) - 1)
+}
+import L2MemHelperConsts._
 
 class L2ReqInternal extends Bundle {
   val addr = UInt()
   val size = UInt()
-  val data = UInt(width=256)
+  val data = UInt(BUS_SZ_BITS.W)
   val cmd = UInt()
 }
 
 class L2RespInternal extends Bundle {
-  val data = UInt(width=256)
+  val data = UInt(BUS_SZ_BITS.W)
 }
 
 class L2InternalTracking extends Bundle {
-  val addrindex = UInt(width=5)
+  val addrindex = UInt(BUS_SZ_BYTES_LG2UP.W)
   val tag = UInt()
 }
 
@@ -37,28 +43,28 @@ class L2MemHelperBundle extends Bundle {
 }
 
 
-class L2MemHelper(printInfo: String = "", numOutstandingReqs: Int = 32, queueRequests: Boolean = true, queueResponses: Boolean = true, printWriteBytes: Boolean = false)(implicit p: Parameters) extends LazyModule {
+class L2MemHelper(tlbConfig: TLBConfig, printInfo: String = "", numOutstandingReqs: Int = 32, queueRequests: Boolean = true, queueResponses: Boolean = true, printWriteBytes: Boolean = false, logger: AccelLogger = DefaultAccelLogger)(implicit p: Parameters) extends LazyModule {
   val numOutstandingRequestsAllowed = numOutstandingReqs
   val tlTagBits = log2Ceil(numOutstandingRequestsAllowed)
 
 
-  lazy val module = new L2MemHelperModule(this, printInfo, queueRequests, queueResponses, printWriteBytes)
-  val masterNode = TLClientNode(Seq(TLClientPortParameters(
-    Seq(TLClientParameters(name = printInfo, sourceId = IdRange(0,
-      numOutstandingRequestsAllowed)))
-  )))
+  lazy val module = new L2MemHelperModule(this, tlbConfig, printInfo, queueRequests, queueResponses, printWriteBytes)
+  val masterNode = TLClientNode(Seq(TLMasterPortParameters.v1(
+    Seq(TLMasterParameters.v1(
+      name = printInfo,
+      sourceId = IdRange(0, numOutstandingRequestsAllowed))))))
 }
 
-class L2MemHelperModule(outer: L2MemHelper, printInfo: String = "", queueRequests: Boolean = true, queueResponses: Boolean = true, printWriteBytes: Boolean = false)(implicit p: Parameters) extends LazyModuleImp(outer)
+class L2MemHelperModule(outer: L2MemHelper, tlbConfig: TLBConfig, printInfo: String = "", queueRequests: Boolean = true, queueResponses: Boolean = true, printWriteBytes: Boolean = false, logger: AccelLogger = DefaultAccelLogger)(implicit p: Parameters) extends LazyModuleImp(outer)
   with HasCoreParameters
   with MemoryOpConstants {
 
   val io = IO(new Bundle {
     val userif = Flipped(new L2MemHelperBundle)
 
-    val sfence = Bool(INPUT)
+    val sfence = Input(Bool())
     val ptw = new TLBPTWIO
-    val status = Valid(new MStatus).flip
+    val status = Flipped(Valid(new MStatus))
   })
 
   val (dmem, edge) = outer.masterNode.out.head
@@ -83,49 +89,55 @@ class L2MemHelperModule(outer: L2MemHelper, printInfo: String = "", queueRequest
 
   val status = Reg(new MStatus)
   when (io.status.valid) {
-    CompressAccelLogger.logInfo(printInfo + " setting status.dprv to: %x compare %x\n", io.status.bits.dprv, UInt(PRV.M))
+    logger.logInfo(printInfo + " setting status.dprv to: %x compare %x\n", io.status.bits.dprv, PRV.M.U)
     status := io.status.bits
   }
 
-  val tlb = Module(new TLB(false, log2Ceil(coreDataBytes), p(AES256AccelTLB).get)(edge, p))
+  val tlb = Module(new TLB(false, log2Ceil(coreDataBytes), tlbConfig)(edge, p))
   tlb.io.req.valid := request_input.valid
   tlb.io.req.bits.vaddr := request_input.bits.addr
   tlb.io.req.bits.size := request_input.bits.size
   tlb.io.req.bits.cmd := request_input.bits.cmd
-  tlb.io.req.bits.passthrough := Bool(false)
+  tlb.io.req.bits.passthrough := false.B
   val tlb_ready = tlb.io.req.ready && !tlb.io.resp.miss
 
   io.ptw <> tlb.io.ptw
   tlb.io.ptw.status := status
   tlb.io.sfence.valid := io.sfence
-  tlb.io.sfence.bits.rs1 := Bool(false)
-  tlb.io.sfence.bits.rs2 := Bool(false)
-  tlb.io.sfence.bits.addr := UInt(0)
-  tlb.io.sfence.bits.asid := UInt(0)
-  tlb.io.kill := Bool(false)
+  tlb.io.sfence.bits.rs1 := false.B
+  tlb.io.sfence.bits.rs2 := false.B
+  tlb.io.sfence.bits.addr := 0.U
+  tlb.io.sfence.bits.asid := 0.U
+  tlb.io.kill := false.B
+  tlb.io.req.bits.prv := 0.U
+  tlb.io.req.bits.v := 0.U
+  tlb.io.sfence.bits.hv := 0.U
+  tlb.io.sfence.bits.hg := 0.U
 
 
   val outstanding_req_addr = Module(new Queue(new L2InternalTracking, outer.numOutstandingRequestsAllowed * 4))
 
 
   val tags_for_issue_Q = Module(new Queue(UInt(outer.tlTagBits.W), outer.numOutstandingRequestsAllowed * 2))
+  // overridden below
   tags_for_issue_Q.io.enq.valid := false.B
+  tags_for_issue_Q.io.enq.bits := 0.U
 
   val tags_init_reg = RegInit(0.U((outer.tlTagBits+1).W))
   when (tags_init_reg =/= (outer.numOutstandingRequestsAllowed).U) {
     tags_for_issue_Q.io.enq.bits := tags_init_reg
     tags_for_issue_Q.io.enq.valid := true.B
     when (tags_for_issue_Q.io.enq.ready) {
-      CompressAccelLogger.logInfo(printInfo + " tags_for_issue_Q init with value %d\n", tags_for_issue_Q.io.enq.bits)
+      logger.logInfo(printInfo + " tags_for_issue_Q init with value %d\n", tags_for_issue_Q.io.enq.bits)
       tags_init_reg := tags_init_reg + 1.U
     }
   }
 
-  val addr_mask_check = (UInt(0x1, 64.W) << request_input.bits.size) - UInt(1)
-  val assertcheck = RegNext((!request_input.valid) || ((request_input.bits.addr & addr_mask_check) === UInt(0)))
+  val addr_mask_check = (1.U(64.W) << request_input.bits.size) - 1.U
+  val assertcheck = RegNext((!request_input.valid) || ((request_input.bits.addr & addr_mask_check) === 0.U))
 
   when (!assertcheck) {
-    CompressAccelLogger.logInfo(printInfo + " L2IF: access addr must be aligned to write width\n")
+    logger.logInfo(printInfo + " L2IF: access addr must be aligned to write width\n")
   }
   assert(assertcheck,
     printInfo + " L2IF: access addr must be aligned to write width\n")
@@ -147,7 +159,7 @@ class L2MemHelperModule(outer: L2MemHelper, printInfo: String = "", queueRequest
   val assert_free_outstanding_op_slots = (global_memop_sent - global_memop_ackd) <= (1 << outer.tlTagBits).U
 
   when (!assert_free_outstanding_op_slots) {
-    CompressAccelLogger.logInfo(printInfo + " L2IF: Too many outstanding requests for tag count.\n")
+    logger.logInfo(printInfo + " L2IF: Too many outstanding requests for tag count.\n")
   }
   assert(assert_free_outstanding_op_slots,
     printInfo + " L2IF: Too many outstanding requests for tag count.\n")
@@ -170,11 +182,11 @@ class L2MemHelperModule(outer: L2MemHelper, printInfo: String = "", queueRequest
                             data=request_input.bits.data << ((request_input.bits.addr(4, 0) << 3)))
     dmem.a.bits := bundle
   } .elsewhen (request_input.valid) {
-    CompressAccelLogger.logInfo(printInfo + " ERR")
-    assert(Bool(false), "ERR")
+    logger.logInfo(printInfo + " ERR")
+    assert(false.B, "ERR")
   }
 
-  val tl_resp_queues = Vec.fill(outer.numOutstandingRequestsAllowed)(
+  val tl_resp_queues = VecInit.fill(outer.numOutstandingRequestsAllowed)(
     Module(new Queue(new L2RespInternal, 4, flow=true)).io)
 
   val current_request_tag_has_response_space = tl_resp_queues(tags_for_issue_Q.io.deq.bits).enq.ready
@@ -197,10 +209,9 @@ class L2MemHelperModule(outer: L2MemHelper, printInfo: String = "", queueRequest
   outstanding_req_addr.io.enq.valid := fire_req.fire(outstanding_req_addr.io.enq.ready)
   tags_for_issue_Q.io.deq.ready := fire_req.fire(tags_for_issue_Q.io.deq.valid)
 
-
   when (dmem.a.fire) {
     when (request_input.bits.cmd === M_XRD) {
-      CompressAccelLogger.logInfo(printInfo + " L2IF: req(read) vaddr: 0x%x, paddr: 0x%x, wid: 0x%x, opnum: %d, sendtag: %d\n",
+      logger.logInfo(printInfo + " L2IF: req(read) vaddr: 0x%x, paddr: 0x%x, wid: 0x%x, opnum: %d, sendtag: %d\n",
         request_input.bits.addr,
         tlb.io.resp.paddr,
         request_input.bits.size,
@@ -208,7 +219,7 @@ class L2MemHelperModule(outer: L2MemHelper, printInfo: String = "", queueRequest
         sendtag)
     }
     when (request_input.bits.cmd === M_XWR) {
-      CompressAccelLogger.logCritical(printInfo + " L2IF: req(write) vaddr: 0x%x, paddr: 0x%x, wid: 0x%x, data: 0x%x, opnum: %d, sendtag: %d\n",
+      logger.logCritical(printInfo + " L2IF: req(write) vaddr: 0x%x, paddr: 0x%x, wid: 0x%x, data: 0x%x, opnum: %d, sendtag: %d\n",
         request_input.bits.addr,
         tlb.io.resp.paddr,
         request_input.bits.size,
@@ -219,16 +230,12 @@ class L2MemHelperModule(outer: L2MemHelper, printInfo: String = "", queueRequest
       if (printWriteBytes) {
         for (i <- 0 until 32) {
           when (i.U < (1.U << request_input.bits.size)) {
-            CompressAccelLogger.logInfo("WRITE_BYTE ADDR: 0x%x BYTE: 0x%x " + printInfo + "\n", request_input.bits.addr + i.U, (request_input.bits.data >> (i*8).U)(7, 0))
+            logger.logInfo("WRITE_BYTE ADDR: 0x%x BYTE: 0x%x " + printInfo + "\n", request_input.bits.addr + i.U, (request_input.bits.data >> (i*8).U)(7, 0))
           }
         }
       }
     }
   }
-
-
-
-
 
   val selectQready = tl_resp_queues(dmem.d.bits.source).enq.ready
 
@@ -245,7 +252,7 @@ class L2MemHelperModule(outer: L2MemHelper, printInfo: String = "", queueRequest
 
   when (fire_actual_mem_resp.fire(tags_for_issue_Q.io.enq.ready) &&
     tags_for_issue_Q.io.enq.valid) {
-      CompressAccelLogger.logInfo(printInfo + " tags_for_issue_Q add back tag %d\n", tags_for_issue_Q.io.enq.bits)
+      logger.logInfo(printInfo + " tags_for_issue_Q add back tag %d\n", tags_for_issue_Q.io.enq.bits)
   }
 
   dmem.d.ready := fire_actual_mem_resp.fire(dmem.d.valid)
@@ -254,9 +261,6 @@ class L2MemHelperModule(outer: L2MemHelper, printInfo: String = "", queueRequest
     tl_resp_queues(i).enq.valid := fire_actual_mem_resp.fire(selectQready) && (dmem.d.bits.source === i.U)
     tl_resp_queues(i).enq.bits.data := dmem.d.bits.data
   }
-
-
-
 
   val currentQueue = tl_resp_queues(outstanding_req_addr.io.deq.bits.tag)
   val queueValid = currentQueue.deq.valid
@@ -281,19 +285,19 @@ class L2MemHelperModule(outer: L2MemHelper, printInfo: String = "", queueRequest
 
   when (dmem.d.fire) {
     when (edge.hasData(dmem.d.bits)) {
-      CompressAccelLogger.logInfo(printInfo + " L2IF: resp(read) data: 0x%x, opnum: %d, gettag: %d\n",
+      logger.logInfo(printInfo + " L2IF: resp(read) data: 0x%x, opnum: %d, gettag: %d\n",
         dmem.d.bits.data,
         global_memop_ackd,
         dmem.d.bits.source)
     } .otherwise {
-      CompressAccelLogger.logInfo(printInfo + " L2IF: resp(write) opnum: %d, gettag: %d\n",
+      logger.logInfo(printInfo + " L2IF: resp(write) opnum: %d, gettag: %d\n",
         global_memop_ackd,
         dmem.d.bits.source)
     }
   }
 
   when (response_output.fire) {
-    CompressAccelLogger.logInfo(printInfo + " L2IF: realresp() data: 0x%x, opnum: %d, gettag: %d\n",
+    logger.logInfo(printInfo + " L2IF: realresp() data: 0x%x, opnum: %d, gettag: %d\n",
       resultdata,
       global_memop_resp_to_user,
       outstanding_req_addr.io.deq.bits.tag)
@@ -306,5 +310,4 @@ class L2MemHelperModule(outer: L2MemHelper, printInfo: String = "", queueRequest
   when (response_output.fire) {
     global_memop_resp_to_user := global_memop_resp_to_user + 1.U
   }
-
 }

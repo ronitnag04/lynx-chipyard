@@ -6,36 +6,34 @@ import chisel3.util._
 import org.chipsalliance.cde.config.{Parameters}
 import freechips.rocketchip.util.{DecoupledHelper}
 import testchipip.{StreamWidener, StreamNarrower}
+import accelip._
 
-class Xerox(val l2bwBits: Int)(implicit val p: Parameters) extends MemStreamer {
-  class XeroxBundle extends MemStreamerBundle {
-    val key = Flipped(Valid(UInt(256.W))) //from CommandRouter
+import L2MemHelperConsts._
+import AES256Consts._
+
+class AES256ECB(val logger: AccelLogger = DefaultAccelLogger)(implicit val p: Parameters) extends MemStreamer {
+  class AES256ECBBundle extends MemStreamerBundle {
+    val key = Flipped(Valid(UInt(AES256Consts.KEY_SZ_BITS.W))) //from CommandRouter
     val mode = Flipped(Valid(Bool())) //from CommandRouter
   }
-  lazy val io = IO(new XeroxBundle)
-
-  // AJG: This code only works for single requests
-  assert(num_bytes_queue.io.count <= 1.U, "ERROR: Only support serialized requests")
-
-  // AJG: Normal memcpy code
-  //store_data_queue.io.enq <> load_data_queue.io.deq
-  //io.key.ready := true.B
-  //io.mode.ready := true.B
+  lazy val io = IO(new AES256ECBBundle)
 
   // Connect AES core to MemLoader (i.e. load_data_queue)
 
   val aes = Module(new AesCipherCoreDriver)
 
-  val snarrower = Module(new StreamNarrower(l2bwBits, 128))
+  assert(BLOCK_SZ_BITS <= BUS_SZ_BITS, "Need the bus bits to be greater than the block bits")
+
+  val snarrower = Module(new StreamNarrower(BUS_SZ_BITS, BLOCK_SZ_BITS))
   snarrower.io.in.bits.last := DontCare
   snarrower.io.in.bits.keep := DontCare
-  val swidener = Module(new StreamWidener(128, l2bwBits))
+  val swidener = Module(new StreamWidener(BLOCK_SZ_BITS, BUS_SZ_BITS))
   swidener.io.in.bits.last := DontCare
   swidener.io.in.bits.keep := DontCare
-  val aes_meta_queue = Module(new Queue(new LiteralChunk, 100)) // used to keep track of chunk_size, is_final_chunk
+  val aes_meta_queue = Module(new Queue(new LiteralChunk, 5)) // used to keep track of chunk_size, is_final_chunk
   dontTouch(aes_meta_queue.io.count)
 
-  val key_queue = RegInit(0.U(256.W))
+  val key_queue = RegInit(0.U(AES256Consts.KEY_SZ_BITS.W))
   when (io.key.valid) {
     key_queue := io.key.bits
   }
@@ -43,6 +41,8 @@ class Xerox(val l2bwBits: Int)(implicit val p: Parameters) extends MemStreamer {
   when (io.mode.valid) {
     mode_queue := io.mode.bits
   }
+
+  // TODO: encrypting more than necessary (does an extra 128 encrypt/decrypt at the end)
 
   aes.io.in.bits.key := key_queue
   aes.io.in.bits.encrypt := mode_queue

@@ -2,28 +2,32 @@ package aes
 
 import chisel3._
 
+import org.chipsalliance.cde.config.{Parameters, Field}
 import freechips.rocketchip.tile._
-import org.chipsalliance.cde.config.{Parameters}
+import freechips.rocketchip.rocket.{TLBConfig}
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.rocket.constants.MemoryOpConstants
 import freechips.rocketchip.tilelink._
+import accelip._
 
-class AES256Accel(opcodes: OpcodeSet)(implicit p: Parameters) extends LazyRoCC(
+case object AES256AccelTLB extends Field[Option[TLBConfig]](None)
+
+class AES256ECBAccel(opcodes: OpcodeSet)(implicit p: Parameters) extends LazyRoCC(
     opcodes = opcodes, nPTWPorts = 2) {
-  override lazy val module = new AES256AccelImp(this)
+  override lazy val module = new AES256ECBAccelImp(this)
 
-  val queue_depth = p(QueueDepth)
+  val logger = AES256ECBAccelLogger
 
-  val tapeout = p(HyperscaleSoCTapeOut)
-  val roccTLNode = if (tapeout) atlNode else tlNode
+  val roccTLNode = if (p(AES256ECBAccelInsertXbarBetweenMemory)) atlNode else tlNode
 
-  val l2_memloader =     LazyModule(new L2MemHelper("[memloader]", numOutstandingReqs=32))
+  val l2_memloader =     LazyModule(new L2MemHelper(p(AES256AccelTLB).get, printInfo="[memloader]", numOutstandingReqs=32, logger=logger))
   roccTLNode := TLBuffer.chainNode(1) := l2_memloader.masterNode
 
-  val l2_memwriter =     LazyModule(new L2MemHelper("[memwriter]", numOutstandingReqs=32))
+  val l2_memwriter =     LazyModule(new L2MemHelper(p(AES256AccelTLB).get, printInfo="[memwriter]", numOutstandingReqs=32, logger=logger))
   roccTLNode := TLBuffer.chainNode(1) := l2_memwriter.masterNode
 }
-class AES256AccelImp(outer: AES256Accel)(implicit p: Parameters)
+
+class AES256ECBAccelImp(outer: AES256ECBAccel)(implicit p: Parameters)
   extends LazyRoCCModuleImp(outer) with MemoryOpConstants {
 
   io.mem.req.valid := false.B
@@ -37,26 +41,25 @@ class AES256AccelImp(outer: AES256Accel)(implicit p: Parameters)
   ///// Don't touch above this line! /////
   ////////////////////////////////////////
 
-  val queue_depth = p(QueueDepth)
+  val queue_depth = p(AES256ECBAccelCmdQueueDepth)
 
   val cmd_router = Module(new CommandRouter(queue_depth))
   cmd_router.io.rocc_in <> io.cmd
   io.resp <> cmd_router.io.rocc_out
 
-  val memloader = Module(new MemLoader(memLoaderQueDepth=queue_depth))
+  val memloader = Module(new MemLoader(memLoaderQueDepth=queue_depth, logger=outer.logger))
   outer.l2_memloader.module.io.userif <> memloader.io.l2helperUser
   memloader.io.src_info <> cmd_router.io.src_info
 
-  val memwriter = Module(new MemWriter32(cmd_que_depth=queue_depth))
+  val memwriter = Module(new MemWriter32(cmd_que_depth=queue_depth, logger=outer.logger))
   outer.l2_memwriter.module.io.userif <> memwriter.io.l2io
 
-  val xerox = Module(new Xerox(256))
+  val xerox = Module(new AES256ECB(outer.logger))
   xerox.io.mem_stream <> memloader.io.consumer
   memwriter.io.memwrites_in <> xerox.io.memwrites_in
   memwriter.io.decompress_dest_info <> cmd_router.io.dest_info
   cmd_router.io.bufs_completed := memwriter.io.bufs_completed
   cmd_router.io.no_writes_inflight := memwriter.io.no_writes_inflight
-  xerox.io.num_bytes <> cmd_router.io.num_bytes
   xerox.io.key <> cmd_router.io.key
   xerox.io.mode <> cmd_router.io.mode
 

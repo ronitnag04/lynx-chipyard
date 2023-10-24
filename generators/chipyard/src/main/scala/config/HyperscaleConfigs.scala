@@ -221,7 +221,7 @@ class IntegrationConfig extends Config(new BaseIntegrationConfig(false))
 class FireSimIntegrationConfig extends Config(new BaseIntegrationConfig(true))
 
 class AESConfig extends Config(
-  new aes.WithAES256Accel ++
+  new aes.WithAES256ECBAccel ++
   new HyperscaleRocketBaseConfig)
 
 class MemCpyConfig extends Config(

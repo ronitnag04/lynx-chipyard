@@ -1,4 +1,4 @@
-package aes
+package accelip
 
 import chisel3._
 import chisel3.util._
@@ -39,7 +39,7 @@ trait StreamingCommandRouter extends Module {
     io.rocc_in.valid,
     cur_funct === FUNCT_SFENCE
   )
-  io.sfence_out := sfence_fire.fire
+  io.sfence_out := sfence_fire.fire()
 
   io.dmem_status_out.bits <> io.rocc_in.bits
   io.dmem_status_out.valid <> io.rocc_in.fire

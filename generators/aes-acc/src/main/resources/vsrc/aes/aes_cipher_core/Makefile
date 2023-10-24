@@ -16,7 +16,7 @@ TB_FILES = \
     $(VSRC_DIR)/aes_cipher_core_tb.sv
 
 WRAPPER_FILES = \
-    $(VSRC_DIR)/aes_cipher_core_wrapper.sv
+    $(VSRC_DIR)/AesCipherCoreWrapper_AES256_ECB_NoMask.sv
 
 AES_FILES = \
     $(VSRC_DIR)/rtl/aes_cipher_control_fsm_n.sv \
@@ -56,7 +56,11 @@ PREPROC_SCRIPT = $(BASE_DIR)/scripts/insert-includes.py
 PREPROC_DEFINES ?= \
 	SYNTHESIS
 
+.PHONY: default
+default: core
+
 TB_FILE = $(VSRC_DIR)/tb.sv
+.PHONY: tb
 tb: $(TB_FILE)
 $(TB_FILE): $(PKG_FILES) $(TB_FILES) $(AES_FILES)
 	mkdir -p $(dir $@)
@@ -67,6 +71,7 @@ $(TB_FILE): $(PKG_FILES) $(TB_FILES) $(AES_FILES)
 	rm -rf combined.sv def.v undef.v
 
 CORE_FILE = $(VSRC_DIR)/core.sv
+.PHONY: core
 core: $(CORE_FILE)
 $(CORE_FILE): $(PKG_FILES) $(WRAPPER_FILES) $(AES_FILES)
 	mkdir -p $(dir $@)
