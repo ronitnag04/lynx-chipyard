@@ -5,16 +5,16 @@ set -ex
 ## have to rebuild/install fesvr
 #./scripts/build-toolchain-extra.sh riscv-tools -p $CONDA_PREFIX/riscv-tools
 #
-#pushd tests
-#make clean
-## make sure appsoc/smartnic are in tests
-#make
-## should create 2 files - appsoc.riscv smartnic.riscv
-#./build-for-smartnic.sh smartnic
-#popd
+pushd tests
+make clean
+# make sure appsoc/smartnic are in tests
+make
+# should create 2 files - appsoc.riscv smartnic.riscv
+./build-for-smartnic.sh smartnic
+popd
 
-#SOC1_BIN=$PWD/tests/appsoc.riscv
-SOC1_BIN=$PWD/tests/nic-loopback.riscv
+SOC1_BIN=$PWD/tests/appsoc.riscv
+#SOC1_BIN=$PWD/tests/nic-loopback.riscv
 SOC2_BIN=$PWD/tests/smartnic.smartnic.riscv
 
 pushd sims/vcs
@@ -23,5 +23,5 @@ rm -rf uartpty*
 # payload should load the 2nd binary (provided it has the right addresses)
 make CONFIG=IntegrationConfig \
     BINARY=${SOC1_BIN} \
-    EXTRA_SIM_FLAGS="+payload=${SOC2_BIN} +cross_link_latency=10" \
+    EXTRA_SIM_FLAGS="+write-soc1-msip +payload=${SOC2_BIN} +cross_link_latency=10 +cross_link_latency2=10" \
     run-binary-debug

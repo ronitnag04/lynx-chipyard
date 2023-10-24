@@ -49,6 +49,8 @@ class AbstractConfig extends Config(
   new chipyard.iobinders.WithNMITiedOff ++
   new chipyard.iobinders.WithTLMMIOPunchthrough ++
   new chipyard.iobinders.WithTLSlavePunchthrough ++
+  new chipyard.iobinders.WithTLMMIOPunchthrough2 ++
+  new chipyard.iobinders.WithTLSlavePunchthrough2 ++
 
   // By default, punch out IOs to the Harness
   new chipyard.clocking.WithPassthroughClockGenerator ++

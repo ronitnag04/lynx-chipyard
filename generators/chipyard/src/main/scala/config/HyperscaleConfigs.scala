@@ -16,6 +16,15 @@ import freechips.rocketchip.util.{HeterogeneousBag, PlusArg, AsyncResetReg}
 import freechips.rocketchip.tilelink.{TLBundle, TLBundleA, TLBundleD}
 
 class BaseAppSoCConfig extends Config(
+  // setup slave port (slave to slave to SmartNICSoC)
+  new Config((site, here, up) => {
+    case ExtIn2 => Some(SlavePortParams(
+      beatBytes = 8, // 64b of data per xfer
+      idBits = 4, // 4b of source
+      sourceBits = 1 // ?? changes nothing
+    ))
+  }) ++
+  // setup master port (master to SmartNICSoC)
   new Config((site, here, up) => {
     case ExtBus => Some(MasterPortParams(
       base = x"a000_0000",
@@ -55,6 +64,16 @@ class BaseSmartNICSoCConfig extends Config(
       sourceBits = 1 // ?? changes nothing
     ))
   }) ++
+  // setup master port (master to AppSoC)
+  new Config((site, here, up) => {
+    case ExtBus2 => Some(MasterPortParams(
+      base = x"8000_0000",
+      size = x"1000_0000",
+      beatBytes = site(MemoryBusKey).beatBytes, // 64b of data per xfer
+      idBits = 4, // 4b of source
+      executable = true // left true otherwise it will add extra bundle fields
+    ))
+  }) ++
   new HyperscaleRocketBaseConfig)
 
 class WithMultiChipTLBus(chip0: Int, chip1: Int, isFiresim: Boolean = false) extends MultiHarnessBinder(chip0, chip1, (
@@ -65,6 +84,60 @@ class WithMultiChipTLBus(chip0: Int, chip1: Int, isFiresim: Boolean = false) ext
     require(ports0.size == ports1.size)
 
     val latency_arg = "cross_link_latency"
+    val latency_doc = "Latency (cycles) of TL port between both SoC's"
+    val latency = if (isFiresim) {
+      val l = WireInit(0.U(32.W))
+      midas.targetutils.PlusArgs(l, name=s"${latency_arg}=%d", docstring=latency_doc)
+      l
+    } else {
+      PlusArg(latency_arg, docstring=latency_doc)
+    }
+
+    (ports0 zip ports1).map { case (p0hb, p1hb) =>
+      // connect the HeterogeneousBag[TLBundle]
+      (p0hb zip p1hb).map { case (ll, rr) =>
+        // this is a TLBundle
+        println(s"DEBUG: (${ll} ?= ${rr}) (${ll.getWidth} ?= ${rr.getWidth}) (${ll.params} ?= ${rr.params})")
+        require(ll.params == rr.params, "DEBUG: Ensure the TLBundles can be connected")
+        require(!ll.params.hasBCE, "DEBUG: Only supports TL-UC")
+
+        // HACK! Using the same clock as the buses they are connected to
+        val tClk = th.harnessClockInstantiator.requestClockMHz("clock_500MHz", 500)
+        val tReset = AsyncResetReg(false.B, tClk, th.harnessBinderReset.asBool, true, None)
+
+        // connect the fields of the TLBundle
+        DataMirror.specifiedDirectionOf(ll.a.ready) match {
+          case SpecifiedDirection.Input =>
+            val qa = Module(new latqueue.LatencyInjectionQueue(DataMirror.internal.chiselTypeClone[TLBundleA](ll.a.bits), 128))
+            qa.clock := tClk
+            qa.reset := tReset
+            val qd = Module(new latqueue.LatencyInjectionQueue(DataMirror.internal.chiselTypeClone[TLBundleD](rr.d.bits), 128))
+            qd.clock := tClk
+            qd.reset := tReset
+            qa.io.latency_cycles := latency
+            qd.io.latency_cycles := latency
+            qa.io.enq <> ll.a
+            rr.a <> qa.io.deq
+            qd.io.enq <> rr.d
+            ll.d <> qd.io.deq
+            //rr.a <> ll.a
+            //ll.d <> rr.d
+          case SpecifiedDirection.Output => require(false, "Not supported")
+          case _ => require(false, "Not supported")
+        }
+      }
+    }
+  }
+))
+
+class WithMultiChipTLBus2(chip0: Int, chip1: Int, isFiresim: Boolean = false) extends MultiHarnessBinder(chip0, chip1, (
+  (system0: CanHaveCustomMasterTLMMIOPort2, system1: CanHaveCustomSlaveTLPort2,
+    th: HasHarnessInstantiators,
+    ports0: Seq[HeterogeneousBag[TLBundle]], ports1: Seq[HeterogeneousBag[TLBundle]]
+  ) => {
+    require(ports0.size == ports1.size)
+
+    val latency_arg = "cross_link_latency2"
     val latency_doc = "Latency (cycles) of TL port between both SoC's"
     val latency = if (isFiresim) {
       val l = WireInit(0.U(32.W))
@@ -137,6 +210,7 @@ class SmartNICSoCConfig extends Config(
 
 class BaseIntegrationConfig(isFiresim: Boolean = false) extends Config(
   new chipyard.harness.WithAbsoluteFreqHarnessClockInstantiator ++   // use absolute freqs for sims in the harness
+  new WithMultiChipTLBus2(1, 0, isFiresim) ++ // SoC1 is mastering so it goes 1st
   new WithMultiChipTLBus(0, 1, isFiresim) ++
   new chipyard.harness.WithMultiChip(0,
     new AppSoCConfig) ++
@@ -145,3 +219,11 @@ class BaseIntegrationConfig(isFiresim: Boolean = false) extends Config(
 
 class IntegrationConfig extends Config(new BaseIntegrationConfig(false))
 class FireSimIntegrationConfig extends Config(new BaseIntegrationConfig(true))
+
+class AESConfig extends Config(
+  new aes.WithAES256Accel ++
+  new HyperscaleRocketBaseConfig)
+
+class MemCpyConfig extends Config(
+  new memcpyacc.WithMemcpyAccel ++
+  new HyperscaleRocketBaseConfig)

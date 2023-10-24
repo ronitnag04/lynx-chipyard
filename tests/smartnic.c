@@ -15,5 +15,12 @@ int main(void) {
 
   kputs("Done writing address");
 
+  volatile uint64_t* myDramAddr = (volatile uint64_t*)0x90000000UL;
+  myDramAddr -= 4;
+  printf("Polling %p\n", myDramAddr);
+  while (*smartNICaddr != 0x4b1eb4b1) {}
+
+  kputs("Able to read other addr");
+
   return 0;
 }

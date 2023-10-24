@@ -248,7 +248,7 @@ lazy val compressacc = (project in file("generators/compress-acc"))
   .settings(commonSettings)
 
 lazy val aesacc = (project in file("generators/aes-acc"))
-  .dependsOn(rocketchip, midasTargetUtils)
+  .dependsOn(rocketchip, midasTargetUtils, testchipip)
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(commonSettings)
 

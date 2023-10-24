@@ -1,0 +1,42 @@
+Retrieve info from documents at scale
+
+Vector Embeddings, distance —> Vector search (retrieve info using similarity metrics)
+ex) recommendation systems, text/image search, chatbots, few-shot learning
+ex) Find the answer candidates by comparing question embedding and vector DB
+Vector DB := collection of vector embeddings
+Vectors -> indexing -> vector DB -> querying —> post-processing
+Indexing: allows fast search
+- Flat index: exact. exhausive search. compare query to every other vector in the index.
+- problem: cannot scale (index size x # of queries)
+
+- Vector search (approximate)
+- ANNS (approximate nearest neighbor search)
+1. Reduce search space —> ANN indexes
+2. Search less dimensions	
+Making a good guess about the nearest neighbor, balancing search time & quality
+Evaluation metric: (1) quality (ex. recall, Mean reciprocal recall=average of 1/first right result that shows up —> order-aware) (2) speed (3) memory
+ANN indexes)
+- KD Trees: sth like binary tree search
+problem: high dimension -> many splits, more branches to cover
+- Locality Sensitive Hashing (LSH)
+key idea: you want to bucket similar things
+works well on low dimensional data & small indices
+problem: high dimension — hard to tell similarity. Need more granular buckets=more bits for good recall, larger index memory, slower speed
+“Curse of Dimensionality”: High dimension -> everything becomes equally distant -> distance is messed up
+- Skip Lists
+Sorted and layered linked lists (https://www.pinecone.io/learn/series/faiss/hnsw/)
+- Proximity Graphs
+Vectors as nodes. Vectors + Links. Link nodes to their nearest neighbors.
+Randomly pick a starting node, select the closest neighbor and hop there. If there is no more vectors that are closer to the query vector, stop.
+“Small World Phenomenon”: 2nd, 3rd connection grows exponentionally
+“Most of us aren’t neighbors each other, but our neighbors are neighbors to each other”
+- Navigable Small World Graphs (NSW)
+Iterative insertion: Insert and add links to M nearest nodes. Long links are added early, short links are added later.
+Problem of this: ordering matters. If data is sorted, link across the whole DB wouldn’t be made. -> solved by hierarchical NSW?
+Problem: early stopping at local minima
+- Hierarchical NSW
+Key idea: take big steps first, then take small steps (like skip lists)
+Partition the space into clusters, find the closest cluster
+can tune ef(accuracy, less-greedy) and K (# of results)
+
+Caveat (1) Diverse Connection Heuristic — need a heuristic to pick a far connection that can explore new space. Connect only if closer to base than any connected neighbors. (2) Max number of neighbors

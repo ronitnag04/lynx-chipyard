@@ -1,4 +1,5 @@
 module aes_cipher_core_wrapper
+(
   input  logic                        clk_i,
   input  logic                        rst_ni,
 
@@ -20,7 +21,7 @@ module aes_cipher_core_wrapper
 
   // Pseudo-random data for register clearing
   input  logic                 [63:0] prd_clearing_i_0,
-  input  logic                 [63:0] prd_clearing_i_0,
+  input  logic                 [63:0] prd_clearing_i_1,
 
   // Masking PRNG
   input  logic                        force_masks_i, // Useful for SCA only.
@@ -42,6 +43,16 @@ module aes_cipher_core_wrapper
 
   localparam bit          SecMasking   = 1;
   localparam sbox_impl_e  SecSBoxImpl  = SecMasking ? SBoxImplDom : SBoxImplCanright;
+  localparam int          NumShares    = SecMasking ?           2 :                1;
+
+  sp2v_e in_valid_i_conv;
+  sp2v_e out_ready_i_conv;
+  logic in_ready_o;
+  logic out_valid_o;
+  sp2v_e crypt_i_conv;
+  sp2v_e dec_key_gen_i_conv;
+  sp2v_e in_ready_o_conv;
+  sp2v_e out_valid_o_conv;
 
   assign in_valid_i_conv = in_valid_i ? SP2V_HIGH : SP2V_LOW;
   assign out_ready_i_conv = out_ready_i ? SP2V_HIGH : SP2V_LOW;
@@ -49,6 +60,18 @@ module aes_cipher_core_wrapper
   assign out_valid_o = (out_valid_o_conv == SP2V_HIGH) ? '1 : '0;
   assign crypt_i_conv = crypt_i ? SP2V_HIGH : SP2V_LOW;
   assign dec_key_gen_i_conv = dec_key_gen_i ? SP2V_HIGH : SP2V_LOW;
+
+  logic  [3:0][3:0][7:0] state_init [NumShares];
+  assign state_init[0] = state_init_i_0;
+  assign state_init[1] = state_init_i_1;
+
+  logic  [7:0][31:0] key_init [NumShares];
+  assign key_init[0] = key_init_i_0;
+  assign key_init[1] = key_init_i_1;
+
+  logic  [3:0][3:0][7:0] state_done [NumShares];
+  assign state_o_0 = state_done[0];
+  assign state_o_1 = state_done[1];
 
   aes_cipher_core #(
     .SecMasking  ( SecMasking  ),
@@ -64,8 +87,8 @@ module aes_cipher_core_wrapper
     .out_ready_i      ( out_ready_i_conv  ),
 
     .cfg_valid_i      ( 1'b1              ), // Used for gating assertions only.
-    .op_i             ( op_i              ),
-    .key_len_i        ( key_len_i         ),
+    .op_i             ( ciph_op_e'(op_i)      ),
+    .key_len_i        ( key_len_e'(key_len_i) ),
     .crypt_i          ( crypt_i_conv      ),
     .crypt_o          (                   ), // Ignored.
     .dec_key_gen_i    ( dec_key_gen_i_conv),
@@ -79,7 +102,7 @@ module aes_cipher_core_wrapper
     .alert_fatal_i    ( 1'b0              ), // Ignored.
     .alert_o          ( alert_o           ), // Ignored.
 
-    .prd_clearing_i   ( {prd_clearing_i_1, prd_clearing_i_1} ),
+    .prd_clearing_i   ( '{prd_clearing_i_1, prd_clearing_i_0} ),
 
     .force_masks_i    ( 1'b0              ), // Ignored.
     .data_in_mask_o   ( data_in_mask_o    ),
@@ -87,9 +110,9 @@ module aes_cipher_core_wrapper
     .entropy_ack_i    ( entropy_ack_i     ),
     .entropy_i        ( entropy_i         ),
 
-    .state_init_i     ( {state_init_i_1, state_init_i_0}      ),
-    .key_init_i       ( {key_init_i_1, key_init_i_0}        ),
-    .state_o          ( {state_o_i_1, state_o_i_0}         )
+    .state_init_i     ( state_init ),
+    .key_init_i       ( key_init ),
+    .state_o          ( state_done )
   );
 
 endmodule

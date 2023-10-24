@@ -30,6 +30,8 @@ class ChipyardSystem(implicit p: Parameters) extends ChipyardSubsystem
   //with CanHaveSlaveAXI4Port
   with CanHaveCustomMasterTLMMIOPort
   with CanHaveCustomSlaveTLPort
+  with CanHaveCustomMasterTLMMIOPort2
+  with CanHaveCustomSlaveTLPort2
 {
 
   val bootROM  = p(BootROMLocated(location)).map { BootROM.attach(_, this, CBUS) }
@@ -173,4 +175,78 @@ trait CanHaveCustomSlaveTLPort { this: BaseSubsystem =>
   }
 
   val l2_frontend_bus_tl = InModuleBody { l2FrontendTLNode.makeIOs() }
+}
+
+case object ExtBus2 extends Field[Option[MasterPortParams]](None)
+case object ExtIn2 extends Field[Option[SlavePortParams]](None)
+
+/** Adds a TileLink port to the system intended to master an MMIO device bus */
+trait CanHaveCustomMasterTLMMIOPort2 { this: BaseSubsystem =>
+  private val mmioPortParamsOpt = p(ExtBus2)
+  private val portName = "mmio_port_tl"
+  private val device = new SimpleBus(portName.kebab, Nil)
+
+  // needs to access:
+  //   dev: addr,size
+  //   dram: 8000_0000,1000_0000
+
+  val mmioTLNode2 = TLManagerNode(
+    mmioPortParamsOpt.map(params => {
+      val dramAS = AddressSet.misaligned(params.base, params.size)
+      val overallAS = dramAS
+      TLSlavePortParameters.v1(
+        managers = Seq(TLSlaveParameters.v1(
+          address            = overallAS,
+          resources          = device.ranges,
+          executable         = params.executable,
+          supportsGet        = TransferSizes(1, 4096),
+          supportsPutFull    = TransferSizes(1, 4096),
+          supportsPutPartial = TransferSizes(1, 4096))),
+        beatBytes = params.beatBytes,
+      )
+    }).toSeq)
+
+  mmioPortParamsOpt.map { params =>
+    sbus.coupleTo(s"port_named_$portName") {
+      (mmioTLNode2
+        := TLBuffer()
+        := TLSourceShrinker(1 << params.idBits)
+        := TLWidthWidget(sbus.beatBytes)
+        := _ )
+    }
+  }
+
+  val mmio_tl2 = InModuleBody {
+    mmioTLNode2.out.foreach { case (_, edge) => println(edge.prettySourceMapping(s"TL MMIO Port")) }
+    mmioTLNode2.makeIOs()
+  }
+}
+
+/** Adds an TL port to the system intended to be a slave on an MMIO device bus.
+  * NOTE: this port is NOT allowed to issue Acquires.
+  */
+trait CanHaveCustomSlaveTLPort2 { this: BaseSubsystem =>
+  private val slavePortParamsOpt = p(ExtIn2)
+  private val portName = "slave_port_tl"
+
+  val l2FrontendTLNode2 = TLClientNode(
+    slavePortParamsOpt.map(params =>
+      TLMasterPortParameters.v1(
+        clients = Seq(TLMasterParameters.v1(
+          name     = portName.kebab,
+          sourceId = IdRange(0, 1 << params.idBits),
+        )),
+        )).toSeq)
+
+  slavePortParamsOpt.map { params =>
+    sbus.coupleFrom(s"port_named_$portName") {
+      ( _
+        := TLFilter(TLFilter.mMaskCacheable)
+        := TLSourceShrinker(1 << params.sourceBits)
+        := TLWidthWidget(params.beatBytes)
+        := l2FrontendTLNode2 )
+    }
+  }
+
+  val l2_frontend_bus_tl2 = InModuleBody { l2FrontendTLNode2.makeIOs() }
 }
