@@ -31,7 +31,10 @@ object AES256Consts extends AESConsts {
 import AES256Consts._
 
 // AES256 Encrypt/Decrypt Block (ECB-mode, no security masking)
-class AesCipherCoreWrapper_AES256_ECB_NoMask extends BlackBox with HasBlackBoxPath {
+class AesCipherCoreWrapper_AES256_ECB_NoMask
+  extends BlackBox with HasBlackBoxResource {
+  // TODO: BlackBoxPath causes issues when there are duplicates in firtool
+  //extends BlackBox with HasBlackBoxPath {
   val io = IO(new Bundle {
     val clk_i = Input(Clock())
     val rst_ni = Input(Reset())
@@ -66,12 +69,14 @@ class AesCipherCoreWrapper_AES256_ECB_NoMask extends BlackBox with HasBlackBoxPa
   def out_fire() = io.out_valid_o && io.out_ready_i
 
   val chipyardDir = System.getProperty("user.dir")
-  val aesDir = s"$chipyardDir/generators/aes-acc/src/main/resources/vsrc/aes/aes_cipher_core"
+  val aesDir = s"$chipyardDir/generators/aes-acc/src/main/resources/"
+  val vsrcDirPostfix = "vsrc/aes/aes_cipher_core"
 
-  val proc = s"make -C $aesDir core"
+  val proc = s"make -C ${aesDir + vsrcDirPostfix} core"
   require(proc.! == 0, "Failed to run pre-processing step")
 
-  addPath(s"$aesDir/core.sv")
+  //addPath(s"${aesDir + vsrcDirPostfix}/core.sv")
+  addResource(s"$vsrcDirPostfix/core.sv")
 }
 
 class InCryptBundle extends Bundle {

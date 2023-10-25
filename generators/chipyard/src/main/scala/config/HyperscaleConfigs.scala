@@ -156,23 +156,55 @@ class WithSN2ATLBus(chip0: Int, chip1: Int, isFiresim: Boolean = false) extends 
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
 
-class AppSoCConfig extends Config(
-  //new compressacc.WithSnappyDecompressor ++
-  //new compressacc.WithSnappyCompressor ++
-  //new protoacc.WithProtoAccelSerOnly ++
-  //new protoacc.WithProtoAccelDeserOnly ++
-  //new chipyard.config.WithAES192(0x70000000L, 0xFFL, "aes_small") ++
+class AESConfig extends Config(
+  new aes.WithAES256ECBAccel ++
+  new HyperscaleRocketBaseConfig)
+
+class MemCpyConfig extends Config(
+  new memcpyacc.WithMemcpyAccel ++
+  new HyperscaleRocketBaseConfig)
+
+// ---------------------------------
+
+class FastBuildAppSoCConfig extends Config(
   new BaseAppSoCConfig)
 
-class SmartNICSoCConfig extends Config(
+class FastBuildSmartNICSoCConfig extends Config(
   new chipyard.harness.WithLoopbackNIC ++
   new icenet.WithIceNIC ++
-  //new compressacc.WithZstdDecompressor32 ++
-  //new compressacc.WithZstdCompressor ++
-  //new protoacc.WithProtoAccelSerOnly ++
-  //new protoacc.WithProtoAccelDeserOnly ++
-  //new chipyard.config.WithAES192(0x70000000L, 0xFFL, "aes_large") ++
   new BaseSmartNICSoCConfig)
+
+class FastBuildBaseIntegrationConfig(isFiresim: Boolean = false) extends Config(
+  new chipyard.harness.WithAbsoluteFreqHarnessClockInstantiator ++   // use absolute freqs for sims in the harness
+  new WithSN2ATLBus(1, 0, isFiresim) ++ // SoC1 is mastering so it goes 1st
+  new WithA2SNTLBus(0, 1, isFiresim) ++
+  new chipyard.harness.WithMultiChip(0,
+    new FastBuildAppSoCConfig) ++
+  new chipyard.harness.WithMultiChip(1,
+    new FastBuildSmartNICSoCConfig))
+
+class FastBuildIntegrationConfig extends Config(new FastBuildBaseIntegrationConfig(false))
+class FastBuildFireSimIntegrationConfig extends Config(new FastBuildBaseIntegrationConfig(true))
+
+// ---------------------------------
+
+class AppSoCConfig extends Config(
+  new compressacc.WithSnappyDecompressor ++
+  new compressacc.WithSnappyCompressor ++
+  new protoacc.WithProtoAccelSerOnly ++
+  new protoacc.WithProtoAccelDeserOnly ++
+  new memcpyacc.WithMemcpyAccel ++
+  new aes.WithAES256ECBAccel ++
+  new FastBuildAppSoCConfig)
+
+class SmartNICSoCConfig extends Config(
+  new compressacc.WithZstdDecompressor32 ++
+  new compressacc.WithZstdCompressor ++
+  new protoacc.WithProtoAccelSerOnly ++
+  new protoacc.WithProtoAccelDeserOnly ++
+  new memcpyacc.WithMemcpyAccel ++
+  new aes.WithAES256ECBAccel ++
+  new FastBuildSmartNICSoCConfig)
 
 class BaseIntegrationConfig(isFiresim: Boolean = false) extends Config(
   new chipyard.harness.WithAbsoluteFreqHarnessClockInstantiator ++   // use absolute freqs for sims in the harness
@@ -185,11 +217,3 @@ class BaseIntegrationConfig(isFiresim: Boolean = false) extends Config(
 
 class IntegrationConfig extends Config(new BaseIntegrationConfig(false))
 class FireSimIntegrationConfig extends Config(new BaseIntegrationConfig(true))
-
-class AESConfig extends Config(
-  new aes.WithAES256ECBAccel ++
-  new HyperscaleRocketBaseConfig)
-
-class MemCpyConfig extends Config(
-  new memcpyacc.WithMemcpyAccel ++
-  new HyperscaleRocketBaseConfig)
