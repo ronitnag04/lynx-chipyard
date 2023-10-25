@@ -60,7 +60,6 @@ class AesCipherCoreWrapper_AES256_ECB_NoMask extends BlackBox with HasBlackBoxPa
     val state_o_0 = Output(UInt(BLOCK_SZ_BITS.W))
 
     val alert_o = Output(Bool())
-    val force_masks_i = Input(Bool())
   })
 
   def in_fire() = io.in_valid_i && io.in_ready_o
@@ -107,19 +106,27 @@ class AesCipherCoreDriver extends Module {
 
   acc.io.key_len_i := AES_256
   acc.io.entropy_ack_i := true.B // entropy is always available
-  acc.io.entropy_i := LFSR(32, acc.io.entropy_req_o)
-  acc.io.prd_clearing_i_0 := LFSR(64, acc.io.out_valid_o)
-  acc.io.force_masks_i := false.B
+  val entropy_i = RegInit(0.U(32.W))
+  when (acc.io.entropy_req_o) {
+    entropy_i := LFSR(32, acc.io.entropy_req_o)
+  }
+  acc.io.entropy_i := entropy_i
+  val prd_clearing_i_0 = RegInit(0.U(64.W))
+  when (acc.io.out_valid_o) {
+    prd_clearing_i_0 := LFSR(32, acc.io.out_valid_o)
+  }
+  acc.io.prd_clearing_i_0 := prd_clearing_i_0
 
   val s_initial_idle :: s_idle :: s_encrypt :: s_dec_key_gen :: s_decrypt :: Nil = Enum(5)
   val state = RegInit(s_initial_idle)
-  val prev_state = RegNext(state)
+  val prev_state = RegInit(s_initial_idle)
 
   switch (state) {
     // wait for core to be ready
     is (s_initial_idle) {
       when (acc.io.in_ready_o) {
         state := s_idle
+        prev_state := s_initial_idle
       }
     }
 
@@ -129,12 +136,14 @@ class AesCipherCoreDriver extends Module {
         // since we go back to idle after sending and encrypt/decrypt req, make sure to return to that state
         // if you started in that state (i.e. only go to dec_key_gen when there is a switch from encrypt -> decrypt)
         state := Mux(io.in.bits.encrypt, s_encrypt, Mux(prev_state === s_decrypt, s_decrypt, s_dec_key_gen))
+        prev_state := s_idle
       }
     }
 
     is (s_encrypt) {
       when (io.in.fire) {
         state := s_idle
+        prev_state := s_encrypt
       }
     }
 
@@ -142,12 +151,14 @@ class AesCipherCoreDriver extends Module {
     is (s_dec_key_gen) {
       when (acc.out_fire()) {
         state := s_decrypt
+        prev_state := s_dec_key_gen
       }
     }
 
     is (s_decrypt) {
       when (io.in.fire) {
         state := s_idle
+        prev_state := s_decrypt
       }
     }
   }
@@ -199,12 +210,12 @@ class AesCipherCoreDriver extends Module {
 
   acc.io.dec_key_gen_i := (state === s_dec_key_gen)
   acc.io.crypt_i := true.B
-  acc.io.prng_reseed_i := true.B // TODO: unsure, reseed as much as possible?
+  acc.io.prng_reseed_i := true.B
 
   acc.io.state_init_i_0 := io.in.bits.data
 
   acc.io.op_i := Mux(
-    state === s_encrypt,
-    CIPH_FWD,
-    CIPH_INV)
+    (state === s_decrypt) || ((state === s_idle) && (prev_state === s_decrypt)),
+    CIPH_INV,
+    CIPH_FWD)
 }

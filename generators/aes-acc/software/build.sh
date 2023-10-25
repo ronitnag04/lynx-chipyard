@@ -6,12 +6,6 @@ BENCHDIR=aes-simple
 
 rm -rf $BENCHDIR
 mkdir -p $BENCHDIR
-cp example.txt $BENCHDIR
-pushd $BENCHDIR
-cp example.txt data
-xxd -i data >> data.h
-rm example.txt data
-popd
 cp *.c $BENCHDIR
 cp *.h $BENCHDIR
 pushd $BENCHDIR

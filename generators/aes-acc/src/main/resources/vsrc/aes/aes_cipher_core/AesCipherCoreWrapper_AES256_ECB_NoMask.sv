@@ -23,7 +23,6 @@ module AesCipherCoreWrapper_AES256_ECB_NoMask
   input  logic                 [63:0] prd_clearing_i_0,
 
   // Masking PRNG
-  input  logic                        force_masks_i, // Useful for SCA only.
   output logic                [127:0] data_in_mask_o,
   output logic                        entropy_req_o,
   input  logic                        entropy_ack_i,
