@@ -21,7 +21,7 @@ ARCH = rv64imafdc
 ABI = lp64d
 ARCHFLAGS = -march=$(ARCH) -mabi=$(ABI)
 
-CFLAGS  = -std=gnu99 -O2 -fno-common -fno-builtin-printf -Wall
+CFLAGS  = -std=gnu99 -O2 -fno-common -fno-builtin-printf -Wall -g
 CFLAGS += $(ARCHFLAGS)
 LDFLAGS = -static
 
@@ -52,7 +52,7 @@ spiflash.img: spiflash.py
 	$(GCC) $(LDFLAGS) uartprint/kprintf.o $< -o $@
 
 %.dump: %.riscv
-	$(OBJDUMP) -D $< > $@
+	$(OBJDUMP) -D -S $< > $@
 
 
 #################################

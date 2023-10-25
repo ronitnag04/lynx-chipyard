@@ -76,9 +76,9 @@ class WithGPIOTiedOff extends OverrideHarnessBinder({
 })
 
 // DOC include start: WithUARTAdapter
-class WithUARTAdapter extends OverrideHarnessBinder({
+class WithUARTAdapter(baudrate: BigInt = 115200) extends OverrideHarnessBinder({
   (system: HasPeripheryUARTModuleImp, th: HasHarnessInstantiators, ports: Seq[UARTPortIO]) => {
-    UARTAdapter.connect(ports)(system.p)
+    UARTAdapter.connect(ports, baudrate=baudrate)(system.p)
   }
 })
 // DOC include end: WithUARTAdapter

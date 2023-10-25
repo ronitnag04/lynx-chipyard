@@ -2,20 +2,28 @@
 #include <riscv-pk/encoding.h>
 #include "marchid.h"
 
+#define SMARTNIC_DRAM_BASE (0xA0000000UL)
+#define SMARTNIC_DRAM_SZ (0x10000000UL)
+#define APP_DRAM_BASE (0x80000000UL)
+#define APP_DRAM_SZ (0x10000000UL)
+
+#define HANDSHAKE_0 (0xDEADBEEFUL) // written to smartnic memory
+#define HANDSHAKE_1 (0x4B1EB4B1UL) // written to app memory
+
 int main(void) {
-  printf("Printing from App. SoC\n");
+  printf("START: AppSoC Test\n");
 
-  // wait N cycles (for the other program to load / write to an address)
-  volatile uint64_t* myDramAddr = (volatile uint64_t*)0x90000000UL;
-  myDramAddr -= 4;
-  *myDramAddr = 0x4b1eb4b1;
+  volatile uint64_t* aAddr = ((volatile uint64_t*)(APP_DRAM_BASE + APP_DRAM_SZ) - 1);
+  *aAddr = HANDSHAKE_1;
 
-  volatile uint64_t* smartNICaddr = (volatile uint64_t*)0xb0000000UL;
-  smartNICaddr -= 4;
-  printf("Polling %p\n", smartNICaddr);
-  while (*smartNICaddr != 0xdeadbeef) {}
+  printf("INFO: Wrote handshake 1\n");
 
-  printf("Able to see other SoC up\n");
+  volatile uint64_t* snAddr = ((volatile uint64_t*)(SMARTNIC_DRAM_BASE + SMARTNIC_DRAM_SZ) - 1);
+  do {
+    printf("Polling %p...\n", snAddr);
+  } while (*snAddr != HANDSHAKE_0);
+
+  printf("PASS: Saw SmartNICSoC\n");
 
   return 0;
 }
