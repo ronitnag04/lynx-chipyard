@@ -96,7 +96,7 @@ class WithFireSimDesignTweaks extends Config(
   // Optional: Adds IO to attach tracerV bridges
   new chipyard.config.WithTraceIO ++
   // Optional: Request 16 GiB of target-DRAM by default (can safely request up to 32 GiB on F1)
-  new freechips.rocketchip.subsystem.WithExtMemSize((1 << 30) * 16L) ++
+  // new freechips.rocketchip.subsystem.WithExtMemSize((1 << 30) * 16L) ++
   // Optional: Removing this will require using an initramfs under linux
   new testchipip.WithBlockDevice
 )
@@ -332,3 +332,36 @@ class FireSimLeanGemminiRocketMMIOOnlyConfig extends Config(
   new WithDefaultMemModel ++
   new WithFireSimConfigTweaks ++
   new chipyard.LeanGemminiRocketConfig)
+
+//HyperscaleConfigTweaks
+class WithFireSimHyperscaleClocking extends Config(
+  new chipyard.config.WithTileFrequency(2000.0) ++
+  new chipyard.clocking.WithClockGroupsCombinedByName(("uncore", Seq("sbus", "cbus", "implicit"), Nil),
+    ("periphery", Seq("pbus", "fbus"), Nil)                                    
+  ) ++
+  new chipyard.config.WithSystemBusFrequency(2000.0) ++
+  new chipyard.config.WithMemoryBusFrequency(1000.0) ++                        
+  new chipyard.config.WithPeripheryBusFrequency(2000.0) ++
+  new chipyard.config.WithFbusToSbusCrossingType(AsynchronousCrossing()) ++    
+  new chipyard.config.WithCbusToPbusCrossingType(AsynchronousCrossing()) ++    
+  new chipyard.config.WithSbusToMbusCrossingType(AsynchronousCrossing()) ++    
+  new testchipip.WithAsynchronousSerialSlaveCrossing   
+/*
+  // Optional: This sets the default frequency for all buses in the system to 2.0 GHz
+  // (since unspecified bus frequencies will use the pbus frequency)
+  new chipyard.config.WithPeripheryBusFrequency(2000.0) ++
+  // Optional: These three configs put the DRAM memory system in it's own clock domain.
+  // Removing the first config will result in the FASED timing model running
+  // at the pbus freq (above, 2.0 GHz), which is outside the range of valid DDR3 speedgrades.
+  // 1 GHz matches the FASED default, using some other frequency will require
+  // runnings the FASED runtime configuration generator to generate faithful DDR3 timing values.
+  new chipyard.config.WithMemoryBusFrequency(1000.0) ++
+  new chipyard.config.WithAsynchrousMemoryBusCrossing ++
+  new testchipip.WithAsynchronousSerialSlaveCrossing
+*/
+)
+class WithFireSimHyperscaleConfigTweaks extends Config(
+  new WithFireSimHyperscaleClocking ++
+  new WithFireSimDesignTweaks
+)
+

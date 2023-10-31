@@ -3,10 +3,10 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "rocc.h"
+#include "rocc_opcode8.h"
 #include <stdbool.h>
 
-#define AES256_OPCODE 0
+#define AES256_OPCODE 5
 
 #define FUNCT_SFENCE 0
 #define FUNCT_SRC_INFO 1

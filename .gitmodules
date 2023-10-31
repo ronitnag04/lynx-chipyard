@@ -1,6 +1,6 @@
 [submodule "rocket-chip"]
 	path = generators/rocket-chip
-	url = https://github.com/chipsalliance/rocket-chip.git
+	url = https://github.com/junsunchoi/rocket-chip-opcode8.git
 [submodule "testchipip"]
 	path = generators/testchipip
 	url = https://github.com/abejgonzalez/hyperscale-grpc-testchipip.git
@@ -135,10 +135,10 @@
 	url = https://github.com/ucb-bar/berkeley-hardfloat.git
 [submodule "generators/protoacc"]
 	path = generators/protoacc
-	url = https://github.com/ucb-bar/protoacc.git
+	url = https://github.com/abejgonzalez/hyperscale-grpc-protoacc.git
 [submodule "generators/compress-acc"]
 	path = generators/compress-acc
-	url = https://github.com/ucb-bar/compress-acc.git
+	url = https://github.com/abejgonzalez/hyperscale-grpc-compress-acc.git
 [submodule "generators/latency-injection-queue"]
 	path = generators/latency-injection-queue
 	url = https://github.com/joey0320/latency-injection-queue.git

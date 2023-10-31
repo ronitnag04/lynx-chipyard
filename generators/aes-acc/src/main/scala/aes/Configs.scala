@@ -16,7 +16,7 @@ class WithAES256ECBAccel extends Config ((site, here, up) => {
   case AES256AccelTLB => Some(TLBConfig(nSets = 4, nWays = 4, nSectors = 1, nSuperpageEntries = 1))
   case BuildRoCC => up(BuildRoCC) ++ Seq(
     (p: Parameters) => {
-      val acc = LazyModule(new AES256ECBAccel(OpcodeSet.custom0)(p))
+      val acc = LazyModule(new AES256ECBAccel(OpcodeSet.custom5)(p))
       acc
     }
   )
