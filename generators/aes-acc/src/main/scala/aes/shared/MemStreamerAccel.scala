@@ -38,6 +38,9 @@ abstract class MemStreamerAccelImp(outer: MemStreamerAccel)(implicit p: Paramete
   io.mem.keep_clock_enabled := true.B
   io.interrupt := false.B
   io.busy := false.B
+  io.fpu_req.valid := false.B
+  io.fpu_req.bits := DontCare
+  io.fpu_resp.ready := true.B
 
   val memloader = Module(new MemLoader(memLoaderQueDepth=queueDepth, logger=outer.logger))
   outer.l2_memloader.module.io.userif <> memloader.io.l2helperUser

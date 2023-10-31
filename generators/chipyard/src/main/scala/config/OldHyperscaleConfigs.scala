@@ -116,7 +116,7 @@ class HyperscaleMegaBoomBaseConfig extends Config(
   new freechips.rocketchip.subsystem.WithInclusiveCache(nWays=16, capacityKB=2048) ++
   new freechips.rocketchip.subsystem.WithNBanks(8) ++
   new chipyard.config.WithExtMemIdBits(7) ++
-  new freechips.rocketchip.subsystem.WithNMemoryChannels(4) ++
+  new freechips.rocketchip.subsystem.WithNMemoryChannels(2) ++ // TODO: 2 channels for 1 SoC, 1 for other
   new chipyard.config.WithSystemBusWidth(256) ++
   new boom.common.WithBoomCommitLogPrintf ++
   new boom.common.WithNMegaBooms(1) ++

@@ -95,8 +95,8 @@ class WithFireSimDesignTweaks extends Config(
   new chipyard.config.WithUARTInitBaudRate(BigInt(3686400L)) ++
   // Optional: Adds IO to attach tracerV bridges
   new chipyard.config.WithTraceIO ++
-  // Optional: Request 16 GiB of target-DRAM by default (can safely request up to 32 GiB on F1)
-  new freechips.rocketchip.subsystem.WithExtMemSize((1 << 30) * 16L) ++
+  //// Optional: Request 16 GiB of target-DRAM by default (can safely request up to 32 GiB on F1)
+  //new freechips.rocketchip.subsystem.WithExtMemSize((1 << 30) * 16L) ++
   // Optional: Removing this will require using an initramfs under linux
   new testchipip.WithBlockDevice
 )
@@ -332,3 +332,21 @@ class FireSimLeanGemminiRocketMMIOOnlyConfig extends Config(
   new WithDefaultMemModel ++
   new WithFireSimConfigTweaks ++
   new chipyard.LeanGemminiRocketConfig)
+
+// ----------------------------------------------------
+
+class FireSimGRPCConfig extends Config(
+  new WithFireSimHarnessClockBridgeInstantiator ++
+  new chipyard.harness.WithHarnessBinderClockFreqMHz(1000.0) ++
+  new chipyard.WithSN2ATLBus(1, 0, true, "clock_1000MHz", 1000) ++ // SoC1 is mastering so it goes 1st
+  new chipyard.WithA2SNTLBus(0, 1, true, "clock_1000MHz", 1000) ++ // freq changed since WithFireSimConfigTweaks changes pbus freq
+  new chipyard.harness.WithMultiChip(0,
+    new WithDefaultFireSimBridges ++
+    new WithDefaultMemModel ++
+    new WithFireSimConfigTweaks ++
+    new chipyard.AppSoCConfig) ++
+  new chipyard.harness.WithMultiChip(1,
+    new WithDefaultFireSimBridges ++
+    new WithDefaultMemModel ++
+    new WithFireSimConfigTweaks ++
+    new chipyard.SmartNICSoCConfig))
