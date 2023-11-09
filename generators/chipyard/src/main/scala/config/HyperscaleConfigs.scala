@@ -164,6 +164,37 @@ class MemCpyConfig extends Config(
 
 // ---------------------------------
 
+class AESMemCpyConfig extends Config(
+  new aes.WithAES256ECBAccel ++
+  new memcpyacc.WithMemcpyAccel ++
+  new HyperscaleRocketBaseConfig)
+
+class ProtoConfig extends Config(
+  new protoacc.WithProtoAccelSerOnly ++
+  new protoacc.WithProtoAccelDeserOnly ++
+  new HyperscaleRocketBaseConfig)
+
+class SnappyDeCConfig extends Config(
+  new compressacc.WithSnappyDecompressor ++
+  new HyperscaleRocketBaseConfig)
+
+class SnappyCConfig extends Config(
+  new compressacc.WithSnappyCompressor ++
+  new HyperscaleRocketBaseConfig)
+
+class ZstdDeCConfig extends Config(
+  new compressacc.WithZstdDecompressor32 ++
+  new HyperscaleRocketBaseConfig)
+
+class ZstdCConfig extends Config(
+  new compressacc.WithZstdCompressor ++
+  new HyperscaleRocketBaseConfig)
+
+class HyperBoomConfig extends Config(
+  new HyperscaleMegaBoomBaseConfig)
+
+// ---------------------------------
+
 class FastBuildAppSoCConfig extends Config(
   new WithAppSoCModifications ++
   new HyperscaleRocketBaseConfig)

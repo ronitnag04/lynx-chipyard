@@ -63,21 +63,21 @@ module AesCipherCoreWrapper_AES256_ECB_NoMask
   assign key_init[0] = key_init_i_0;
 
   logic  [3:0][3:0][7:0] state_init [NumShares];
-  genvar i,j;
+  genvar ti,tj;
   generate
-    for(i=0; i<=3; i=i+1) begin
-      for(j=0; j<=3; j=j+1) begin
-        assign state_init[0][j][i] = state_init_i_0[((j + (i * 4)) * 8) + 7 : ((j + (i * 4)) * 8)];
+    for(ti=0; ti<=3; ti=ti+1) begin
+      for(tj=0; tj<=3; tj=tj+1) begin
+        assign state_init[0][tj][ti] = state_init_i_0[((tj + (ti * 4)) * 8) + 7 : ((tj + (ti * 4)) * 8)];
       end
     end
   endgenerate
 
   logic  [3:0][3:0][7:0] state_done [NumShares];
-  genvar i,j;
+  genvar tii,tjj;
   generate
-    for(i=0; i<=3; i=i+1) begin
-      for(j=0; j<=3; j=j+1) begin
-        assign state_o_0[((j + (i * 4)) * 8) + 7 : ((j + (i * 4)) * 8)] = state_done[0][j][i];
+    for(tii=0; tii<=3; tii=tii+1) begin
+      for(tjj=0; tjj<=3; tjj=tjj+1) begin
+        assign state_o_0[((tjj + (tii * 4)) * 8) + 7 : ((tjj + (tii * 4)) * 8)] = state_done[0][tjj][tii];
       end
     end
   endgenerate
