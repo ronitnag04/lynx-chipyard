@@ -15,7 +15,7 @@ import chipyard.harness.{MultiHarnessBinder, HasHarnessInstantiators}
 import freechips.rocketchip.util.{HeterogeneousBag, PlusArg, AsyncResetReg}
 import freechips.rocketchip.tilelink.{TLBundle, TLBundleA, TLBundleD}
 
-class BaseAppSoCConfig extends Config(
+class WithAppSoCModifications extends Config(
   // setup slave port (slave to slave to SmartNICSoC)
   new Config((site, here, up) => {
     case ExtIn2 => Some(SlavePortParams(
@@ -33,10 +33,10 @@ class BaseAppSoCConfig extends Config(
       idBits = 4, // 4b of source
       executable = true // left true otherwise it will add extra bundle fields
     ))
-  }) ++
-  new HyperscaleRocketBaseConfig)
+  })
+)
 
-class BaseSmartNICSoCConfig extends Config(
+class WithSmartNICSoCModifications extends Config(
   // TODO: unsure why it doesn't work
   //// dramatically increase the baudrate so that things can finish faster
   //new chipyard.harness.WithUARTAdapter(115200 * 12 * 12) ++ // overrides previous binder
@@ -56,7 +56,7 @@ class BaseSmartNICSoCConfig extends Config(
       base = x"a000_0000",
       size = x"1000_0000",
       beatBytes = site(MemoryBusKey).beatBytes,
-      idBits = 4), // ?? changes nothing
+      idBits = 7), // has to be 7 to match the app soc
       1 // 1 mem. channels
     ))
   }) ++
@@ -77,11 +77,11 @@ class BaseSmartNICSoCConfig extends Config(
       idBits = 4, // 4b of source
       executable = true // left true otherwise it will add extra bundle fields
     ))
-  }) ++
-  new HyperscaleRocketBaseConfig)
+  })
+)
 
 object ConnectWithLatency {
-  def apply(isFiresim: Boolean, latency_arg: String, th: HasHarnessInstantiators, ports0: Seq[HeterogeneousBag[TLBundle]], ports1: Seq[HeterogeneousBag[TLBundle]]): Unit = {
+  def apply(isFiresim: Boolean, latency_arg: String, th: HasHarnessInstantiators, ports0: Seq[HeterogeneousBag[TLBundle]], ports1: Seq[HeterogeneousBag[TLBundle]], freqStr: String = "clock_500MHz", freqInt: Int = 500): Unit = {
     require(ports0.size == ports1.size)
 
     val latency_doc = "Latency (cycles) of TL port between both SoC's"
@@ -102,7 +102,7 @@ object ConnectWithLatency {
         require(!ll.params.hasBCE, "DEBUG: Only supports TL-UC")
 
         // HACK! Using the same clock as the buses they are connected to
-        val tClk = th.harnessClockInstantiator.requestClockMHz("clock_500MHz", 500)
+        val tClk = th.harnessClockInstantiator.requestClockMHz(freqStr, freqInt)
         val tReset = AsyncResetReg(false.B, tClk, th.harnessBinderReset.asBool, true, None)
 
         // connect the fields of the TLBundle
@@ -130,23 +130,21 @@ object ConnectWithLatency {
   }
 }
 
-
-
-class WithA2SNTLBus(chip0: Int, chip1: Int, isFiresim: Boolean = false) extends MultiHarnessBinder(chip0, chip1, (
+class WithA2SNTLBus(chip0: Int, chip1: Int, isFiresim: Boolean = false, freqStr: String = "clock_500MHz", freqInt: Int = 500) extends MultiHarnessBinder(chip0, chip1, (
   (system0: CanHaveCustomMasterTLMMIOPort, system1: CanHaveCustomSlaveTLPort,
     th: HasHarnessInstantiators,
     ports0: Seq[HeterogeneousBag[TLBundle]], ports1: Seq[HeterogeneousBag[TLBundle]]
   ) => {
-    ConnectWithLatency(isFiresim, "link_lat_a2s", th, ports0, ports1)
+    ConnectWithLatency(isFiresim, "link_lat_a2s", th, ports0, ports1, freqStr, freqInt)
   }
 ))
 
-class WithSN2ATLBus(chip0: Int, chip1: Int, isFiresim: Boolean = false) extends MultiHarnessBinder(chip0, chip1, (
+class WithSN2ATLBus(chip0: Int, chip1: Int, isFiresim: Boolean = false, freqStr: String = "clock_500MHz", freqInt: Int = 500) extends MultiHarnessBinder(chip0, chip1, (
   (system0: CanHaveCustomMasterTLMMIOPort2, system1: CanHaveCustomSlaveTLPort2,
     th: HasHarnessInstantiators,
     ports0: Seq[HeterogeneousBag[TLBundle]], ports1: Seq[HeterogeneousBag[TLBundle]]
   ) => {
-    ConnectWithLatency(isFiresim, "link_lat_s2a", th, ports0, ports1)
+    ConnectWithLatency(isFiresim, "link_lat_s2a", th, ports0, ports1, freqStr, freqInt)
   }
 ))
 
@@ -166,13 +164,46 @@ class MemCpyConfig extends Config(
 
 // ---------------------------------
 
+class AESMemCpyConfig extends Config(
+  new aes.WithAES256ECBAccel ++
+  new memcpyacc.WithMemcpyAccel ++
+  new HyperscaleRocketBaseConfig)
+
+class ProtoConfig extends Config(
+  new protoacc.WithProtoAccelSerOnly ++
+  new protoacc.WithProtoAccelDeserOnly ++
+  new HyperscaleRocketBaseConfig)
+
+class SnappyDeCConfig extends Config(
+  new compressacc.WithSnappyDecompressor ++
+  new HyperscaleRocketBaseConfig)
+
+class SnappyCConfig extends Config(
+  new compressacc.WithSnappyCompressor ++
+  new HyperscaleRocketBaseConfig)
+
+class ZstdDeCConfig extends Config(
+  new compressacc.WithZstdDecompressor32 ++
+  new HyperscaleRocketBaseConfig)
+
+class ZstdCConfig extends Config(
+  new compressacc.WithZstdCompressor ++
+  new HyperscaleRocketBaseConfig)
+
+class HyperBoomConfig extends Config(
+  new HyperscaleMegaBoomBaseConfig)
+
+// ---------------------------------
+
 class FastBuildAppSoCConfig extends Config(
-  new BaseAppSoCConfig)
+  new WithAppSoCModifications ++
+  new HyperscaleRocketBaseConfig)
 
 class FastBuildSmartNICSoCConfig extends Config(
   new chipyard.harness.WithLoopbackNIC ++
   new icenet.WithIceNIC ++
-  new BaseSmartNICSoCConfig)
+  new WithSmartNICSoCModifications ++
+  new HyperscaleRocketBaseConfig)
 
 class FastBuildBaseIntegrationConfig(isFiresim: Boolean = false) extends Config(
   new chipyard.harness.WithAbsoluteFreqHarnessClockInstantiator ++   // use absolute freqs for sims in the harness
@@ -195,7 +226,8 @@ class AppSoCConfig extends Config(
   new protoacc.WithProtoAccelDeserOnly ++
   new memcpyacc.WithMemcpyAccel ++
   new aes.WithAES256ECBAccel ++
-  new FastBuildAppSoCConfig)
+  new WithAppSoCModifications ++
+  new HyperscaleMegaBoomBaseConfig)
 
 class SmartNICSoCConfig extends Config(
   new compressacc.WithZstdDecompressor32 ++
@@ -204,16 +236,16 @@ class SmartNICSoCConfig extends Config(
   new protoacc.WithProtoAccelDeserOnly ++
   new memcpyacc.WithMemcpyAccel ++
   new aes.WithAES256ECBAccel ++
-  new FastBuildSmartNICSoCConfig)
+  new chipyard.harness.WithLoopbackNIC ++
+  new icenet.WithIceNIC ++
+  new WithSmartNICSoCModifications ++
+  new HyperscaleRocketBaseConfig)
 
-class BaseIntegrationConfig(isFiresim: Boolean = false) extends Config(
+class IntegrationConfig extends Config(
   new chipyard.harness.WithAbsoluteFreqHarnessClockInstantiator ++   // use absolute freqs for sims in the harness
-  new WithSN2ATLBus(1, 0, isFiresim) ++ // SoC1 is mastering so it goes 1st
-  new WithA2SNTLBus(0, 1, isFiresim) ++
+  new WithSN2ATLBus(1, 0, false) ++ // SoC1 is mastering so it goes 1st
+  new WithA2SNTLBus(0, 1, false) ++
   new chipyard.harness.WithMultiChip(0,
     new AppSoCConfig) ++
   new chipyard.harness.WithMultiChip(1,
     new SmartNICSoCConfig))
-
-class IntegrationConfig extends Config(new BaseIntegrationConfig(false))
-class FireSimIntegrationConfig extends Config(new BaseIntegrationConfig(true))
