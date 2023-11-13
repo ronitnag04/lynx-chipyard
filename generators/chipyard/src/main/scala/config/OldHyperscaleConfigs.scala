@@ -8,11 +8,10 @@ import freechips.rocketchip.subsystem._
 // --------------------------------------------------------------------------------------
 
 class HyperscaleRocketBaseConfig extends Config(
-
-  //new freechips.rocketchip.subsystem.WithInclusiveCache(nWays=16, capacityKB=2048) ++
-  //new freechips.rocketchip.subsystem.WithNBanks(8) ++
-  //new chipyard.config.WithExtMemIdBits(7) ++
-  new freechips.rocketchip.subsystem.WithNMemoryChannels(1) ++
+  new freechips.rocketchip.subsystem.WithInclusiveCache(nWays=16, capacityKB=2048) ++
+  new freechips.rocketchip.subsystem.WithNBanks(8) ++
+  new chipyard.config.WithExtMemIdBits(7) ++
+  new freechips.rocketchip.subsystem.WithNMemoryChannels(4) ++ // TODO: reduce to 1 when doing final, this is for testing mem. channels on U250
   new chipyard.config.WithSystemBusWidth(256) ++
   new RocketConfig)
 
