@@ -95,8 +95,8 @@ class WithFireSimDesignTweaks extends Config(
   new chipyard.config.WithUARTInitBaudRate(BigInt(3686400L)) ++
   // Optional: Adds IO to attach tracerV bridges
   new chipyard.config.WithTraceIO ++
-  // Optional: Request 16 GiB of target-DRAM by default (can safely request up to 32 GiB on F1)
-  new freechips.rocketchip.subsystem.WithExtMemSize((1 << 30) * 16L) ++
+  //// Optional: Request 16 GiB of target-DRAM by default (can safely request up to 32 GiB on F1)
+  //new freechips.rocketchip.subsystem.WithExtMemSize((1 << 30) * 16L) ++ // not good since this overlaps the MMIO space of the smartnic
   // Optional: Removing this will require using an initramfs under linux
   new testchipip.WithBlockDevice
 )
