@@ -1,9 +1,0 @@
-{
-  "name": "aes256-simple",
-  "jobs": [
-    {
-      "name": "test",
-      "bin": "test.riscv"
-    }
-  ]
-}

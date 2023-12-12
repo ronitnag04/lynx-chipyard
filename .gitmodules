@@ -145,3 +145,9 @@
 [submodule "generators/memcpy-acc"]
 	path = generators/memcpy-acc
 	url = https://github.com/junsunchoi/memcpy-acc
+[submodule "generators/caliptra-aes-acc"]
+	path = generators/caliptra-aes-acc
+	url = https://github.com/ucb-bar/caliptra-aes-acc
+[submodule "generators/rocc-acc-utils"]
+	path = generators/rocc-acc-utils
+	url = https://github.com/ucb-bar/rocc-acc-utils

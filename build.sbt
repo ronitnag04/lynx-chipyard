@@ -151,7 +151,7 @@ lazy val chipyard = (project in file("generators/chipyard"))
     dsptools, rocket_dsp_utils,
     gemmini, icenet, tracegen, cva6, nvdla, sodor, ibex, fft_generator,
     constellation, mempress, barf, shuttle,
-    compressacc, protoacc, aesacc, latency_injection_queue, memcpyacc,
+    compressacc, protoacc, caliptra_aes, latency_injection_queue, memcpyacc,
     midasTargetUtils
   )
   .settings(libraryDependencies ++= rocketLibDeps.value)
@@ -242,18 +242,23 @@ lazy val protoacc = (project in file("generators/protoacc"))
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(commonSettings)
 
+lazy val rocc_acc_utils = (project in file("generators/rocc-acc-utils"))
+  .dependsOn(rocketchip)
+  .settings(libraryDependencies ++= rocketLibDeps.value)
+  .settings(commonSettings)
+
 lazy val compressacc = (project in file("generators/compress-acc"))
   .dependsOn(rocketchip, midasTargetUtils)
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(commonSettings)
 
-lazy val aesacc = (project in file("generators/aes-acc"))
-  .dependsOn(rocketchip, midasTargetUtils, testchipip)
+lazy val caliptra_aes = (project in file("generators/caliptra-aes-acc"))
+  .dependsOn(rocketchip, rocc_acc_utils, midasTargetUtils, testchipip)
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(commonSettings)
 
 lazy val memcpyacc = (project in file("generators/memcpy-acc"))
-  .dependsOn(rocketchip, midasTargetUtils)
+  .dependsOn(rocketchip, midasTargetUtils, rocc_acc_utils)
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(commonSettings)
 

@@ -230,7 +230,12 @@ class AppSoCConfig extends Config(
   new HyperscaleMegaBoomBaseConfig)
 
 class SmartNICSoCConfig extends Config(
-  new compressacc.WithZstdDecompressor32 ++
+  new compressacc.WithZstdDecompressor16 ++
+  new Config((site, here, up) => {
+    case compressacc.ZstdLiteralLengthMaxAccuracy => 6
+    case compressacc.ZstdMatchLengthMaxAccuracy => 6
+    case compressacc.ZstdOffsetMaxAccuracy => 5
+  }) ++
   new compressacc.WithZstdCompressor ++
   new protoacc.WithProtoAccelSerOnly ++
   new protoacc.WithProtoAccelDeserOnly ++
