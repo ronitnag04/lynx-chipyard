@@ -258,7 +258,7 @@ lazy val caliptra_aes = (project in file("generators/caliptra-aes-acc"))
   .settings(commonSettings)
 
 lazy val memcpyacc = (project in file("generators/memcpy-acc"))
-  .dependsOn(rocketchip, midasTargetUtils, rocc_acc_utils)
+  .dependsOn(rocketchip, midasTargetUtils)
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(commonSettings)
 

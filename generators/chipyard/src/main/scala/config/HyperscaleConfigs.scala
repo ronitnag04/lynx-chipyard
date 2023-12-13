@@ -175,18 +175,22 @@ class ProtoConfig extends Config(
   new HyperscaleRocketBaseConfig)
 
 class SnappyDeCConfig extends Config(
+  new freechips.rocketchip.subsystem.WithExtMemSize((1 << 30) * 1L) ++
   new compressacc.WithSnappyDecompressor ++
   new HyperscaleRocketBaseConfig)
 
 class SnappyCConfig extends Config(
+  new freechips.rocketchip.subsystem.WithExtMemSize((1 << 30) * 1L) ++
   new compressacc.WithSnappyCompressor ++
   new HyperscaleRocketBaseConfig)
 
 class ZstdDeCConfig extends Config(
+  new freechips.rocketchip.subsystem.WithExtMemSize((1 << 30) * 1L) ++
   new compressacc.WithZstdDecompressor32 ++
   new HyperscaleRocketBaseConfig)
 
 class ZstdCConfig extends Config(
+  new freechips.rocketchip.subsystem.WithExtMemSize((1 << 30) * 1L) ++
   new compressacc.WithZstdCompressor ++
   new HyperscaleRocketBaseConfig)
 
