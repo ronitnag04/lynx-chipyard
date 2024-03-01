@@ -258,3 +258,79 @@ class IntegrationConfig extends Config(
     new AppSoCConfig) ++
   new chipyard.harness.WithMultiChip(1,
     new SmartNICSoCConfig))
+
+// -- temp
+
+class WithAppSoCMinModifications extends Config(
+  // setup slave port (slave to slave to SmartNICSoC)
+  new Config((site, here, up) => {
+    case ExtIn2 => Some(SlavePortParams(
+      beatBytes = 8, // 64b of data per xfer
+      idBits = 4, // 4b of source
+      sourceBits = 1 // ?? changes nothing
+    ))
+  }) ++
+  // setup master port (master to SmartNICSoC)
+  new Config((site, here, up) => {
+    case ExtBus => Some(MasterPortParams(
+      base = x"a000_0000",
+      size = x"1000_0000",
+      beatBytes = site(MemoryBusKey).beatBytes, // 64b of data per xfer
+      idBits = 4, // 4b of source
+      executable = true // left true otherwise it will add extra bundle fields
+    ))
+  })
+)
+
+class WithSmartNICSoCMinModifications extends Config(
+  // TODO: unsure why it doesn't work
+  //// dramatically increase the baudrate so that things can finish faster
+  //new chipyard.harness.WithUARTAdapter(115200 * 12 * 12) ++ // overrides previous binder
+  //new chipyard.config.WithUARTInitBaudRate(115200 * 12 * 12) ++
+  // TODO: have this be autoconfigured by the ExtMem key
+  new Config((site, here, up) => {
+    // disable tsi on this soc
+    case SerialTLKey => None
+    // move CLINT to know addr
+    case CLINTKey => Some(CLINTParams(baseAddress = x"b000_0000"))
+    // have bootrom jump to proper dram loc
+    case BootAddrRegKey => up(BootAddrRegKey).map(_.copy(defaultBootAddress = x"a000_0000", defaultClintAddress = x"b000_0000"))
+  }) ++
+  // setup memory to be at different location
+  new Config((site, here, up) => {
+    case ExtMem => Some(MemoryPortParams(MasterPortParams(
+      base = x"a000_0000",
+      size = x"1000_0000",
+      beatBytes = site(MemoryBusKey).beatBytes,
+      idBits = 7), // has to be 7 to match the app soc
+      1 // 1 mem. channels
+    ))
+  }) ++
+  // setup slave port (slave to AppSoC)
+  new Config((site, here, up) => {
+    case ExtIn => Some(SlavePortParams(
+      beatBytes = 8, // 64b of data per xfer
+      idBits = 4, // 4b of source
+      sourceBits = 1 // ?? changes nothing
+    ))
+  }) ++
+  // setup master port (master to AppSoC)
+  new Config((site, here, up) => {
+    case ExtBus2 => Some(MasterPortParams(
+      base = x"8000_0000",
+      size = x"1000_0000",
+      beatBytes = site(MemoryBusKey).beatBytes, // 64b of data per xfer
+      idBits = 4, // 4b of source
+      executable = true // left true otherwise it will add extra bundle fields
+    ))
+  })
+)
+
+
+class AppSoCMinimalConfig extends Config(
+  new WithAppSoCMinModifications ++
+  new HyperscaleRocketBaseConfig)
+
+class SmartNICSoCMinimalConfig extends Config(
+  new WithSmartNICSoCMinModifications ++
+  new HyperscaleRocketBaseConfig)
