@@ -246,7 +246,7 @@ class SmartNICSoCConfig extends Config(
   new memcpyacc.WithMemcpyAccel ++
   new aes.WithAES256ECBAccel ++
   new chipyard.harness.WithLoopbackNIC ++
-  new icenet.WithIceNIC ++
+  new icenet.WithIceNIC(inBufFlits = 8192, ctrlQueueDepth = 64) ++ // match FireSim def.
   new WithSmartNICSoCModifications ++
   new HyperscaleRocketBaseConfig)
 
@@ -266,7 +266,7 @@ class WithAppSoCMinModifications extends Config(
   new Config((site, here, up) => {
     case ExtIn2 => Some(SlavePortParams(
       beatBytes = 8, // 64b of data per xfer
-      idBits = 4, // 4b of source
+      idBits = 3, // 3b of source
       sourceBits = 1 // ?? changes nothing
     ))
   }) ++
@@ -329,8 +329,18 @@ class WithSmartNICSoCMinModifications extends Config(
 
 class AppSoCMinimalConfig extends Config(
   new WithAppSoCMinModifications ++
+  //new HyperscaleMegaBoomBaseConfig)
   new HyperscaleRocketBaseConfig)
 
 class SmartNICSoCMinimalConfig extends Config(
   new WithSmartNICSoCMinModifications ++
   new HyperscaleRocketBaseConfig)
+
+class MinimalIntegrationConfig extends Config(
+  new chipyard.harness.WithAbsoluteFreqHarnessClockInstantiator ++   // use absolute freqs for sims in the harness
+  new WithSN2ATLBus(1, 0, false) ++ // SoC1 is mastering so it goes 1st
+  new WithA2SNTLBus(0, 1, false) ++
+  new chipyard.harness.WithMultiChip(0,
+    new AppSoCMinimalConfig) ++
+  new chipyard.harness.WithMultiChip(1,
+    new SmartNICSoCMinimalConfig))
