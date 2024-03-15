@@ -41,5 +41,8 @@ int main(void) {
   kputs("INFO: Wrote handshake 0\n");
 #endif
 
+  while (1) {}
+
+  // never reach this
   return 0;
 }
