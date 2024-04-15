@@ -84,7 +84,7 @@ cp -p "${SRCDIR}/riscv-isa-sim/build/libfesvr.a" "${RISCV}/lib/"
 CLEANAFTERINSTALL=$OLDCLEANAFTERINSTALL
 
 echo '==>  Installing Proxy Kernel'
-CC= CXX= module_all riscv-pk --prefix="${RISCV}" --host=riscv${XLEN}-unknown-elf
+CC= CXX= module_all riscv-pk --prefix="${RISCV}" --host=riscv${XLEN}-unknown-elf --with-arch=rv64gc_zifencei
 
 echo '==>  Installing RISC-V tests'
 module_all riscv-tests --prefix="${RISCV}/riscv${XLEN}-unknown-elf" --with-xlen=${XLEN}
@@ -117,5 +117,18 @@ git submodule update --init tools/DRAMSim2
 cd tools/DRAMSim2
 make libdramsim.so
 cp libdramsim.so $RISCV/lib/
+
+echo '==>  Installing uart_tsi bringup utility'
+cd $RDIR
+git submodule update --init generators/testchipip
+cd generators/testchipip/uart_tsi
+make
+cp uart_tsi $RISCV/bin
+
+echo '==>  Installing spike-devices'
+cd $RDIR
+git submodule update --init toolchains/riscv-tools/riscv-spike-devices
+cd toolchains/riscv-tools/riscv-spike-devices
+make install
 
 echo "Extra Toolchain Utilities/Tests Build Complete!"

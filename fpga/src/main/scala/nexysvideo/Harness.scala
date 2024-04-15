@@ -7,16 +7,15 @@ import freechips.rocketchip.diplomacy._
 import org.chipsalliance.cde.config.{Parameters}
 import freechips.rocketchip.tilelink._
 import freechips.rocketchip.subsystem.{SystemBusKey}
-
+import freechips.rocketchip.prci._
 import sifive.fpgashells.shell.xilinx._
 import sifive.fpgashells.shell._
-import sifive.fpgashells.clocks.{ClockGroup, ClockSinkNode, PLLFactoryKey, ResetWrangler}
+import sifive.fpgashells.clocks._
 
 import sifive.blocks.devices.uart._
 
 import chipyard._
 import chipyard.harness._
-import chipyard.iobinders.{HasIOBinders}
 
 class NexysVideoHarness(override implicit val p: Parameters) extends NexysVideoShell {
   def dp = designParameters

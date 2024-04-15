@@ -28,7 +28,6 @@ EXTRA_SIM_CXXFLAGS   ?=
 EXTRA_SIM_LDFLAGS    ?=
 EXTRA_SIM_SOURCES    ?=
 EXTRA_SIM_REQS       ?=
-ENABLE_CUSTOM_FIRRTL_PASS += $(ENABLE_YOSYS_FLOW)
 
 ifneq ($(ASPECTS), )
 	comma = ,
@@ -58,7 +57,8 @@ HELP_COMMANDS += \
 "   firrtl                      = generate intermediate firrtl files from chisel elaboration" \
 "   run-tests                   = run all assembly and benchmark tests" \
 "   launch-sbt                  = start sbt terminal" \
-"   find-config-fragments       = list all config. fragments"
+"   find-config-fragments       = list all config. fragments" \
+"   check-submodule-status      = check that all submodules in generators/ have been initialized"
 
 #########################################################################################
 # include additional subproject make fragments
@@ -83,6 +83,8 @@ endif
 
 # Returns a list of files in directories $1 with *any* of the file extensions in $2
 lookup_srcs_by_multiple_type = $(foreach type,$(2),$(call lookup_srcs,$(1),$(type)))
+
+CHECK_SUBMODULES_COMMAND = echo "Checking all submodules in generators/ are initialized. Uninitialized submodules will be displayed" ; ! git submodule status $(base_dir)/generators | grep ^-
 
 SCALA_EXT = scala
 VLOG_EXT = sv v
@@ -119,12 +121,13 @@ $(BOOTROM_TARGETS): $(build_dir)/bootrom.%.img: $(TESTCHIP_RSRCS_DIR)/testchipip
 #########################################################################################
 # compile scala jars
 #########################################################################################
-$(CHIPYARD_CLASSPATH_TARGETS) &: $(CHIPYARD_SCALA_SOURCES) $(SCALA_BUILDTOOL_DEPS)
+$(CHIPYARD_CLASSPATH_TARGETS) &: $(CHIPYARD_SCALA_SOURCES) $(SCALA_BUILDTOOL_DEPS) $(CHIPYARD_VLOG_SOURCES)
+	$(CHECK_SUBMODULES_COMMAND)
 	mkdir -p $(dir $@)
 	$(call run_sbt_assembly,$(SBT_PROJECT),$(CHIPYARD_CLASSPATH))
 
 # order only dependency between sbt runs needed to avoid concurrent sbt runs
-$(TAPEOUT_CLASSPATH_TARGETS) &: $(BARSTOOLS_SCALA_SOURCES) $(SCALA_BUILDTOOL_DEPS) | $(CHIPYARD_CLASSPATH_TARGETS)
+$(TAPEOUT_CLASSPATH_TARGETS) &: $(BARSTOOLS_SCALA_SOURCES) $(SCALA_BUILDTOOL_DEPS) $(BARSTOOLS_VLOG_SOURCES) | $(CHIPYARD_CLASSPATH_TARGETS)
 	mkdir -p $(dir $@)
 	$(call run_sbt_assembly,tapeout,$(TAPEOUT_CLASSPATH))
 
@@ -190,7 +193,7 @@ SFC_MFC_TARGETS = \
 	$(GEN_COLLATERAL_DIR)
 
 SFC_REPL_SEQ_MEM = --infer-rw --repl-seq-mem -c:$(MODEL):-o:$(SFC_SMEMS_CONF)
-MFC_BASE_LOWERING_OPTIONS ?= emittedLineLength=2048,noAlwaysComb,disallowLocalVariables,verifLabels,locationInfoStyle=wrapInAtSquareBracket
+MFC_BASE_LOWERING_OPTIONS ?= emittedLineLength=2048,noAlwaysComb,disallowLocalVariables,verifLabels,disallowPortDeclSharing,locationInfoStyle=wrapInAtSquareBracket
 
 # DOC include start: FirrtlCompiler
 # There are two possible cases for this step. In the first case, SFC
@@ -227,7 +230,7 @@ $(FINAL_ANNO_FILE): $(EXTRA_ANNO_FILE) $(SFC_EXTRA_ANNO_FILE) $(SFC_LEVEL)
 	touch $@
 
 $(SFC_MFC_TARGETS) &: private TMP_DIR := $(shell mktemp -d -t cy-XXXXXXXX)
-$(SFC_MFC_TARGETS) &: $(TAPEOUT_CLASSPATH_TARGETS) $(FIRRTL_FILE) $(FINAL_ANNO_FILE) $(SFC_LEVEL) $(EXTRA_FIRRTL_OPTIONS) $(MFC_LOWERING_OPTIONS) $(CHIPYARD_VLOG_SOURCES) $(BARSTOOLS_VLOG_SOURCES)
+$(SFC_MFC_TARGETS) &: $(TAPEOUT_CLASSPATH_TARGETS) $(FIRRTL_FILE) $(FINAL_ANNO_FILE) $(SFC_LEVEL) $(EXTRA_FIRRTL_OPTIONS) $(MFC_LOWERING_OPTIONS)
 	rm -rf $(GEN_COLLATERAL_DIR)
 	$(call run_jar_scala_main,$(TAPEOUT_CLASSPATH),barstools.tapeout.transforms.GenerateModelStageMain,\
 		--no-dedup \
@@ -246,9 +249,7 @@ $(SFC_MFC_TARGETS) &: $(TAPEOUT_CLASSPATH_TARGETS) $(FIRRTL_FILE) $(FINAL_ANNO_F
 	@if [ $(shell cat $(SFC_LEVEL)) = low ]; then cat $(TMP_DIR)/unnec-anno-deleted2.sfc.anno.json > $(SFC_ANNO_FILE) && rm $(TMP_DIR)/unnec-anno-deleted.sfc.anno.json && rm $(TMP_DIR)/unnec-anno-deleted2.sfc.anno.json; fi
 	firtool \
 		--format=fir \
-		--dedup \
 		--export-module-hierarchy \
-		--emit-metadata \
 		--verify-each=true \
 		--warn-on-unprocessed-annotations \
 		--disable-annotation-classless \
@@ -257,13 +258,13 @@ $(SFC_MFC_TARGETS) &: $(TAPEOUT_CLASSPATH_TARGETS) $(FIRRTL_FILE) $(FINAL_ANNO_F
 		--lowering-options=$(shell cat $(MFC_LOWERING_OPTIONS)) \
 		--repl-seq-mem \
 		--repl-seq-mem-file=$(MFC_SMEMS_CONF) \
-		--repl-seq-mem-circuit=$(MODEL) \
 		--annotation-file=$(SFC_ANNO_FILE) \
 		--split-verilog \
 		-o $(GEN_COLLATERAL_DIR) \
 		$(SFC_FIRRTL_FILE)
 	-mv $(SFC_SMEMS_CONF) $(MFC_SMEMS_CONF) 2> /dev/null
 	$(SED) -i 's/.*/& /' $(MFC_SMEMS_CONF) # need trailing space for SFC macrocompiler
+	touch $(MFC_BB_MODS_FILELIST) # if there are no BB's then the file might not be generated, instead always generate it
 # DOC include end: FirrtlCompiler
 
 $(TOP_MODS_FILELIST) $(MODEL_MODS_FILELIST) $(ALL_MODS_FILELIST) $(BB_MODS_FILELIST) $(MFC_MODEL_HRCHY_JSON_UNIQUIFIED) &: $(MFC_MODEL_HRCHY_JSON) $(MFC_TOP_HRCHY_JSON) $(MFC_FILELIST) $(MFC_BB_MODS_FILELIST)
@@ -303,18 +304,25 @@ $(TOP_SMEMS_CONF) $(MODEL_SMEMS_CONF) &:  $(MFC_SMEMS_CONF) $(MFC_MODEL_HRCHY_JS
 TOP_MACROCOMPILER_MODE ?= --mode synflops
 $(TOP_SMEMS_FILE) $(TOP_SMEMS_FIR) &: $(TAPEOUT_CLASSPATH_TARGETS) $(TOP_SMEMS_CONF)
 	$(call run_jar_scala_main,$(TAPEOUT_CLASSPATH),barstools.macros.MacroCompiler,-n $(TOP_SMEMS_CONF) -v $(TOP_SMEMS_FILE) -f $(TOP_SMEMS_FIR) $(TOP_MACROCOMPILER_MODE))
+	touch $(TOP_SMEMS_FILE) $(TOP_SMEMS_FIR)
 
 MODEL_MACROCOMPILER_MODE = --mode synflops
-$(MODEL_SMEMS_FILE) $(MODEL_SMEMS_FIR) &: $(TAPEOUT_CLASSPATH_TARGETS) $(MODEL_SMEMS_CONF) | $(TOP_SMEMS_FILE)
+$(MODEL_SMEMS_FILE) $(MODEL_SMEMS_FIR) &: $(TAPEOUT_CLASSPATH_TARGETS) $(MODEL_SMEMS_CONF)
 	$(call run_jar_scala_main,$(TAPEOUT_CLASSPATH),barstools.macros.MacroCompiler, -n $(MODEL_SMEMS_CONF) -v $(MODEL_SMEMS_FILE) -f $(MODEL_SMEMS_FIR) $(MODEL_MACROCOMPILER_MODE))
+	touch $(MODEL_SMEMS_FILE) $(MODEL_SMEMS_FIR)
 
 ########################################################################################
 # remove duplicate files and headers in list of simulation file inputs
 # note: {MODEL,TOP}_BB_MODS_FILELIST is added as a req. so that the files get generated,
 #       however it is really unneeded since ALL_MODS_FILELIST includes all BB files
 ########################################################################################
-$(sim_common_files): $(sim_files) $(ALL_MODS_FILELIST) $(TOP_SMEMS_FILE) $(MODEL_SMEMS_FILE) $(BB_MODS_FILELIST)
-	cat -n $(sim_files) $(ALL_MODS_FILELIST) | sort -k2 -k1n  | uniq -f1 | sort -nk1,1 | cut -f2- | grep -v '.*\.\(svh\|h\)$$' > $@
+$(sim_common_files): $(sim_files) $(ALL_MODS_FILELIST) $(TOP_SMEMS_FILE) $(MODEL_SMEMS_FILE) $(BB_MODS_FILELIST) $(EXT_FILELISTS)
+ifneq (,$(EXT_FILELISTS))
+	cat $(EXT_FILELISTS) > $@
+else
+	rm -f $@
+endif
+	sort -u $(sim_files) $(ALL_MODS_FILELIST) | grep -v '.*\.\(svh\|h\)$$' >> $@
 	echo "$(TOP_SMEMS_FILE)" >> $@
 	echo "$(MODEL_SMEMS_FILE)" >> $@
 
@@ -374,14 +382,27 @@ run-binary: check-binary $(BINARY).run
 run-binaries: check-binaries $(addsuffix .run,$(BINARIES))
 
 %.run: %.check-exists $(SIM_PREREQ) | $(output_dir)
-	(set -o pipefail && $(NUMA_PREFIX) $(sim) $(PERMISSIVE_ON) $(call get_common_sim_flags,$*) $(VERBOSE_FLAGS) $(PERMISSIVE_OFF) $* </dev/null 2> >(spike-dasm > $(call get_sim_out_name,$*).out) | tee $(call get_sim_out_name,$*).log)
+	(set -o pipefail && $(NUMA_PREFIX) $(sim) \
+		$(PERMISSIVE_ON) \
+		$(call get_common_sim_flags,$*) \
+		$(VERBOSE_FLAGS) \
+		$(PERMISSIVE_OFF) \
+		$* \
+		$(BINARY_ARGS) \
+		</dev/null 2> >(spike-dasm > $(call get_sim_out_name,$*).out) | tee $(call get_sim_out_name,$*).log)
 
 # run simulator as fast as possible (no insn disassembly)
 run-binary-fast: check-binary $(BINARY).run.fast
 run-binaries-fast: check-binaries $(addsuffix .run.fast,$(BINARIES))
 
 %.run.fast: %.check-exists $(SIM_PREREQ) | $(output_dir)
-	(set -o pipefail && $(NUMA_PREFIX) $(sim) $(PERMISSIVE_ON) $(call get_common_sim_flags,$*) $(PERMISSIVE_OFF) $* </dev/null | tee $(call get_sim_out_name,$*).log)
+	(set -o pipefail && $(NUMA_PREFIX) $(sim) \
+		$(PERMISSIVE_ON) \
+		$(call get_common_sim_flags,$*) \
+		$(PERMISSIVE_OFF) \
+		$* \
+		$(BINARY_ARGS) \
+		</dev/null | tee $(call get_sim_out_name,$*).log)
 
 # run simulator with as much debug info as possible
 run-binary-debug: check-binary $(BINARY).run.debug
@@ -389,7 +410,15 @@ run-binaries-debug: check-binaries $(addsuffix .run.debug,$(BINARIES))
 
 %.run.debug: %.check-exists $(SIM_DEBUG_PREREQ) | $(output_dir)
 	if [ "$*" != "none" ]; then riscv64-unknown-elf-objdump -D -S $* > $(call get_sim_out_name,$*).dump ; fi
-	(set -o pipefail && $(NUMA_PREFIX) $(sim_debug) $(PERMISSIVE_ON) $(call get_common_sim_flags,$*) $(VERBOSE_FLAGS) $(call get_waveform_flag,$(call get_sim_out_name,$*)) $(PERMISSIVE_OFF) $* </dev/null 2> >(spike-dasm > $(call get_sim_out_name,$*).out) | tee $(call get_sim_out_name,$*).log)
+	(set -o pipefail && $(NUMA_PREFIX) $(sim_debug) \
+		$(PERMISSIVE_ON) \
+		$(call get_common_sim_flags,$*) \
+		$(VERBOSE_FLAGS) \
+		$(call get_waveform_flag,$(call get_sim_out_name,$*)) \
+		$(PERMISSIVE_OFF) \
+		$* \
+		$(BINARY_ARGS) \
+		</dev/null 2> >(spike-dasm > $(call get_sim_out_name,$*).out) | tee $(call get_sim_out_name,$*).log)
 
 run-fast: run-asm-tests-fast run-bmark-tests-fast
 
@@ -461,8 +490,23 @@ help:
 	@for line in $(HELP_LINES); do echo "$$line"; done
 
 #########################################################################################
+# Check submodule status
+#########################################################################################
+
+.PHONY: check-submodule-status
+check-submodule-status:
+	$(CHECK_SUBMODULES_COMMAND)
+
+#########################################################################################
 # Implicit rule handling
 #########################################################################################
 # Disable all suffix rules to improve Make performance on systems running older
 # versions of Make
 .SUFFIXES:
+
+.PHONY: print-%
+# Print any variable and it's origin. This helps figure out where the
+# variable was defined and to distinguish between empty and undefined.
+print-%:
+	@echo "$*=$($*)"
+	@echo "Origin is: $(origin $*)"

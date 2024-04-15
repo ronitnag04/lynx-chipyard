@@ -95,7 +95,7 @@ lazy val chiselSettings = Seq(
 
 // -- Rocket Chip --
 
-lazy val hardfloat = freshProject("hardfloat", rocketChipDir / "hardfloat/hardfloat")
+lazy val hardfloat = freshProject("hardfloat", file("generators/hardfloat/hardfloat"))
   .settings(chiselSettings)
   .dependsOn(midasTargetUtils)
   .settings(commonSettings)
@@ -113,8 +113,19 @@ lazy val rocketMacros  = (project in rocketChipDir / "macros")
     )
   )
 
+lazy val diplomacy = freshProject("diplomacy", file("generators/diplomacy/diplomacy"))
+  .dependsOn(cde)
+  .settings(commonSettings)
+  .settings(chiselSettings)
+  .settings(Compile / scalaSource := baseDirectory.value / "diplomacy")
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.lihaoyi" %% "sourcecode" % "0.3.1"
+    )
+  )
+
 lazy val rocketchip = freshProject("rocketchip", rocketChipDir)
-  .dependsOn(hardfloat, rocketMacros, cde)
+  .dependsOn(hardfloat, rocketMacros, diplomacy, cde)
   .settings(commonSettings)
   .settings(chiselSettings)
   .settings(
@@ -123,7 +134,8 @@ lazy val rocketchip = freshProject("rocketchip", rocketChipDir)
       "org.scala-lang" % "scala-reflect" % scalaVersion.value,
       "org.json4s" %% "json4s-jackson" % "4.0.5",
       "org.scalatest" %% "scalatest" % "3.2.0" % "test",
-      "org.scala-graph" %% "graph-core" % "1.13.5"
+      "org.scala-graph" %% "graph-core" % "1.13.5",
+      "com.lihaoyi" %% "sourcecode" % "0.3.1"
     )
   )
   .settings( // Settings for scalafix
@@ -141,12 +153,12 @@ lazy val rocketLibDeps = (rocketchip / Keys.libraryDependencies)
 lazy val midasTargetUtils = ProjectRef(firesimDir, "targetutils")
 
 lazy val testchipip = (project in file("generators/testchipip"))
-  .dependsOn(rocketchip, sifive_blocks)
+  .dependsOn(rocketchip, rocketchip_blocks)
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(commonSettings)
 
 lazy val chipyard = (project in file("generators/chipyard"))
-  .dependsOn(testchipip, rocketchip, boom, hwacha, sifive_blocks, sifive_cache, iocell,
+  .dependsOn(testchipip, rocketchip, boom, hwacha, rocketchip_blocks, rocketchip_inclusive_cache, iocell,
     sha3, // On separate line to allow for cleaner tutorial-setup patches
     dsptools, rocket_dsp_utils,
     gemmini, icenet, tracegen, cva6, nvdla, sodor, ibex, fft_generator,
@@ -183,7 +195,7 @@ lazy val fft_generator = (project in file("generators/fft-generator"))
   .settings(commonSettings)
 
 lazy val tracegen = (project in file("generators/tracegen"))
-  .dependsOn(testchipip, rocketchip, sifive_cache, boom)
+  .dependsOn(testchipip, rocketchip, rocketchip_inclusive_cache, boom)
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(commonSettings)
 
@@ -297,7 +309,7 @@ lazy val rocket_dsp_utils = freshProject("rocket-dsp-utils", file("./tools/rocke
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(commonSettings)
 
-lazy val sifive_blocks = (project in file("generators/sifive-blocks"))
+lazy val rocketchip_blocks = (project in file("generators/rocket-chip-blocks"))
   .dependsOn(rocketchip)
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(commonSettings)
@@ -307,7 +319,7 @@ lazy val latency_injection_queue = freshProject("latency-injection-queue", file(
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(commonSettings)
 
-lazy val sifive_cache = (project in file("generators/sifive-cache"))
+lazy val rocketchip_inclusive_cache = (project in file("generators/rocket-chip-inclusive-cache"))
   .settings(
     commonSettings,
     Compile / scalaSource := baseDirectory.value / "design/craft")
@@ -327,7 +339,7 @@ lazy val firechip = (project in file("generators/firechip"))
     Test / testOptions += Tests.Argument("-oF")
   )
 lazy val fpga_shells = (project in file("./fpga/fpga-shells"))
-  .dependsOn(rocketchip, sifive_blocks)
+  .dependsOn(rocketchip, rocketchip_blocks)
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(commonSettings)
 

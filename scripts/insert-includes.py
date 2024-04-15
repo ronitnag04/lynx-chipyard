@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-# replaces a `include with the full include file
+# replaces a `include with the full include file.
+# recursively replaces `include's until none are left
 #
 # args
 # $1 - file to remove includes from
@@ -33,13 +34,15 @@ def process(inF, outF):
             # for each include found, search through all dirs and replace if found, error if not
             for num, line in enumerate(inFile, 1):
                 match = re.match(r"^ *`include +\"(.*)\"", line)
-                if match:
+                if match and match.group(1) != "uvm_macros.svh":
+                    print("[INFO] Replacing includes for {}".format(match.group(1)))
                     # search for include and replace
                     found = False
                     for d in incDirs:
                         potentialIncFileName = d + "/" + match.group(1)
                         if os.path.exists(potentialIncFileName):
                             found = True
+                            print("[INFO] Found missing include in {}".format(potentialIncFileName))
                             with open(potentialIncFileName, 'r') as incFile:
                                 for iline in incFile:
                                     outFile.write(iline)
