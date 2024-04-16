@@ -427,7 +427,8 @@ class WithTLMMIOPunchthrough extends OverrideLazyIOBinder({
     InModuleBody {
       val io_tl_mem_pins_temp = IO(DataMirror.internal.chiselTypeClone[HeterogeneousBag[TLBundle]](system.mmio_tl)).suggestName("tl_mmio_wire")
       io_tl_mem_pins_temp <> system.mmio_tl
-      (Seq(io_tl_mem_pins_temp), Nil)
+      val port = TLMMIOPort(() => io_tl_mem_pins_temp)
+      (Seq(port), Nil)
     }
   }
 })
@@ -437,7 +438,8 @@ class WithTLSlavePunchthrough extends OverrideLazyIOBinder({
     InModuleBody {
       val io_tl_mem_pins_temp = IO(DataMirror.internal.chiselTypeClone[HeterogeneousBag[TLBundle]](system.l2_frontend_bus_tl)).suggestName("tl_slave_wire")
       io_tl_mem_pins_temp <> system.l2_frontend_bus_tl
-      (Seq(io_tl_mem_pins_temp), Nil)
+      val port = TLInPort(() => io_tl_mem_pins_temp)
+      (Seq(port), Nil)
     }
   }
 })
@@ -447,7 +449,8 @@ class WithTLMMIOPunchthrough2 extends OverrideLazyIOBinder({
     InModuleBody {
       val io_tl_mem_pins_temp = IO(DataMirror.internal.chiselTypeClone[HeterogeneousBag[TLBundle]](system.mmio_tl2)).suggestName("tl_mmio_wire2")
       io_tl_mem_pins_temp <> system.mmio_tl2
-      (Seq(io_tl_mem_pins_temp), Nil)
+      val port = TLMMIO2Port(() => io_tl_mem_pins_temp)
+      (Seq(port), Nil)
     }
   }
 })
@@ -457,7 +460,8 @@ class WithTLSlavePunchthrough2 extends OverrideLazyIOBinder({
     InModuleBody {
       val io_tl_mem_pins_temp = IO(DataMirror.internal.chiselTypeClone[HeterogeneousBag[TLBundle]](system.l2_frontend_bus_tl2)).suggestName("tl_slave_wire2")
       io_tl_mem_pins_temp <> system.l2_frontend_bus_tl2
-      (Seq(io_tl_mem_pins_temp), Nil)
+      val port = TLIn2Port(() => io_tl_mem_pins_temp)
+      (Seq(port), Nil)
     }
   }
 })

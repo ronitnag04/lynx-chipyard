@@ -8,12 +8,14 @@ import org.chipsalliance.cde.config.{Config}
 import freechips.rocketchip.subsystem._
 import freechips.rocketchip.subsystem.{ExtBus, ExtMem, MemoryPortParams, MasterPortParams, SlavePortParams, MemoryBusKey}
 import freechips.rocketchip.diplomacy._
-import testchipip.{SerialTLKey}
+import testchipip.serdes.{SerialTLKey}
 import freechips.rocketchip.devices.tilelink.{CLINTParams, CLINTKey}
-import testchipip.{BootAddrRegKey}
+import testchipip.boot.{BootAddrRegKey}
 import chipyard.harness.{MultiHarnessBinder, HasHarnessInstantiators}
-import freechips.rocketchip.util.{HeterogeneousBag, PlusArg, AsyncResetReg}
+import org.chipsalliance.diplomacy.nodes.{HeterogeneousBag}
+import freechips.rocketchip.util.{plusarg_reader, AsyncResetReg}
 import freechips.rocketchip.tilelink.{TLBundle, TLBundleA, TLBundleD}
+import chipyard.iobinders.{TLMMIOPort, TLInPort, TLMMIO2Port, TLIn2Port}
 
 class WithAppSoCModifications extends Config(
   // setup slave port (slave to slave to SmartNICSoC)
@@ -81,17 +83,13 @@ class WithSmartNICSoCModifications extends Config(
 )
 
 object ConnectWithLatency {
-  def apply(isFiresim: Boolean, latency_arg: String, th: HasHarnessInstantiators, ports0: Seq[HeterogeneousBag[TLBundle]], ports1: Seq[HeterogeneousBag[TLBundle]], freqStr: String = "clock_500MHz", freqInt: Int = 500): Unit = {
+  def apply(latency_arg: String, th: HasHarnessInstantiators, ports0: Seq[HeterogeneousBag[TLBundle]], ports1: Seq[HeterogeneousBag[TLBundle]], freqStr: String = "clock_500MHz", freqInt: Int = 500): Unit = {
     require(ports0.size == ports1.size)
 
     val latency_doc = "Latency (cycles) of TL port between both SoC's"
-    val latency = if (isFiresim) {
-      val l = WireInit(0.U(32.W))
-      midas.targetutils.PlusArgs(l, name=s"${latency_arg}=%d", docstring=latency_doc)
-      l
-    } else {
-      PlusArg(latency_arg, docstring=latency_doc)
-    }
+    val my_plusarg_module = Module(new plusarg_reader(s"${latency_arg}=%d", 0, latency_doc, 32))
+    val latency = my_plusarg_module.io.out
+    midas.targetutils.PlusArg(my_plusarg_module)
 
     (ports0 zip ports1).map { case (p0hb, p1hb) =>
       // connect the HeterogeneousBag[TLBundle]
@@ -130,23 +128,23 @@ object ConnectWithLatency {
   }
 }
 
-class WithA2SNTLBus(chip0: Int, chip1: Int, isFiresim: Boolean = false, freqStr: String = "clock_500MHz", freqInt: Int = 500) extends MultiHarnessBinder(chip0, chip1, (
-  (system0: CanHaveCustomMasterTLMMIOPort, system1: CanHaveCustomSlaveTLPort,
-    th: HasHarnessInstantiators,
-    ports0: Seq[HeterogeneousBag[TLBundle]], ports1: Seq[HeterogeneousBag[TLBundle]]
-  ) => {
-    ConnectWithLatency(isFiresim, "link_lat_a2s", th, ports0, ports1, freqStr, freqInt)
+class WithA2SNTLBus(chip0: Int, chip1: Int, freqStr: String = "clock_500MHz", freqInt: Int = 500) extends MultiHarnessBinder(
+  chip0, chip1,
+  (p0: TLMMIOPort) => true,
+  (p1: TLInPort) => true,
+  (th: HasHarnessInstantiators, p0: TLMMIOPort, p1: TLInPort) => {
+    ConnectWithLatency("link_lat_a2s", th, Seq(p0.io), Seq(p1.io), freqStr, freqInt)
   }
-))
+)
 
-class WithSN2ATLBus(chip0: Int, chip1: Int, isFiresim: Boolean = false, freqStr: String = "clock_500MHz", freqInt: Int = 500) extends MultiHarnessBinder(chip0, chip1, (
-  (system0: CanHaveCustomMasterTLMMIOPort2, system1: CanHaveCustomSlaveTLPort2,
-    th: HasHarnessInstantiators,
-    ports0: Seq[HeterogeneousBag[TLBundle]], ports1: Seq[HeterogeneousBag[TLBundle]]
-  ) => {
-    ConnectWithLatency(isFiresim, "link_lat_s2a", th, ports0, ports1, freqStr, freqInt)
+class WithSN2ATLBus(chip0: Int, chip1: Int, freqStr: String = "clock_500MHz", freqInt: Int = 500) extends MultiHarnessBinder(
+  chip0, chip1,
+  (p0: TLMMIO2Port) => true,
+  (p1: TLIn2Port) => true,
+  (th: HasHarnessInstantiators, p0: TLMMIO2Port, p1: TLIn2Port) => {
+    ConnectWithLatency("link_lat_s2a", th, Seq(p0.io), Seq(p1.io), freqStr, freqInt)
   }
-))
+)
 
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
@@ -209,17 +207,14 @@ class FastBuildSmartNICSoCConfig extends Config(
   new WithSmartNICSoCModifications ++
   new HyperscaleRocketBaseConfig)
 
-class FastBuildBaseIntegrationConfig(isFiresim: Boolean = false) extends Config(
+class FastBuildIntegrationConfig extends Config(
   new chipyard.harness.WithAbsoluteFreqHarnessClockInstantiator ++   // use absolute freqs for sims in the harness
-  new WithSN2ATLBus(1, 0, isFiresim) ++ // SoC1 is mastering so it goes 1st
-  new WithA2SNTLBus(0, 1, isFiresim) ++
+  new WithSN2ATLBus(1, 0) ++ // SoC1 is mastering so it goes 1st
+  new WithA2SNTLBus(0, 1) ++
   new chipyard.harness.WithMultiChip(0,
     new FastBuildAppSoCConfig) ++
   new chipyard.harness.WithMultiChip(1,
     new FastBuildSmartNICSoCConfig))
-
-class FastBuildIntegrationConfig extends Config(new FastBuildBaseIntegrationConfig(false))
-class FastBuildFireSimIntegrationConfig extends Config(new FastBuildBaseIntegrationConfig(true))
 
 // ---------------------------------
 
@@ -252,8 +247,8 @@ class SmartNICSoCConfig extends Config(
 
 class IntegrationConfig extends Config(
   new chipyard.harness.WithAbsoluteFreqHarnessClockInstantiator ++   // use absolute freqs for sims in the harness
-  new WithSN2ATLBus(1, 0, false) ++ // SoC1 is mastering so it goes 1st
-  new WithA2SNTLBus(0, 1, false) ++
+  new WithSN2ATLBus(1, 0) ++ // SoC1 is mastering so it goes 1st
+  new WithA2SNTLBus(0, 1) ++
   new chipyard.harness.WithMultiChip(0,
     new AppSoCConfig) ++
   new chipyard.harness.WithMultiChip(1,
@@ -290,7 +285,7 @@ class WithSmartNICSoCMinModifications extends Config(
   // TODO: have this be autoconfigured by the ExtMem key
   new Config((site, here, up) => {
     // disable tsi on this soc
-    case SerialTLKey => None
+    case SerialTLKey => Nil
     // move CLINT to know addr
     case CLINTKey => Some(CLINTParams(baseAddress = x"b000_0000"))
     // have bootrom jump to proper dram loc
@@ -338,8 +333,8 @@ class SmartNICSoCMinimalConfig extends Config(
 
 class MinimalIntegrationConfig extends Config(
   new chipyard.harness.WithAbsoluteFreqHarnessClockInstantiator ++   // use absolute freqs for sims in the harness
-  new WithSN2ATLBus(1, 0, false) ++ // SoC1 is mastering so it goes 1st
-  new WithA2SNTLBus(0, 1, false) ++
+  new WithSN2ATLBus(1, 0) ++ // SoC1 is mastering so it goes 1st
+  new WithA2SNTLBus(0, 1) ++
   new chipyard.harness.WithMultiChip(0,
     new AppSoCMinimalConfig) ++
   new chipyard.harness.WithMultiChip(1,

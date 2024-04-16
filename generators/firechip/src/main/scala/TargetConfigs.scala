@@ -410,8 +410,8 @@ class WithFireSimHyperscaleConfigTweaks extends Config(
 class FireSimGRPCConfig extends Config(
   new WithFireSimHarnessClockBridgeInstantiator ++
   new chipyard.harness.WithHarnessBinderClockFreqMHz(1000.0) ++
-  new chipyard.WithSN2ATLBus(1, 0, true, "clock_1000MHz", 1000) ++ // SoC1 is mastering so it goes 1st
-  new chipyard.WithA2SNTLBus(0, 1, true, "clock_1000MHz", 1000) ++ // freq changed since WithFireSimConfigTweaks changes pbus freq
+  new chipyard.WithSN2ATLBus(1, 0, "clock_1000MHz", 1000) ++ // SoC1 is mastering so it goes 1st
+  new chipyard.WithA2SNTLBus(0, 1, "clock_1000MHz", 1000) ++ // freq changed since WithFireSimConfigTweaks changes pbus freq
   new chipyard.harness.WithMultiChip(0,
     new WithDefaultFireSimBridgesNoNIC ++
     new WithDefaultMemModel ++
@@ -426,8 +426,8 @@ class FireSimGRPCConfig extends Config(
 class FireSimGRPCMinimalConfig extends Config(
   new WithFireSimHarnessClockBridgeInstantiator ++
   new chipyard.harness.WithHarnessBinderClockFreqMHz(1000.0) ++
-  new chipyard.WithSN2ATLBus(1, 0, true, "clock_1000MHz", 1000) ++ // SoC1 is mastering so it goes 1st
-  new chipyard.WithA2SNTLBus(0, 1, true, "clock_1000MHz", 1000) ++ // freq changed since WithFireSimConfigTweaks changes pbus freq
+  new chipyard.WithSN2ATLBus(1, 0, "clock_1000MHz", 1000) ++ // SoC1 is mastering so it goes 1st
+  new chipyard.WithA2SNTLBus(0, 1, "clock_1000MHz", 1000) ++ // freq changed since WithFireSimConfigTweaks changes pbus freq
   new chipyard.harness.WithMultiChip(0,
     new WithDefaultFireSimBridgesNoNIC ++
     new WithDefaultMemModel ++

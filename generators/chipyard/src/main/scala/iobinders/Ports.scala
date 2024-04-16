@@ -109,3 +109,14 @@ case class JTAGResetPort   (val getIO: () => Reset)
 case class TLMemPort       (val getIO: () => HeterogeneousBag[TLBundle])
     extends Port[HeterogeneousBag[TLBundle]]
 
+case class TLMMIOPort       (val getIO: () => HeterogeneousBag[TLBundle])
+    extends Port[HeterogeneousBag[TLBundle]]
+
+case class TLInPort       (val getIO: () => HeterogeneousBag[TLBundle])
+    extends Port[HeterogeneousBag[TLBundle]]
+
+case class TLMMIO2Port       (val getIO: () => HeterogeneousBag[TLBundle])
+    extends Port[HeterogeneousBag[TLBundle]]
+
+case class TLIn2Port       (val getIO: () => HeterogeneousBag[TLBundle])
+    extends Port[HeterogeneousBag[TLBundle]]

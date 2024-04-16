@@ -101,6 +101,7 @@ trait CanHaveCustomMasterTLMMIOPort { this: BaseSubsystem =>
   private val mmioPortParamsOpt = p(ExtBus)
   private val portName = "mmio_port_tl"
   private val device = new SimpleBus(portName.kebab, Nil)
+  private val sbus = locateTLBusWrapper(SBUS)
 
   // needs to access:
   //   dev: addr,size
@@ -148,6 +149,7 @@ trait CanHaveCustomMasterTLMMIOPort { this: BaseSubsystem =>
 trait CanHaveCustomSlaveTLPort { this: BaseSubsystem =>
   private val slavePortParamsOpt = p(ExtIn)
   private val portName = "slave_port_tl"
+  private val sbus = locateTLBusWrapper(SBUS)
 
   val l2FrontendTLNode = TLClientNode(
     slavePortParamsOpt.map(params =>
@@ -179,6 +181,7 @@ trait CanHaveCustomMasterTLMMIOPort2 { this: BaseSubsystem =>
   private val mmioPortParamsOpt = p(ExtBus2)
   private val portName = "mmio_port_tl"
   private val device = new SimpleBus(portName.kebab, Nil)
+  private val sbus = locateTLBusWrapper(SBUS)
 
   // needs to access:
   //   dev: addr,size
@@ -222,6 +225,7 @@ trait CanHaveCustomMasterTLMMIOPort2 { this: BaseSubsystem =>
 trait CanHaveCustomSlaveTLPort2 { this: BaseSubsystem =>
   private val slavePortParamsOpt = p(ExtIn2)
   private val portName = "slave_port_tl"
+  private val sbus = locateTLBusWrapper(SBUS)
 
   val l2FrontendTLNode2 = TLClientNode(
     slavePortParamsOpt.map(params =>

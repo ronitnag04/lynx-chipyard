@@ -117,8 +117,8 @@ class HyperscaleMegaBoomBaseConfig extends Config(
   new chipyard.config.WithExtMemIdBits(7) ++
   new freechips.rocketchip.subsystem.WithNMemoryChannels(2) ++ // TODO: 2 channels for 1 SoC, 1 for other
   new chipyard.config.WithSystemBusWidth(256) ++
-  new boom.common.WithBoomCommitLogPrintf ++
-  new boom.common.WithNMegaBooms(1) ++
+  new boom.v3.common.WithBoomCommitLogPrintf ++
+  new boom.v3.common.WithNMegaBooms(1) ++
   new chipyard.config.AbstractConfig)
 
 class HyperscaleMegaBoomBaseConfig16MBL2 extends Config(
