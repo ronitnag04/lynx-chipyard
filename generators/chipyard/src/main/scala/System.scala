@@ -101,7 +101,7 @@ trait CanHaveCustomMasterTLMMIOPort { this: BaseSubsystem =>
   private val mmioPortParamsOpt = p(ExtBus)
   private val portName = "mmio_port_tl"
   private val device = new SimpleBus(portName.kebab, Nil)
-  private val sbus = locateTLBusWrapper(SBUS)
+  private val sbus = tlBusWrapperLocationMap.get(SBUS).getOrElse(viewpointBus)
 
   // needs to access:
   //   dev: addr,size
@@ -129,7 +129,7 @@ trait CanHaveCustomMasterTLMMIOPort { this: BaseSubsystem =>
 
   mmioPortParamsOpt.map { params =>
     sbus.coupleTo(s"port_named_$portName") {
-      (mmioTLNode
+      (DisableMonitors { implicit p => mmioTLNode := TLBuffer() } // disable monitors created inwards of the mmioTLNode since they need an implicit clock that isn't provided by digitaltop
         := TLBuffer()
         := TLSourceShrinker(1 << params.idBits)
         := TLWidthWidget(sbus.beatBytes)
@@ -205,8 +205,7 @@ trait CanHaveCustomMasterTLMMIOPort2 { this: BaseSubsystem =>
 
   mmioPortParamsOpt.map { params =>
     sbus.coupleTo(s"port_named_$portName") {
-      (mmioTLNode2
-        := TLBuffer()
+      (DisableMonitors { implicit p => mmioTLNode2 := TLBuffer() } // disable monitors created inwards of the mmioTLNode since they need an implicit clock that isn't provided by digitaltop
         := TLSourceShrinker(1 << params.idBits)
         := TLWidthWidget(sbus.beatBytes)
         := _ )

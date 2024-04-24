@@ -106,20 +106,22 @@ object ConnectWithLatency {
         // connect the fields of the TLBundle
         DataMirror.specifiedDirectionOf(ll.a.ready) match {
           case SpecifiedDirection.Input =>
-            val qa = Module(new latqueue.LatencyInjectionQueue(DataMirror.internal.chiselTypeClone[TLBundleA](ll.a.bits), 128))
-            qa.clock := tClk
-            qa.reset := tReset
-            val qd = Module(new latqueue.LatencyInjectionQueue(DataMirror.internal.chiselTypeClone[TLBundleD](rr.d.bits), 128))
-            qd.clock := tClk
-            qd.reset := tReset
-            qa.io.latency_cycles := latency
-            qd.io.latency_cycles := latency
-            qa.io.enq <> ll.a
-            rr.a <> qa.io.deq
-            qd.io.enq <> rr.d
-            ll.d <> qd.io.deq
-            //rr.a <> ll.a
-            //ll.d <> rr.d
+            withClockAndReset(tClk, tReset) {
+              val qa = Module(new latqueue.LatencyInjectionQueue(DataMirror.internal.chiselTypeClone[TLBundleA](ll.a.bits), 128))
+              //qa.clock := tClk
+              //qa.reset := tReset
+              val qd = Module(new latqueue.LatencyInjectionQueue(DataMirror.internal.chiselTypeClone[TLBundleD](rr.d.bits), 128))
+              //qd.clock := tClk
+              //qd.reset := tReset
+              qa.io.latency_cycles := latency
+              qd.io.latency_cycles := latency
+              qa.io.enq <> ll.a
+              rr.a <> qa.io.deq
+              qd.io.enq <> rr.d
+              ll.d <> qd.io.deq
+              //rr.a <> ll.a
+              //ll.d <> rr.d
+            }
           case SpecifiedDirection.Output => require(false, "Not supported")
           case _ => require(false, "Not supported")
         }
