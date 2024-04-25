@@ -373,37 +373,36 @@ class FireSimLargeBoomCospikeConfig extends Config(
 
 // ----------------------------------------------------
 
-//HyperscaleConfigTweaks
-class WithFireSimHyperscaleClocking extends Config(
-  new chipyard.config.WithTileFrequency(2000.0) ++
-  new chipyard.clocking.WithClockGroupsCombinedByName(("uncore", Seq("sbus", "cbus", "implicit"), Nil),
-    ("periphery", Seq("pbus", "fbus"), Nil)
-  ) ++
-  new chipyard.config.WithSystemBusFrequency(2000.0) ++
-  new chipyard.config.WithMemoryBusFrequency(1000.0) ++
-  new chipyard.config.WithPeripheryBusFrequency(2000.0) ++
-  new chipyard.config.WithFbusToSbusCrossingType(AsynchronousCrossing()) ++
-  new chipyard.config.WithCbusToPbusCrossingType(AsynchronousCrossing()) ++
-  new chipyard.config.WithSbusToMbusCrossingType(AsynchronousCrossing()) ++
-  new testchipip.WithAsynchronousSerialSlaveCrossing
-/*
-  // Optional: This sets the default frequency for all buses in the system to 2.0 GHz
-  // (since unspecified bus frequencies will use the pbus frequency)
-  new chipyard.config.WithPeripheryBusFrequency(2000.0) ++
-  // Optional: These three configs put the DRAM memory system in it's own clock domain.
-  // Removing the first config will result in the FASED timing model running
-  // at the pbus freq (above, 2.0 GHz), which is outside the range of valid DDR3 speedgrades.
-  // 1 GHz matches the FASED default, using some other frequency will require
-  // runnings the FASED runtime configuration generator to generate faithful DDR3 timing values.
-  new chipyard.config.WithMemoryBusFrequency(1000.0) ++
-  new chipyard.config.WithAsynchrousMemoryBusCrossing ++
-  new testchipip.WithAsynchronousSerialSlaveCrossing
-*/
-)
-class WithFireSimHyperscaleConfigTweaks extends Config(
-  new WithFireSimHyperscaleClocking ++
-  new WithFireSimDesignTweaks
-)
+////HyperscaleConfigTweaks
+//class WithFireSimHyperscaleClocking extends Config(
+//  new chipyard.config.WithTileFrequency(2000.0) ++
+//  new chipyard.clocking.WithClockGroupsCombinedByName(("uncore", Seq("sbus", "cbus", "implicit"), Nil),
+//    ("periphery", Seq("pbus", "fbus"), Nil)
+//  ) ++
+//  new chipyard.config.WithSystemBusFrequency(2000.0) ++
+//  new chipyard.config.WithMemoryBusFrequency(1000.0) ++
+//  new chipyard.config.WithPeripheryBusFrequency(2000.0) ++
+//  new chipyard.config.WithFbusToSbusCrossingType(AsynchronousCrossing()) ++
+//  new chipyard.config.WithCbusToPbusCrossingType(AsynchronousCrossing()) ++
+//  new chipyard.config.WithSbusToMbusCrossingType(AsynchronousCrossing())
+///*
+//  // Optional: This sets the default frequency for all buses in the system to 2.0 GHz
+//  // (since unspecified bus frequencies will use the pbus frequency)
+//  new chipyard.config.WithPeripheryBusFrequency(2000.0) ++
+//  // Optional: These three configs put the DRAM memory system in it's own clock domain.
+//  // Removing the first config will result in the FASED timing model running
+//  // at the pbus freq (above, 2.0 GHz), which is outside the range of valid DDR3 speedgrades.
+//  // 1 GHz matches the FASED default, using some other frequency will require
+//  // runnings the FASED runtime configuration generator to generate faithful DDR3 timing values.
+//  new chipyard.config.WithMemoryBusFrequency(1000.0) ++
+//  new chipyard.config.WithAsynchrousMemoryBusCrossing ++
+//  new testchipip.WithAsynchronousSerialSlaveCrossing
+//*/
+//)
+//class WithFireSimHyperscaleConfigTweaks extends Config(
+//  new WithFireSimHyperscaleClocking ++
+//  new WithFireSimDesignTweaks
+//)
 
 // ----------------------------------------------------
 
@@ -412,6 +411,7 @@ class FireSimGRPCConfig extends Config(
   new chipyard.harness.WithHarnessBinderClockFreqMHz(1000.0) ++
   new chipyard.WithSN2ATLBus(1, 0, "clock_1000MHz", 1000) ++ // SoC1 is mastering so it goes 1st
   new chipyard.WithA2SNTLBus(0, 1, "clock_1000MHz", 1000) ++ // freq changed since WithFireSimConfigTweaks changes pbus freq
+  new WithDefaultMemModel ++ // TODO: Not sure why this needs to be global
   new chipyard.harness.WithMultiChip(0,
     new WithDefaultFireSimBridgesNoNIC ++
     new WithDefaultMemModel ++
@@ -428,6 +428,7 @@ class FireSimGRPCMinimalConfig extends Config(
   new chipyard.harness.WithHarnessBinderClockFreqMHz(1000.0) ++
   new chipyard.WithSN2ATLBus(1, 0, "clock_1000MHz", 1000) ++ // SoC1 is mastering so it goes 1st
   new chipyard.WithA2SNTLBus(0, 1, "clock_1000MHz", 1000) ++ // freq changed since WithFireSimConfigTweaks changes pbus freq
+  new WithDefaultMemModel ++ // TODO: Not sure why this needs to be global
   new chipyard.harness.WithMultiChip(0,
     new WithDefaultFireSimBridgesNoNIC ++
     new WithDefaultMemModel ++

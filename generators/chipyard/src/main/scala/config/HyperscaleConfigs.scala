@@ -46,7 +46,7 @@ class WithSmartNICSoCModifications extends Config(
   // TODO: have this be autoconfigured by the ExtMem key
   new Config((site, here, up) => {
     // disable tsi on this soc
-    case SerialTLKey => None
+    case SerialTLKey => Nil
     // move CLINT to know addr
     case CLINTKey => Some(CLINTParams(baseAddress = x"b000_0000"))
     // have bootrom jump to proper dram loc
