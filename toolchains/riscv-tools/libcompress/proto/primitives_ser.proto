@@ -1,0 +1,478 @@
+
+syntax = "proto2";
+
+package primitivetests;
+
+option cc_enable_arenas = true;
+
+
+message Paccser_PaccboolMessageMessage {
+    optional Paccser_boolMessage paccPaccser_boolMessage_0 = 1;
+}
+message Paccser_PaccdoubleMessageMessage {
+    optional Paccser_doubleMessage paccPaccser_doubleMessage_0 = 1;
+}
+message Paccser_PaccstringMessageMessage {
+    optional Paccser_stringMessage paccPaccser_stringMessage_0 = 1;
+}
+message Paccser_boolMessage {
+    optional bool paccbool_0 = 1;
+    optional bool paccbool_1 = 2;
+    optional bool paccbool_2 = 3;
+    optional bool paccbool_3 = 4;
+    optional bool paccbool_4 = 5;
+}
+message Paccser_bool_repeatedMessage {
+    repeated bool paccbool_repeated_0 = 1;
+}
+message Paccser_bytesMessage {
+    optional bytes paccbytes_0 = 1;
+}
+message Paccser_bytes_15Message {
+    optional bytes paccbytes_0 = 1;
+}
+message Paccser_bytes_longMessage {
+    optional bytes paccbytes_0 = 1;
+}
+message Paccser_bytes_repeatedMessage {
+    repeated bytes paccbytes_repeated_0 = 1;
+}
+message Paccser_bytes_very_longMessage {
+    optional bytes paccbytes_0 = 1;
+}
+message Paccser_doubleMessage {
+    optional double paccdouble_0 = 1;
+    optional double paccdouble_1 = 2;
+    optional double paccdouble_2 = 3;
+    optional double paccdouble_3 = 4;
+    optional double paccdouble_4 = 5;
+}
+message Paccser_double_repeatedMessage {
+    repeated double paccdouble_repeated_0 = 1;
+}
+message Paccser_fixed32Message {
+    optional fixed32 paccfixed32_0 = 1;
+    optional fixed32 paccfixed32_1 = 2;
+    optional fixed32 paccfixed32_2 = 3;
+    optional fixed32 paccfixed32_3 = 4;
+    optional fixed32 paccfixed32_4 = 5;
+}
+message Paccser_fixed64Message {
+    optional fixed64 paccfixed64_0 = 1;
+    optional fixed64 paccfixed64_1 = 2;
+    optional fixed64 paccfixed64_2 = 3;
+    optional fixed64 paccfixed64_3 = 4;
+    optional fixed64 paccfixed64_4 = 5;
+}
+message Paccser_floatMessage {
+    optional float paccfloat_0 = 1;
+    optional float paccfloat_1 = 2;
+    optional float paccfloat_2 = 3;
+    optional float paccfloat_3 = 4;
+    optional float paccfloat_4 = 5;
+}
+message Paccser_float_repeatedMessage {
+    repeated float paccfloat_repeated_0 = 1;
+}
+message Paccser_sfixed32Message {
+    optional sfixed32 paccsfixed32_0 = 1;
+    optional sfixed32 paccsfixed32_1 = 2;
+    optional sfixed32 paccsfixed32_2 = 3;
+    optional sfixed32 paccsfixed32_3 = 4;
+    optional sfixed32 paccsfixed32_4 = 5;
+}
+message Paccser_sfixed64Message {
+    optional sfixed64 paccsfixed64_0 = 1;
+    optional sfixed64 paccsfixed64_1 = 2;
+    optional sfixed64 paccsfixed64_2 = 3;
+    optional sfixed64 paccsfixed64_3 = 4;
+    optional sfixed64 paccsfixed64_4 = 5;
+}
+message Paccser_stringMessage {
+    optional string paccstring_0 = 1;
+}
+message Paccser_string_15Message {
+    optional string paccstring_0 = 1;
+}
+message Paccser_string_longMessage {
+    optional string paccstring_0 = 1;
+}
+message Paccser_string_very_longMessage {
+    optional string paccstring_0 = 1;
+}
+message Paccser_uint64_size00BMessage {
+    optional uint64 paccuint64_0 = 1;
+    optional uint64 paccuint64_1 = 2;
+    optional uint64 paccuint64_2 = 3;
+    optional uint64 paccuint64_3 = 4;
+    optional uint64 paccuint64_4 = 5;
+}
+message Paccser_uint64_size00B_repeatedMessage {
+    repeated uint64 paccuint64_repeated_0 = 1;
+    repeated uint64 paccuint64_repeated_1 = 2;
+    repeated uint64 paccuint64_repeated_2 = 3;
+    repeated uint64 paccuint64_repeated_3 = 4;
+    repeated uint64 paccuint64_repeated_4 = 5;
+}
+message Paccser_uint64_size01BMessage {
+    optional uint64 paccuint64_0 = 1;
+    optional uint64 paccuint64_1 = 2;
+    optional uint64 paccuint64_2 = 3;
+    optional uint64 paccuint64_3 = 4;
+    optional uint64 paccuint64_4 = 5;
+}
+message Paccser_uint64_size01B_fields_1Message {
+    optional uint64 paccuint64_0 = 1;
+}
+message Paccser_uint64_size01B_fields_16Message {
+    optional uint64 paccuint64_0 = 1;
+    optional uint64 paccuint64_1 = 2;
+    optional uint64 paccuint64_2 = 3;
+    optional uint64 paccuint64_3 = 4;
+    optional uint64 paccuint64_4 = 5;
+    optional uint64 paccuint64_5 = 6;
+    optional uint64 paccuint64_6 = 7;
+    optional uint64 paccuint64_7 = 8;
+    optional uint64 paccuint64_8 = 9;
+    optional uint64 paccuint64_9 = 10;
+    optional uint64 paccuint64_10 = 11;
+    optional uint64 paccuint64_11 = 12;
+    optional uint64 paccuint64_12 = 13;
+    optional uint64 paccuint64_13 = 14;
+    optional uint64 paccuint64_14 = 15;
+    optional uint64 paccuint64_15 = 16;
+}
+message Paccser_uint64_size01B_fields_2Message {
+    optional uint64 paccuint64_0 = 1;
+    optional uint64 paccuint64_1 = 2;
+}
+message Paccser_uint64_size01B_fields_3Message {
+    optional uint64 paccuint64_0 = 1;
+    optional uint64 paccuint64_1 = 2;
+    optional uint64 paccuint64_2 = 3;
+}
+message Paccser_uint64_size01B_fields_32Message {
+    optional uint64 paccuint64_0 = 1;
+    optional uint64 paccuint64_1 = 2;
+    optional uint64 paccuint64_2 = 3;
+    optional uint64 paccuint64_3 = 4;
+    optional uint64 paccuint64_4 = 5;
+    optional uint64 paccuint64_5 = 6;
+    optional uint64 paccuint64_6 = 7;
+    optional uint64 paccuint64_7 = 8;
+    optional uint64 paccuint64_8 = 9;
+    optional uint64 paccuint64_9 = 10;
+    optional uint64 paccuint64_10 = 11;
+    optional uint64 paccuint64_11 = 12;
+    optional uint64 paccuint64_12 = 13;
+    optional uint64 paccuint64_13 = 14;
+    optional uint64 paccuint64_14 = 15;
+    optional uint64 paccuint64_15 = 16;
+    optional uint64 paccuint64_16 = 17;
+    optional uint64 paccuint64_17 = 18;
+    optional uint64 paccuint64_18 = 19;
+    optional uint64 paccuint64_19 = 20;
+    optional uint64 paccuint64_20 = 21;
+    optional uint64 paccuint64_21 = 22;
+    optional uint64 paccuint64_22 = 23;
+    optional uint64 paccuint64_23 = 24;
+    optional uint64 paccuint64_24 = 25;
+    optional uint64 paccuint64_25 = 26;
+    optional uint64 paccuint64_26 = 27;
+    optional uint64 paccuint64_27 = 28;
+    optional uint64 paccuint64_28 = 29;
+    optional uint64 paccuint64_29 = 30;
+    optional uint64 paccuint64_30 = 31;
+    optional uint64 paccuint64_31 = 32;
+}
+message Paccser_uint64_size01B_fields_4Message {
+    optional uint64 paccuint64_0 = 1;
+    optional uint64 paccuint64_1 = 2;
+    optional uint64 paccuint64_2 = 3;
+    optional uint64 paccuint64_3 = 4;
+}
+message Paccser_uint64_size01B_fields_5Message {
+    optional uint64 paccuint64_0 = 1;
+    optional uint64 paccuint64_1 = 2;
+    optional uint64 paccuint64_2 = 3;
+    optional uint64 paccuint64_3 = 4;
+    optional uint64 paccuint64_4 = 5;
+}
+message Paccser_uint64_size01B_fields_6Message {
+    optional uint64 paccuint64_0 = 1;
+    optional uint64 paccuint64_1 = 2;
+    optional uint64 paccuint64_2 = 3;
+    optional uint64 paccuint64_3 = 4;
+    optional uint64 paccuint64_4 = 5;
+    optional uint64 paccuint64_5 = 6;
+}
+message Paccser_uint64_size01B_fields_64Message {
+    optional uint64 paccuint64_0 = 1;
+    optional uint64 paccuint64_1 = 2;
+    optional uint64 paccuint64_2 = 3;
+    optional uint64 paccuint64_3 = 4;
+    optional uint64 paccuint64_4 = 5;
+    optional uint64 paccuint64_5 = 6;
+    optional uint64 paccuint64_6 = 7;
+    optional uint64 paccuint64_7 = 8;
+    optional uint64 paccuint64_8 = 9;
+    optional uint64 paccuint64_9 = 10;
+    optional uint64 paccuint64_10 = 11;
+    optional uint64 paccuint64_11 = 12;
+    optional uint64 paccuint64_12 = 13;
+    optional uint64 paccuint64_13 = 14;
+    optional uint64 paccuint64_14 = 15;
+    optional uint64 paccuint64_15 = 16;
+    optional uint64 paccuint64_16 = 17;
+    optional uint64 paccuint64_17 = 18;
+    optional uint64 paccuint64_18 = 19;
+    optional uint64 paccuint64_19 = 20;
+    optional uint64 paccuint64_20 = 21;
+    optional uint64 paccuint64_21 = 22;
+    optional uint64 paccuint64_22 = 23;
+    optional uint64 paccuint64_23 = 24;
+    optional uint64 paccuint64_24 = 25;
+    optional uint64 paccuint64_25 = 26;
+    optional uint64 paccuint64_26 = 27;
+    optional uint64 paccuint64_27 = 28;
+    optional uint64 paccuint64_28 = 29;
+    optional uint64 paccuint64_29 = 30;
+    optional uint64 paccuint64_30 = 31;
+    optional uint64 paccuint64_31 = 32;
+    optional uint64 paccuint64_32 = 33;
+    optional uint64 paccuint64_33 = 34;
+    optional uint64 paccuint64_34 = 35;
+    optional uint64 paccuint64_35 = 36;
+    optional uint64 paccuint64_36 = 37;
+    optional uint64 paccuint64_37 = 38;
+    optional uint64 paccuint64_38 = 39;
+    optional uint64 paccuint64_39 = 40;
+    optional uint64 paccuint64_40 = 41;
+    optional uint64 paccuint64_41 = 42;
+    optional uint64 paccuint64_42 = 43;
+    optional uint64 paccuint64_43 = 44;
+    optional uint64 paccuint64_44 = 45;
+    optional uint64 paccuint64_45 = 46;
+    optional uint64 paccuint64_46 = 47;
+    optional uint64 paccuint64_47 = 48;
+    optional uint64 paccuint64_48 = 49;
+    optional uint64 paccuint64_49 = 50;
+    optional uint64 paccuint64_50 = 51;
+    optional uint64 paccuint64_51 = 52;
+    optional uint64 paccuint64_52 = 53;
+    optional uint64 paccuint64_53 = 54;
+    optional uint64 paccuint64_54 = 55;
+    optional uint64 paccuint64_55 = 56;
+    optional uint64 paccuint64_56 = 57;
+    optional uint64 paccuint64_57 = 58;
+    optional uint64 paccuint64_58 = 59;
+    optional uint64 paccuint64_59 = 60;
+    optional uint64 paccuint64_60 = 61;
+    optional uint64 paccuint64_61 = 62;
+    optional uint64 paccuint64_62 = 63;
+    optional uint64 paccuint64_63 = 64;
+}
+message Paccser_uint64_size01B_fields_7Message {
+    optional uint64 paccuint64_0 = 1;
+    optional uint64 paccuint64_1 = 2;
+    optional uint64 paccuint64_2 = 3;
+    optional uint64 paccuint64_3 = 4;
+    optional uint64 paccuint64_4 = 5;
+    optional uint64 paccuint64_5 = 6;
+    optional uint64 paccuint64_6 = 7;
+}
+message Paccser_uint64_size01B_fields_8Message {
+    optional uint64 paccuint64_0 = 1;
+    optional uint64 paccuint64_1 = 2;
+    optional uint64 paccuint64_2 = 3;
+    optional uint64 paccuint64_3 = 4;
+    optional uint64 paccuint64_4 = 5;
+    optional uint64 paccuint64_5 = 6;
+    optional uint64 paccuint64_6 = 7;
+    optional uint64 paccuint64_7 = 8;
+}
+message Paccser_uint64_size01B_repeatedMessage {
+    repeated uint64 paccuint64_repeated_0 = 1;
+    repeated uint64 paccuint64_repeated_1 = 2;
+    repeated uint64 paccuint64_repeated_2 = 3;
+    repeated uint64 paccuint64_repeated_3 = 4;
+    repeated uint64 paccuint64_repeated_4 = 5;
+}
+message Paccser_uint64_size02BMessage {
+    optional uint64 paccuint64_0 = 1;
+    optional uint64 paccuint64_1 = 2;
+    optional uint64 paccuint64_2 = 3;
+    optional uint64 paccuint64_3 = 4;
+    optional uint64 paccuint64_4 = 5;
+}
+message Paccser_uint64_size02B_repeatedMessage {
+    repeated uint64 paccuint64_repeated_0 = 1;
+    repeated uint64 paccuint64_repeated_1 = 2;
+    repeated uint64 paccuint64_repeated_2 = 3;
+    repeated uint64 paccuint64_repeated_3 = 4;
+    repeated uint64 paccuint64_repeated_4 = 5;
+}
+message Paccser_uint64_size03BMessage {
+    optional uint64 paccuint64_0 = 1;
+    optional uint64 paccuint64_1 = 2;
+    optional uint64 paccuint64_2 = 3;
+    optional uint64 paccuint64_3 = 4;
+    optional uint64 paccuint64_4 = 5;
+}
+message Paccser_uint64_size03B_repeatedMessage {
+    repeated uint64 paccuint64_repeated_0 = 1;
+    repeated uint64 paccuint64_repeated_1 = 2;
+    repeated uint64 paccuint64_repeated_2 = 3;
+    repeated uint64 paccuint64_repeated_3 = 4;
+    repeated uint64 paccuint64_repeated_4 = 5;
+}
+message Paccser_uint64_size04BMessage {
+    optional uint64 paccuint64_0 = 1;
+    optional uint64 paccuint64_1 = 2;
+    optional uint64 paccuint64_2 = 3;
+    optional uint64 paccuint64_3 = 4;
+    optional uint64 paccuint64_4 = 5;
+}
+message Paccser_uint64_size04B_repeatedMessage {
+    repeated uint64 paccuint64_repeated_0 = 1;
+    repeated uint64 paccuint64_repeated_1 = 2;
+    repeated uint64 paccuint64_repeated_2 = 3;
+    repeated uint64 paccuint64_repeated_3 = 4;
+    repeated uint64 paccuint64_repeated_4 = 5;
+}
+message Paccser_uint64_size05BMessage {
+    optional uint64 paccuint64_0 = 1;
+    optional uint64 paccuint64_1 = 2;
+    optional uint64 paccuint64_2 = 3;
+    optional uint64 paccuint64_3 = 4;
+    optional uint64 paccuint64_4 = 5;
+}
+message Paccser_uint64_size05B_repeatedMessage {
+    repeated uint64 paccuint64_repeated_0 = 1;
+    repeated uint64 paccuint64_repeated_1 = 2;
+    repeated uint64 paccuint64_repeated_2 = 3;
+    repeated uint64 paccuint64_repeated_3 = 4;
+    repeated uint64 paccuint64_repeated_4 = 5;
+}
+message Paccser_uint64_size06BMessage {
+    optional uint64 paccuint64_0 = 1;
+    optional uint64 paccuint64_1 = 2;
+    optional uint64 paccuint64_2 = 3;
+    optional uint64 paccuint64_3 = 4;
+    optional uint64 paccuint64_4 = 5;
+}
+message Paccser_uint64_size06B_repeatedMessage {
+    repeated uint64 paccuint64_repeated_0 = 1;
+    repeated uint64 paccuint64_repeated_1 = 2;
+    repeated uint64 paccuint64_repeated_2 = 3;
+    repeated uint64 paccuint64_repeated_3 = 4;
+    repeated uint64 paccuint64_repeated_4 = 5;
+}
+message Paccser_uint64_size07BMessage {
+    optional uint64 paccuint64_0 = 1;
+    optional uint64 paccuint64_1 = 2;
+    optional uint64 paccuint64_2 = 3;
+    optional uint64 paccuint64_3 = 4;
+    optional uint64 paccuint64_4 = 5;
+}
+message Paccser_uint64_size07B_repeatedMessage {
+    repeated uint64 paccuint64_repeated_0 = 1;
+    repeated uint64 paccuint64_repeated_1 = 2;
+    repeated uint64 paccuint64_repeated_2 = 3;
+    repeated uint64 paccuint64_repeated_3 = 4;
+    repeated uint64 paccuint64_repeated_4 = 5;
+}
+message Paccser_uint64_size08BMessage {
+    optional uint64 paccuint64_0 = 1;
+    optional uint64 paccuint64_1 = 2;
+    optional uint64 paccuint64_2 = 3;
+    optional uint64 paccuint64_3 = 4;
+    optional uint64 paccuint64_4 = 5;
+}
+message Paccser_uint64_size08B_repeatedMessage {
+    repeated uint64 paccuint64_repeated_0 = 1;
+    repeated uint64 paccuint64_repeated_1 = 2;
+    repeated uint64 paccuint64_repeated_2 = 3;
+    repeated uint64 paccuint64_repeated_3 = 4;
+    repeated uint64 paccuint64_repeated_4 = 5;
+}
+message Paccser_uint64_size09BMessage {
+    optional uint64 paccuint64_0 = 1;
+    optional uint64 paccuint64_1 = 2;
+    optional uint64 paccuint64_2 = 3;
+    optional uint64 paccuint64_3 = 4;
+    optional uint64 paccuint64_4 = 5;
+}
+message Paccser_uint64_size09B_repeatedMessage {
+    repeated uint64 paccuint64_repeated_0 = 1;
+    repeated uint64 paccuint64_repeated_1 = 2;
+    repeated uint64 paccuint64_repeated_2 = 3;
+    repeated uint64 paccuint64_repeated_3 = 4;
+    repeated uint64 paccuint64_repeated_4 = 5;
+}
+message Paccser_uint64_size10BMessage {
+    optional uint64 paccuint64_0 = 1;
+    optional uint64 paccuint64_1 = 2;
+    optional uint64 paccuint64_2 = 3;
+    optional uint64 paccuint64_3 = 4;
+    optional uint64 paccuint64_4 = 5;
+}
+message Paccser_uint64_size10B_fields_1Message {
+    optional uint64 paccuint64_0 = 1;
+}
+message Paccser_uint64_size10B_fields_2Message {
+    optional uint64 paccuint64_0 = 1;
+    optional uint64 paccuint64_1 = 2;
+}
+message Paccser_uint64_size10B_fields_3Message {
+    optional uint64 paccuint64_0 = 1;
+    optional uint64 paccuint64_1 = 2;
+    optional uint64 paccuint64_2 = 3;
+}
+message Paccser_uint64_size10B_fields_4Message {
+    optional uint64 paccuint64_0 = 1;
+    optional uint64 paccuint64_1 = 2;
+    optional uint64 paccuint64_2 = 3;
+    optional uint64 paccuint64_3 = 4;
+}
+message Paccser_uint64_size10B_fields_5Message {
+    optional uint64 paccuint64_0 = 1;
+    optional uint64 paccuint64_1 = 2;
+    optional uint64 paccuint64_2 = 3;
+    optional uint64 paccuint64_3 = 4;
+    optional uint64 paccuint64_4 = 5;
+}
+message Paccser_uint64_size10B_fields_6Message {
+    optional uint64 paccuint64_0 = 1;
+    optional uint64 paccuint64_1 = 2;
+    optional uint64 paccuint64_2 = 3;
+    optional uint64 paccuint64_3 = 4;
+    optional uint64 paccuint64_4 = 5;
+    optional uint64 paccuint64_5 = 6;
+}
+message Paccser_uint64_size10B_fields_7Message {
+    optional uint64 paccuint64_0 = 1;
+    optional uint64 paccuint64_1 = 2;
+    optional uint64 paccuint64_2 = 3;
+    optional uint64 paccuint64_3 = 4;
+    optional uint64 paccuint64_4 = 5;
+    optional uint64 paccuint64_5 = 6;
+    optional uint64 paccuint64_6 = 7;
+}
+message Paccser_uint64_size10B_fields_8Message {
+    optional uint64 paccuint64_0 = 1;
+    optional uint64 paccuint64_1 = 2;
+    optional uint64 paccuint64_2 = 3;
+    optional uint64 paccuint64_3 = 4;
+    optional uint64 paccuint64_4 = 5;
+    optional uint64 paccuint64_5 = 6;
+    optional uint64 paccuint64_6 = 7;
+    optional uint64 paccuint64_7 = 8;
+}
+message Paccser_uint64_size10B_repeatedMessage {
+    repeated uint64 paccuint64_repeated_0 = 1;
+    repeated uint64 paccuint64_repeated_1 = 2;
+    repeated uint64 paccuint64_repeated_2 = 3;
+    repeated uint64 paccuint64_repeated_3 = 4;
+    repeated uint64 paccuint64_repeated_4 = 5;
+}

@@ -1,0 +1,280 @@
+
+syntax = "proto2";
+
+package primitivetests;
+
+option cc_enable_arenas = true;
+
+
+message PaccPaccboolMessageMessage {
+  optional PaccboolMessage paccPaccboolMessage_0 = 1;
+}
+message PaccPaccdoubleMessageMessage {
+  optional PaccdoubleMessage paccPaccdoubleMessage_0 = 1;
+}
+message PaccPaccstringMessageMessage {
+  optional PaccstringMessage paccPaccstringMessage_0 = 1;
+}
+message PaccboolMessage {
+  optional bool paccbool_0 = 1;
+  optional bool paccbool_1 = 2;
+  optional bool paccbool_2 = 3;
+  optional bool paccbool_3 = 4;
+  optional bool paccbool_4 = 5;
+}
+message Paccbool_repeatedMessage {
+  repeated bool paccbool_repeated_0 = 1;
+}
+message PaccbytesMessage {
+  optional bytes paccbytes_0 = 1;
+}
+message Paccbytes_15Message {
+  optional bytes paccbytes_0 = 1;
+}
+message Paccbytes_longMessage {
+  optional bytes paccbytes_0 = 1;
+}
+message Paccbytes_repeatedMessage {
+  repeated bytes paccbytes_repeated_0 = 1;
+}
+message Paccbytes_very_longMessage {
+  optional bytes paccbytes_0 = 1;
+}
+message PaccdoubleMessage {
+  optional double paccdouble_0 = 1;
+  optional double paccdouble_1 = 2;
+  optional double paccdouble_2 = 3;
+  optional double paccdouble_3 = 4;
+  optional double paccdouble_4 = 5;
+}
+message Paccdouble_repeatedMessage {
+  repeated double paccdouble_repeated_0 = 1;
+}
+message Paccfixed32Message {
+  optional fixed32 paccfixed32_0 = 1;
+  optional fixed32 paccfixed32_1 = 2;
+  optional fixed32 paccfixed32_2 = 3;
+  optional fixed32 paccfixed32_3 = 4;
+  optional fixed32 paccfixed32_4 = 5;
+}
+message Paccfixed64Message {
+  optional fixed64 paccfixed64_0 = 1;
+  optional fixed64 paccfixed64_1 = 2;
+  optional fixed64 paccfixed64_2 = 3;
+  optional fixed64 paccfixed64_3 = 4;
+  optional fixed64 paccfixed64_4 = 5;
+}
+message PaccfloatMessage {
+  optional float paccfloat_0 = 1;
+  optional float paccfloat_1 = 2;
+  optional float paccfloat_2 = 3;
+  optional float paccfloat_3 = 4;
+  optional float paccfloat_4 = 5;
+}
+message Paccfloat_repeatedMessage {
+  repeated float paccfloat_repeated_0 = 1;
+}
+message Paccint32Message {
+  optional int32 paccint32_0 = 1;
+}
+message Paccint32_repeatedMessage {
+  repeated int32 paccint32_repeated_0 = 1;
+}
+message Paccint64Message {
+  optional int64 paccint64_0 = 1;
+}
+message Paccint64_repeatedMessage {
+  repeated int64 paccint64_repeated_0 = 1;
+}
+message Paccsfixed32Message {
+  optional sfixed32 paccsfixed32_0 = 1;
+  optional sfixed32 paccsfixed32_1 = 2;
+  optional sfixed32 paccsfixed32_2 = 3;
+  optional sfixed32 paccsfixed32_3 = 4;
+  optional sfixed32 paccsfixed32_4 = 5;
+}
+message Paccsfixed64Message {
+  optional sfixed64 paccsfixed64_0 = 1;
+  optional sfixed64 paccsfixed64_1 = 2;
+  optional sfixed64 paccsfixed64_2 = 3;
+  optional sfixed64 paccsfixed64_3 = 4;
+  optional sfixed64 paccsfixed64_4 = 5;
+}
+message Paccsint32Message {
+  optional sint32 paccsint32_0 = 1;
+}
+message Paccsint64Message {
+  optional sint64 paccsint64_0 = 1;
+}
+message Paccsint64_repeatedMessage {
+  repeated sint64 paccsint64_repeated_0 = 1;
+}
+message PaccstringMessage {
+  optional string paccstring_0 = 1;
+}
+message Paccstring_15Message {
+  optional string paccstring_0 = 1;
+}
+message Paccstring_longMessage {
+  optional string paccstring_0 = 1;
+}
+message Paccstring_very_longMessage {
+  optional string paccstring_0 = 1;
+}
+message Paccuint32Message {
+  optional uint32 paccuint32_0 = 1;
+}
+message Paccuint64_size00BMessage {
+  optional uint64 paccuint64_0 = 1;
+  optional uint64 paccuint64_1 = 2;
+  optional uint64 paccuint64_2 = 3;
+  optional uint64 paccuint64_3 = 4;
+  optional uint64 paccuint64_4 = 5;
+}
+message Paccuint64_size00B_repeatedMessage {
+  repeated uint64 paccuint64_repeated_0 = 1;
+  repeated uint64 paccuint64_repeated_1 = 2;
+  repeated uint64 paccuint64_repeated_2 = 3;
+  repeated uint64 paccuint64_repeated_3 = 4;
+  repeated uint64 paccuint64_repeated_4 = 5;
+}
+message Paccuint64_size01BMessage {
+  optional uint64 paccuint64_0 = 1;
+  optional uint64 paccuint64_1 = 2;
+  optional uint64 paccuint64_2 = 3;
+  optional uint64 paccuint64_3 = 4;
+  optional uint64 paccuint64_4 = 5;
+}
+message Paccuint64_size01B_repeatedMessage {
+  repeated uint64 paccuint64_repeated_0 = 1;
+  repeated uint64 paccuint64_repeated_1 = 2;
+  repeated uint64 paccuint64_repeated_2 = 3;
+  repeated uint64 paccuint64_repeated_3 = 4;
+  repeated uint64 paccuint64_repeated_4 = 5;
+}
+message Paccuint64_size02BMessage {
+  optional uint64 paccuint64_0 = 1;
+  optional uint64 paccuint64_1 = 2;
+  optional uint64 paccuint64_2 = 3;
+  optional uint64 paccuint64_3 = 4;
+  optional uint64 paccuint64_4 = 5;
+}
+message Paccuint64_size02B_repeatedMessage {
+  repeated uint64 paccuint64_repeated_0 = 1;
+  repeated uint64 paccuint64_repeated_1 = 2;
+  repeated uint64 paccuint64_repeated_2 = 3;
+  repeated uint64 paccuint64_repeated_3 = 4;
+  repeated uint64 paccuint64_repeated_4 = 5;
+}
+message Paccuint64_size03BMessage {
+  optional uint64 paccuint64_0 = 1;
+  optional uint64 paccuint64_1 = 2;
+  optional uint64 paccuint64_2 = 3;
+  optional uint64 paccuint64_3 = 4;
+  optional uint64 paccuint64_4 = 5;
+}
+message Paccuint64_size03B_repeatedMessage {
+  repeated uint64 paccuint64_repeated_0 = 1;
+  repeated uint64 paccuint64_repeated_1 = 2;
+  repeated uint64 paccuint64_repeated_2 = 3;
+  repeated uint64 paccuint64_repeated_3 = 4;
+  repeated uint64 paccuint64_repeated_4 = 5;
+}
+message Paccuint64_size04BMessage {
+  optional uint64 paccuint64_0 = 1;
+  optional uint64 paccuint64_1 = 2;
+  optional uint64 paccuint64_2 = 3;
+  optional uint64 paccuint64_3 = 4;
+  optional uint64 paccuint64_4 = 5;
+}
+message Paccuint64_size04B_repeatedMessage {
+  repeated uint64 paccuint64_repeated_0 = 1;
+  repeated uint64 paccuint64_repeated_1 = 2;
+  repeated uint64 paccuint64_repeated_2 = 3;
+  repeated uint64 paccuint64_repeated_3 = 4;
+  repeated uint64 paccuint64_repeated_4 = 5;
+}
+message Paccuint64_size05BMessage {
+  optional uint64 paccuint64_0 = 1;
+  optional uint64 paccuint64_1 = 2;
+  optional uint64 paccuint64_2 = 3;
+  optional uint64 paccuint64_3 = 4;
+  optional uint64 paccuint64_4 = 5;
+}
+message Paccuint64_size05B_repeatedMessage {
+  repeated uint64 paccuint64_repeated_0 = 1;
+  repeated uint64 paccuint64_repeated_1 = 2;
+  repeated uint64 paccuint64_repeated_2 = 3;
+  repeated uint64 paccuint64_repeated_3 = 4;
+  repeated uint64 paccuint64_repeated_4 = 5;
+}
+message Paccuint64_size06BMessage {
+  optional uint64 paccuint64_0 = 1;
+  optional uint64 paccuint64_1 = 2;
+  optional uint64 paccuint64_2 = 3;
+  optional uint64 paccuint64_3 = 4;
+  optional uint64 paccuint64_4 = 5;
+}
+message Paccuint64_size06B_repeatedMessage {
+  repeated uint64 paccuint64_repeated_0 = 1;
+  repeated uint64 paccuint64_repeated_1 = 2;
+  repeated uint64 paccuint64_repeated_2 = 3;
+  repeated uint64 paccuint64_repeated_3 = 4;
+  repeated uint64 paccuint64_repeated_4 = 5;
+}
+message Paccuint64_size07BMessage {
+  optional uint64 paccuint64_0 = 1;
+  optional uint64 paccuint64_1 = 2;
+  optional uint64 paccuint64_2 = 3;
+  optional uint64 paccuint64_3 = 4;
+  optional uint64 paccuint64_4 = 5;
+}
+message Paccuint64_size07B_repeatedMessage {
+  repeated uint64 paccuint64_repeated_0 = 1;
+  repeated uint64 paccuint64_repeated_1 = 2;
+  repeated uint64 paccuint64_repeated_2 = 3;
+  repeated uint64 paccuint64_repeated_3 = 4;
+  repeated uint64 paccuint64_repeated_4 = 5;
+}
+message Paccuint64_size08BMessage {
+  optional uint64 paccuint64_0 = 1;
+  optional uint64 paccuint64_1 = 2;
+  optional uint64 paccuint64_2 = 3;
+  optional uint64 paccuint64_3 = 4;
+  optional uint64 paccuint64_4 = 5;
+}
+message Paccuint64_size08B_repeatedMessage {
+  repeated uint64 paccuint64_repeated_0 = 1;
+  repeated uint64 paccuint64_repeated_1 = 2;
+  repeated uint64 paccuint64_repeated_2 = 3;
+  repeated uint64 paccuint64_repeated_3 = 4;
+  repeated uint64 paccuint64_repeated_4 = 5;
+}
+message Paccuint64_size09BMessage {
+  optional uint64 paccuint64_0 = 1;
+  optional uint64 paccuint64_1 = 2;
+  optional uint64 paccuint64_2 = 3;
+  optional uint64 paccuint64_3 = 4;
+  optional uint64 paccuint64_4 = 5;
+}
+message Paccuint64_size09B_repeatedMessage {
+  repeated uint64 paccuint64_repeated_0 = 1;
+  repeated uint64 paccuint64_repeated_1 = 2;
+  repeated uint64 paccuint64_repeated_2 = 3;
+  repeated uint64 paccuint64_repeated_3 = 4;
+  repeated uint64 paccuint64_repeated_4 = 5;
+}
+message Paccuint64_size10BMessage {
+  optional uint64 paccuint64_0 = 1;
+  optional uint64 paccuint64_1 = 2;
+  optional uint64 paccuint64_2 = 3;
+  optional uint64 paccuint64_3 = 4;
+  optional uint64 paccuint64_4 = 5;
+}
+message Paccuint64_size10B_repeatedMessage {
+  repeated uint64 paccuint64_repeated_0 = 1;
+  repeated uint64 paccuint64_repeated_1 = 2;
+  repeated uint64 paccuint64_repeated_2 = 3;
+  repeated uint64 paccuint64_repeated_3 = 4;
+  repeated uint64 paccuint64_repeated_4 = 5;
+}

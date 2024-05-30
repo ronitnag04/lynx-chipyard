@@ -109,6 +109,9 @@ if [ $TOOLCHAIN == "riscv-tools" ]; then
     cd generators/gemmini
     git submodule update --init software/libgemmini
     make -C $RDIR/generators/gemmini/software/libgemmini install
+
+    echo '==> Installing compression spike extensions'
+    make -C $RDIR/toolchains/riscv-tools/libcompress/comp install
 fi
 
 echo '==>  Installing DRAMSim2 Shared Library'
