@@ -1,4 +1,8 @@
 #include "comp.h"
+
+#define STRINGIZE(x) #x
+#define STRINGIZE_VALUE_OF(x) STRINGIZE(x)
+
 using namespace std;
 comp_t::comp_t(){
   algorithm = -1; latency = 0;
@@ -34,7 +38,7 @@ reg_t comp_t::custom0(rocc_insn_t insn, reg_t xs1, reg_t UNUSED xs2){
         // 1. Load from ip(mmu) and store into a file(file pointer)
         // 2. Decompress that file(zstd binary) and store to op(mmu)
         {
-          FILE* file = fopen("/scratch/junsun/comped", "w");
+          FILE* file = fopen(STRINGIZE_VALUE_OF(CUR_DIR) "/comped", "w");
           while(size_processed<isize){
             uint8_t temp = p->get_mmu()->load<uint8_t>(ip+size_processed);
             if(file!=NULL){
@@ -45,10 +49,10 @@ reg_t comp_t::custom0(rocc_insn_t insn, reg_t xs1, reg_t UNUSED xs2){
           }
           fclose(file);
         }
-        system("rm /scratch/junsun/decomped");
-        system("/scratch/junsun/zstd/zstd -d /scratch/junsun/comped -o /scratch/junsun/decomped");
+        system("rm " STRINGIZE_VALUE_OF(CUR_DIR) "/decomped");
+        system(STRINGIZE_VALUE_OF(ZSTD_BIN) " -d " STRINGIZE_VALUE_OF(CUR_DIR) "/comped" " -o " STRINGIZE_VALUE_OF(CUR_DIR) "/decomped");
         {
-          FILE* file2 = fopen("/scratch/junsun/decomped", "r");
+          FILE* file2 = fopen(STRINGIZE_VALUE_OF(CUR_DIR) "/decomped", "r");
           fseek(file2, 0, SEEK_END);
           osize = ftell(file2);
           fseek(file2, 0, SEEK_SET);
@@ -59,7 +63,7 @@ reg_t comp_t::custom0(rocc_insn_t insn, reg_t xs1, reg_t UNUSED xs2){
             p->get_mmu()->store<uint8_t>(op+size_processed, temp);
             ++size_processed;
             //size_processed += (osize-size_processed>=8 ? 8 : osize-size_processed);
-          } 
+          }
           fclose(file2);
         }
         size_processed = 0;
@@ -85,7 +89,7 @@ reg_t comp_t::custom0(rocc_insn_t insn, reg_t xs1, reg_t UNUSED xs2){
       case 10: // Check completion
         cmpflag = 1;
         //cmpflag = (requests_processed==somevalue) ? 1 : 0;
-        return cmpflag; 
+        return cmpflag;
       case 11: // Set history SRAM size, same as 7
         hist_sram_size = xs1;
         break;
@@ -155,7 +159,7 @@ reg_t comp_t::custom0(rocc_insn_t insn, reg_t xs1, reg_t UNUSED xs2){
             p->get_mmu()->store<uint8_t>(op_comp+size_processed, temp);
             ++size_processed;
             //size_processed += (osize-size_processed>=8 ? 8 : osize-size_processed);
-          } 
+          }
           fclose(file2);
         }
         size_processed = 0;
@@ -179,7 +183,7 @@ reg_t comp_t::custom0(rocc_insn_t insn, reg_t xs1, reg_t UNUSED xs2){
         illegal_instruction();
         break;
     }
-  }  
+  }
   return 0;
 }
 
@@ -238,9 +242,8 @@ int comp_t::decompress(uint64_t ip, uint64_t isize, uint64_t wksp, uint64_t op){
   ** bh[23:3]: block size
   */
   // 2. Rest is the block content. It consists of literals section and sequences section.
-  
+
   // Decompress literals section
 
   // Decompress sequences section
 //}
-

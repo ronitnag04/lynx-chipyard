@@ -111,7 +111,7 @@ if [ $TOOLCHAIN == "riscv-tools" ]; then
     make -C $RDIR/generators/gemmini/software/libgemmini install
 
     echo '==> Installing compression spike extensions'
-    make -C $RDIR/toolchains/riscv-tools/libcompress/comp install
+    make -C $RDIR/toolchains/riscv-tools/libaccs/comp install
 fi
 
 echo '==>  Installing DRAMSim2 Shared Library'
