@@ -1,15 +1,19 @@
 #include "comp.h"
+#include "stdio.h"
 
 #define STRINGIZE(x) #x
 #define STRINGIZE_VALUE_OF(x) STRINGIZE(x)
 
 using namespace std;
+
 comp_t::comp_t(){
   algorithm = -1; latency = 0;
   ip = 0; isize = 0; wksp = 0; op = 0; cmpflag = 0;
   hist_sram_size = 0;
-
   size_processed = 0;
+
+  printf("DEBUG: " STRINGIZE_VALUE_OF(CUR_DIR) "\n");
+  printf("DEBUG: " STRINGIZE_VALUE_OF(ZSTD_BIN) "\n");
 }
 
 reg_t comp_t::custom0(rocc_insn_t insn, reg_t xs1, reg_t UNUSED xs2){
@@ -134,7 +138,7 @@ reg_t comp_t::custom0(rocc_insn_t insn, reg_t xs1, reg_t UNUSED xs2){
         // 1. Load from ip(mmu) and store into a file(file pointer)
         // 2. Compress that file(zstd binary) and store to op(mmu)
         {
-          FILE* file = fopen("/scratch/junsun/decomped", "w");
+          FILE* file = fopen(STRINGIZE_VALUE_OF(CUR_DIR) "/decomped", "w");
           while(size_processed<isize_comp){
             uint8_t temp = p->get_mmu()->load<uint8_t>(ip_comp+size_processed);
             if(file!=NULL){
@@ -145,10 +149,11 @@ reg_t comp_t::custom0(rocc_insn_t insn, reg_t xs1, reg_t UNUSED xs2){
           }
           fclose(file);
         }
-        system("rm /scratch/junsun/comped");
-        system("/scratch/junsun/zstd/zstd /scratch/junsun/decomped -o /scratch/junsun/comped");
+
+        system("rm " STRINGIZE_VALUE_OF(CUR_DIR) "/comped");
+        system(STRINGIZE_VALUE_OF(ZSTD_BIN) " -d " STRINGIZE_VALUE_OF(CUR_DIR) "/decomped" " -o " STRINGIZE_VALUE_OF(CUR_DIR) "/comped");
         {
-          FILE* file2 = fopen("/scratch/junsun/comped", "r");
+          FILE* file2 = fopen(STRINGIZE_VALUE_OF(CUR_DIR) "/comped", "w");
           fseek(file2, 0, SEEK_END);
           osize = ftell(file2);
           fseek(file2, 0, SEEK_SET);

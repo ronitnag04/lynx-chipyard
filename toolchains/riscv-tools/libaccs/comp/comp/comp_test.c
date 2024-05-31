@@ -24,6 +24,8 @@
 
 unsigned char* MemSetup(size_t write_region_size){
   size_t regionsize = sizeof(char) * (write_region_size);
+  printf("requesting %" PRIu64 " byte region\n",
+    (uint64_t)regionsize);
   unsigned char* fixed_alloc_region = (unsigned char*)memalign(PAGESIZE_BYTES, regionsize);
   for (uint64_t i = 0; i < regionsize; i += PAGESIZE_BYTES) {
     fixed_alloc_region[i] = 0;
