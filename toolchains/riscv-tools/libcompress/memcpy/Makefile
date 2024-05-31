@@ -8,7 +8,7 @@ PREFIX ?= $RISCV/
 
 default: libmemcpy.so
 
-libcomp.so: memcpy.cc 
+libmemcpy.so: memcpy.cc
 	g++ -L $(RISCV)/lib -Wl,-rpath,$(RISCV)/lib -shared -o $@ -std=c++17 -I $(RISCV)/include -fPIC -O3 $^
 
 .PHONY: install
