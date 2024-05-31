@@ -166,3 +166,6 @@
 [submodule "vlsi/hammer-mentor-plugins"]
 	path = vlsi/hammer-mentor-plugins
 	url = https://github.com/ucb-bar/hammer-mentor-plugins.git
+[submodule "software/grpc-private"]
+	path = software/grpc-private
+	url = https://github.com/joonho3020/grpc-private.git
