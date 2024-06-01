@@ -56,6 +56,7 @@ reg_t comp_t::custom0(rocc_insn_t insn, reg_t xs1, reg_t UNUSED xs2){
         break;
       case 5: // op, success flag
         op = xs1; cmpflag = xs2;
+        //printf("DEBUG: Doing decompression\n");
         // Just use the zstd binary
         // instead of using comp_t::decompress(ip, isize, wksp, op);.
         // 1. Load from ip(mmu) and store into a file(file pointer)
@@ -142,6 +143,7 @@ reg_t comp_t::custom0(rocc_insn_t insn, reg_t xs1, reg_t UNUSED xs2){
         break;
       case 5: // clevel info
         clevel_comp = xs1;
+        //printf("DEBUG: Doing compression\n");
         // Just use the zstd binary
         // 1. Load from ip(mmu) and store into a file(file pointer)
         // 2. Compress that file(zstd binary) and store to op(mmu)
