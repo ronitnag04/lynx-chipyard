@@ -24,7 +24,8 @@ ARCHFLAGS = -march=$(ARCH) -mabi=$(ABI)
 CFLAGS  = -std=gnu99 -O2 -fno-common -fno-builtin-printf -Wall -g
 CFLAGS += $(ARCHFLAGS)
 CFLAGS += -specs=htif_nano.specs
-LDFLAGS = -static
+LDFLAGS = -static -Wl,--defsym=__heap_size=1M
+
 
 PROGRAMS = comp_test decomp_test
 

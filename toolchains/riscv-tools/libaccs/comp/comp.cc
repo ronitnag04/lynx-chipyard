@@ -16,6 +16,25 @@ comp_t::comp_t(){
   printf("DEBUG: " STRINGIZE_VALUE_OF(ZSTD_BIN) "\n");
 }
 
+void comp_t::write_to_file(char* file_str, reg_t size, reg_t start_ptr) {
+  //printf("Writing to file: %s\n", file_str);
+  char buffer[1024];
+  int ret = snprintf(buffer, 1024, "rm -rf %s", file_str);
+  //printf("First deleting with: '%s'\n", buffer);
+  system(buffer);
+  FILE* file = fopen(file_str, "w");
+  assert(file != NULL);
+  int size_processed = 0;
+  while(size_processed < size){
+    uint8_t temp = p->get_mmu()->load<uint8_t>(start_ptr + size_processed);
+    fwrite(&temp, sizeof(uint8_t), 1, file);
+    ++size_processed;
+    //size_processed += (isize-size_processed>=8 ? 8 : isize-size_processed);
+  }
+  fclose(file);
+  //printf("Done writing to file: %s\n", file_str);
+}
+
 reg_t comp_t::custom0(rocc_insn_t insn, reg_t xs1, reg_t UNUSED xs2){
   // Decompressor functions
   if(insn.funct < 64){
@@ -41,20 +60,9 @@ reg_t comp_t::custom0(rocc_insn_t insn, reg_t xs1, reg_t UNUSED xs2){
         // instead of using comp_t::decompress(ip, isize, wksp, op);.
         // 1. Load from ip(mmu) and store into a file(file pointer)
         // 2. Decompress that file(zstd binary) and store to op(mmu)
-        {
-          FILE* file = fopen(STRINGIZE_VALUE_OF(CUR_DIR) "/comped", "w");
-          while(size_processed<isize){
-            uint8_t temp = p->get_mmu()->load<uint8_t>(ip+size_processed);
-            if(file!=NULL){
-              fwrite(&temp, sizeof(uint8_t), 1, file);
-            }
-            ++size_processed;
-            //size_processed += (isize-size_processed>=8 ? 8 : isize-size_processed);
-          }
-          fclose(file);
-        }
-        system("rm " STRINGIZE_VALUE_OF(CUR_DIR) "/decomped");
-        system(STRINGIZE_VALUE_OF(ZSTD_BIN) " -d " STRINGIZE_VALUE_OF(CUR_DIR) "/comped" " -o " STRINGIZE_VALUE_OF(CUR_DIR) "/decomped");
+        write_to_file(STRINGIZE_VALUE_OF(CUR_DIR) "/comped", isize, ip);
+        system("rm -rf " STRINGIZE_VALUE_OF(CUR_DIR) "/decomped");
+        system(STRINGIZE_VALUE_OF(ZSTD_BIN) " -d " STRINGIZE_VALUE_OF(CUR_DIR) "/comped -o " STRINGIZE_VALUE_OF(CUR_DIR) "/decomped");
         {
           FILE* file2 = fopen(STRINGIZE_VALUE_OF(CUR_DIR) "/decomped", "r");
           fseek(file2, 0, SEEK_END);
@@ -137,23 +145,11 @@ reg_t comp_t::custom0(rocc_insn_t insn, reg_t xs1, reg_t UNUSED xs2){
         // Just use the zstd binary
         // 1. Load from ip(mmu) and store into a file(file pointer)
         // 2. Compress that file(zstd binary) and store to op(mmu)
+        write_to_file(STRINGIZE_VALUE_OF(CUR_DIR) "/decomped", isize_comp, ip_comp);
+        system("rm -rf " STRINGIZE_VALUE_OF(CUR_DIR) "/comped");
+        system(STRINGIZE_VALUE_OF(ZSTD_BIN) " " STRINGIZE_VALUE_OF(CUR_DIR) "/decomped -o " STRINGIZE_VALUE_OF(CUR_DIR) "/comped");
         {
-          FILE* file = fopen(STRINGIZE_VALUE_OF(CUR_DIR) "/decomped", "w");
-          while(size_processed<isize_comp){
-            uint8_t temp = p->get_mmu()->load<uint8_t>(ip_comp+size_processed);
-            if(file!=NULL){
-              fwrite(&temp, sizeof(uint8_t), 1, file);
-            }
-            ++size_processed;
-            //size_processed += (isize-size_processed>=8 ? 8 : isize-size_processed);
-          }
-          fclose(file);
-        }
-
-        system("rm " STRINGIZE_VALUE_OF(CUR_DIR) "/comped");
-        system(STRINGIZE_VALUE_OF(ZSTD_BIN) " -d " STRINGIZE_VALUE_OF(CUR_DIR) "/decomped" " -o " STRINGIZE_VALUE_OF(CUR_DIR) "/comped");
-        {
-          FILE* file2 = fopen(STRINGIZE_VALUE_OF(CUR_DIR) "/comped", "w");
+          FILE* file2 = fopen(STRINGIZE_VALUE_OF(CUR_DIR) "/comped", "r");
           fseek(file2, 0, SEEK_END);
           osize = ftell(file2);
           fseek(file2, 0, SEEK_SET);

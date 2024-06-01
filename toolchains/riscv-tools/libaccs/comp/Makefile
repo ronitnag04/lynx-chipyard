@@ -5,7 +5,7 @@ $(info Running with RISCV=$(RISCV))
 endif
 
 CURRENT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
-ZSTD_BIN := $(CURRENT_DIR)/zstd
+ZSTD_BIN := $(shell which zstd)
 
 default: libcomp.so
 
