@@ -447,4 +447,11 @@ class FireSimProtoRocketConfig extends Config(
   new WithDefaultFireSimBridges ++
   new WithDefaultMemModel ++
   new WithFireSimConfigTweaks ++
-  new chipyard.ProtoConfig)
+  new chipyard.SerProtoConfig)
+
+class FireSimProtoDesOnlyRocketConfig extends Config(
+  new protoacc.WithProtoAccelPrintf ++
+  new WithDefaultFireSimBridges ++
+  new WithDefaultMemModel ++
+  new WithFireSimConfigTweaks ++
+  new chipyard.DesProtoConfig)

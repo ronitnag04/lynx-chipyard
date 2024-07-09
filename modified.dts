@@ -1,0 +1,69 @@
+/dts-v1/;
+
+/ {
+  #address-cells = <1>;
+  #size-cells = <1>;
+  compatible = "ucb-bar,chipyard-dev";
+  model = "ucb-bar,chipyard";
+  L28: cpus {
+    #address-cells = <1>;
+    #size-cells = <0>;
+    timebase-frequency = <10000000>;
+    L9: cpu@0 {
+      clock-frequency = <1000000000>;
+      compatible = "sifive,rocket0", "riscv";
+      d-cache-block-size = <64>;
+      d-cache-sets = <64>;
+      d-cache-size = <16384>;
+      d-tlb-sets = <1>;
+      d-tlb-size = <32>;
+      device_type = "cpu";
+      hardware-exec-breakpoint-count = <1>;
+      i-cache-block-size = <64>;
+      i-cache-sets = <64>;
+      i-cache-size = <16384>;
+      i-tlb-sets = <1>;
+      i-tlb-size = <32>;
+      mmu-type = "riscv,sv39";
+      reg = <0x0>;
+      riscv,isa = "rv64imafdc_zicsr_zifencei_zihpm";
+      status = "okay";
+      timebase-frequency = <10000000>;
+      tlb-split;
+      L7: interrupt-controller {
+        #interrupt-cells = <1>;
+        compatible = "riscv,cpu-intc";
+        interrupt-controller;
+      };
+    };
+  };
+  L30: htif {
+    compatible = "ucb,htif0";
+  };
+  L17: memory@80000000 {
+    device_type = "memory";
+    reg = <0x80000000 0x80000000>;
+  };
+  L27: soc {
+    #address-cells = <1>;
+    #size-cells = <1>;
+    compatible = "ucb-bar,chipyard-soc", "simple-bus";
+    ranges;
+    L10: clint@2000000 {
+      compatible = "riscv,clint0";
+      interrupts-extended = <&L7 3 &L7 7>;
+      reg = <0x2000000 0x10000>;
+      reg-names = "control";
+    };
+    L11: interrupt-controller@c000000 {
+      #interrupt-cells = <1>;
+      compatible = "riscv,plic0";
+      interrupt-controller;
+      interrupts-extended = <&L7 11 &L7 9>;
+      reg = <0xc000000 0x4000000>;
+      reg-names = "control";
+      riscv,max-priority = <1>;
+      riscv,ndev = <1>;
+    };
+  };
+};

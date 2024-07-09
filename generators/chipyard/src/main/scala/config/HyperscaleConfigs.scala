@@ -169,33 +169,46 @@ class AESMemCpyConfig extends Config(
   new memcpyacc.WithMemcpyAccel ++
   new HyperscaleRocketBaseConfig)
 
-class ProtoConfig extends Config(
+class ProtoBaseConfig extends Config(
   new freechips.rocketchip.subsystem.WithoutTLMonitors ++
   new freechips.rocketchip.subsystem.WithExtMemSize((1<<30) * 8L) ++
-  new protoacc.WithProtoAccelSerOnly ++
-  //new protoacc.WithProtoAccelDeserOnly ++
   new chipyard.config.WithSV39 ++
   new HyperscaleRocketBaseConfig)
 
-class cospikeRocketConfig extends Config(
-  new freechips.rocketchip.subsystem.WithRocketDebugROB ++
-  new chipyard.harness.WithCospike ++
-  new chipyard.config.WithTraceIO ++
-  new chipyard.config.WithNPMPs(0) ++
-  new chipyard.harness.WithSerialTLTiedOff ++
-  new chipyard.config.WithDMIDTM ++
-  new chipyard.config.WithSV39 ++
-  new HyperscaleRocketBaseConfig)
-
-class dmiProtoConfig extends Config(
-  new chipyard.config.WithNPMPs(0) ++
-  new freechips.rocketchip.subsystem.WithExtMemSize((1<<30) * 2L) ++
-  new chipyard.harness.WithSerialTLTiedOff ++
-  new chipyard.config.WithDMIDTM ++
+class SerProtoConfig extends Config(
   new protoacc.WithProtoAccelSerOnly ++
-  //new protoacc.WithProtoAccelDeserOnly ++
-  new chipyard.config.WithSV39 ++
-  new HyperscaleRocketBaseConfig)
+  new ProtoBaseConfig)
+
+class DesProtoConfig extends Config(
+  new protoacc.WithProtoAccelDeserOnly ++
+  new ProtoBaseConfig)
+
+//class cospikeRocketConfig extends Config(
+//  new freechips.rocketchip.subsystem.WithRocketDebugROB ++
+//  new chipyard.harness.WithCospike ++
+//  new chipyard.config.WithTraceIO ++
+//  new chipyard.config.WithNPMPs(0) ++
+//  new chipyard.harness.WithSerialTLTiedOff ++
+//  new chipyard.config.WithDMIDTM ++
+//  new chipyard.config.WithSV39 ++
+//  new HyperscaleRocketBaseConfig)
+
+class dmiProtoBaseConfig extends Config(
+  new chipyard.harness.WithSerialTLTiedOff ++
+  new chipyard.config.WithDMIDTM ++
+  new ProtoBaseConfig)
+
+class dmiCkptSerProtoConfig extends Config(
+  new chipyard.config.WithNPMPs(0) ++
+  new protoacc.WithProtoAccelSerOnly ++
+  new dmiProtoBaseConfig)
+
+class dmiCkptDesProtoConfig extends Config(
+  new chipyard.config.WithNPMPs(0) ++
+  new protoacc.WithProtoAccelDeserOnly ++
+  new dmiProtoBaseConfig)
+
+// ---------------------------------
 
 class SnappyDeCConfig extends Config(
   new freechips.rocketchip.subsystem.WithExtMemSize((1 << 30) * 1L) ++
