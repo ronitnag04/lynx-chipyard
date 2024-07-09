@@ -124,7 +124,7 @@ class AbstractConfig extends Config(
 
   // Bus/interconnect settings
   new freechips.rocketchip.subsystem.WithCoherentBusTopology ++     /** hierarchical buses including sbus/mbus/pbus/fbus/cbus/l2 */
-  new chipyard.config.WithSV48IfPossible ++                         /** use sv48 if possible */
+  //new chipyard.config.WithSV48IfPossible ++                         /** use sv48 if possible */
 
 
   // ================================================

@@ -439,3 +439,12 @@ class FireSimGRPCMinimalConfig extends Config(
     new WithDefaultMemModel ++
     new WithFireSimConfigTweaks ++
     new chipyard.SmartNICSoCMinimalConfig))
+
+// ----------------------------------------------------
+
+class FireSimProtoRocketConfig extends Config(
+  new protoacc.WithProtoAccelPrintf ++
+  new WithDefaultFireSimBridges ++
+  new WithDefaultMemModel ++
+  new WithFireSimConfigTweaks ++
+  new chipyard.ProtoConfig)

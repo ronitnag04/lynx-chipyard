@@ -33,6 +33,6 @@ rm -rf ${CFG}.out*
 # payload should load the 2nd binary (provided it has the right addresses)
 make CONFIG=${CFG} \
     BINARY=${SOC1_BIN} \
-    EXTRA_SIM_FLAGS="+write-soc1-msip +uartlog=${CFG}.out +payload=${SOC2_BIN} +link_lat_a2s=10 +link_lat_s2a=10" \
+    EXTRA_SIM_FLAGS="+use-loadmem-hack +write-soc1-msip +uartlog=${CFG}.out +payload=${SOC2_BIN} +link_lat_a2s=10 +link_lat_s2a=10" \
     run-binary-debug
 rm -rf uartpty*
