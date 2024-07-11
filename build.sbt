@@ -250,7 +250,7 @@ lazy val nvdla = (project in file("generators/nvdla"))
   .settings(commonSettings)
 
 lazy val protoacc = (project in file("generators/protoacc"))
-  .dependsOn(rocketchip, midasTargetUtils)
+  .dependsOn(rocketchip, rocc_acc_utils, midasTargetUtils)
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(commonSettings)
 

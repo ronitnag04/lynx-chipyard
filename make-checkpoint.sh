@@ -4,29 +4,38 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 set -ex
 
-# generators/protoacc/software/firesim-workloads/protoacc-ser-ubmark/
+DO_CKPT=true
+while [ "$1" != "" ];
+do
+    case $1 in
+        -s)
+            DO_CKPT=false ;;
+    esac
+    shift
+done
 
-## try out sv39
+if [ "$DO_CKPT" = true ]; then
 TMPDTS=modified.dts
-#TMPDTS=out.dts
 ./scripts/generate-ckpt.sh \
-    -b ./software/firemarshal/images/firechip/protoacc-ser-ubmark/protoacc-ser-ubmark-bin-nodisk \
+    -b ./software/firemarshal/images/firechip/protoacc-des-ubmark/protoacc-des-ubmark-bin-nodisk \
     -t 0x8013 \
     -r $((0x80000000)):$((0x80000000)) \
     -s $TMPDTS -v
+fi
 
-
-
-#    CONFIG=dmiSpikeUltraFastConfig \
 CFG_STR=dmiCkptDesProtoConfig
 pushd sims/vcs
-#cp ../../generators/testchipip/csrc/cospike_impl.cc generated-src/chipyard.harness.TestHarness.dmiProtoConfig/gen-collateral/
 rm -rf simv*${CFG_STR}*
 make \
     CONFIG=${CFG_STR} \
-    run-binary \
-    timeout_cycles=10000000 \
-    LOADARCH=$(readlink -f $SCRIPT_DIR/protoacc-ser-ubmark*8013*loadarch)
+    run-binary-fast \
+    timeout_cycles=100000000 \
+    LOADARCH=$(readlink -f $SCRIPT_DIR/protoacc-des-ubmark*8013*loadarch)
+
+# other
+
+#cp ../../generators/testchipip/csrc/cospike_impl.cc generated-src/chipyard.harness.TestHarness.dmiProtoConfig/gen-collateral/
+#    CONFIG=dmiSpikeUltraFastConfig \
 #    #LOADARCH=$(readlink -f $SCRIPT_DIR/protoacc-ser-ubmark-nodisk.*.loadarch) \
 #    #
 #    #
