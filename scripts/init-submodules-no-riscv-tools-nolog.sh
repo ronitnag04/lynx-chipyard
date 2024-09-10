@@ -70,11 +70,12 @@ cd "$RDIR"
         for name in \
             toolchains/*-tools/* \
             generators/cva6 \
+            generators/ara \
             generators/nvdla \
             toolchains/libgloss \
-            generators/sha3 \
             generators/gemmini \
             generators/rocket-chip \
+            generators/compress-acc \
             sims/firesim \
             software/nvdla-workload \
             software/coremark \
@@ -101,9 +102,6 @@ cd "$RDIR"
 )
 
 (
-    # Non-recursive clone to exclude riscv-linux
-    git submodule update --init generators/sha3
-
     # Non-recursive clone to exclude cva6 submods
     git submodule update --init generators/cva6
     git -C generators/cva6 submodule update --init src/main/resources/cva6/vsrc/cva6
@@ -118,12 +116,19 @@ cd "$RDIR"
     git submodule update --init generators/nvdla
     git -C generators/nvdla submodule update --init src/main/resources/hw
 
+    # Non-recursive clone to exclude ara submods
+    git submodule update --init generators/ara
+    git -C generators/ara submodule update --init ara
+
     # Non-recursive clone to exclude gemmini-software
     git submodule update --init generators/gemmini
     git -C generators/gemmini/ submodule update --init --recursive software/gemmini-rocc-tests
 
     # Non-recursive clone
     git submodule update --init generators/rocket-chip
+
+    # Non-recursive clone
+    git submodule update --init generators/compress-acc
 
     # Minimal non-recursive clone to initialize sbt dependencies
     git submodule update --init sims/firesim

@@ -22,12 +22,11 @@ so changes to the generators themselves will automatically be used when building
    Rocket
    BOOM
    Constellation
-   Hwacha
    Gemmini
+   Saturn
    IceNet
    TestChipIP
    Rocket-Chip-Generators
-   SHA3
    CVA6
    Ibex
    fft
@@ -35,4 +34,6 @@ so changes to the generators themselves will automatically be used when building
    Sodor
    Shuttle
    Mempress
+   CompressAcc
    Prefetchers
+   Ara

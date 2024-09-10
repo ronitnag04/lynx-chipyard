@@ -53,7 +53,6 @@ class MultiHarnessBinder[T <: Port[_], U <: Port[_], S <: HasHarnessInstantiator
     }
   })
 
-
 class WithMultiChipSerialTL(chip0: Int, chip1: Int, chip0portId: Int = 0, chip1portId: Int = 0) extends MultiHarnessBinder(
   chip0, chip1,
   (p0: SerialTLPort) => p0.portId == chip0portId,

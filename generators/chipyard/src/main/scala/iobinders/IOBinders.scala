@@ -27,7 +27,7 @@ import sifive.blocks.devices.spi._
 import sifive.blocks.devices.i2c._
 import tracegen.{TraceGenSystemModuleImp}
 
-import barstools.iocell.chisel._
+import chipyard.iocell._
 
 import testchipip.serdes.{CanHavePeripheryTLSerial, SerialTLKey}
 import testchipip.spi.{SPIChipIO}
@@ -39,6 +39,7 @@ import testchipip.cosim.{CanHaveTraceIO, TraceOutputTop, SpikeCosimConfig}
 import testchipip.tsi.{CanHavePeripheryUARTTSI, UARTTSIIO}
 import icenet.{CanHavePeripheryIceNIC, SimNetwork, NicLoopback, NICKey, NICIOvonly}
 import chipyard.{CanHaveMasterTLMemPort, CanHaveCustomMasterTLMMIOPort, CanHaveCustomSlaveTLPort, CanHaveCustomMasterTLMMIOPort2, CanHaveCustomSlaveTLPort2, ChipyardSystem, ChipyardSystemModule}
+import chipyard.example.{CanHavePeripheryGCD}
 
 import scala.reflect.{ClassTag}
 
@@ -530,6 +531,7 @@ class WithTraceIOPunchthrough extends OverrideLazyIOBinder({
       val cfg = SpikeCosimConfig(
         isa = tiles.headOption.map(_.isaDTS).getOrElse(""),
         priv = tiles.headOption.map(t => if (t.usingUser) "MSU" else if (t.usingSupervisor) "MS" else "M").getOrElse(""),
+        maxpglevels = tiles.headOption.map(_.tileParams.core.pgLevels).getOrElse(0),
         mem0_base = p(ExtMem).map(_.master.base).getOrElse(BigInt(0)),
         mem0_size = p(ExtMem).map(_.master.size).getOrElse(BigInt(0)),
         pmpregions = tiles.headOption.map(_.tileParams.core.nPMPs).getOrElse(0),
@@ -582,4 +584,12 @@ class WithNMITiedOff extends ComposeIOBinder({
     }
     (Nil, Nil)
   }
+})
+
+class WithGCDBusyPunchthrough extends OverrideIOBinder({
+  (system: CanHavePeripheryGCD) => system.gcd_busy.map { busy =>
+    val io_gcd_busy = IO(Output(Bool()))
+    io_gcd_busy := busy
+    (Seq(GCDBusyPort(() => io_gcd_busy)), Nil)
+  }.getOrElse((Nil, Nil))
 })

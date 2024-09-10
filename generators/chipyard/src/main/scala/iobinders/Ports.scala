@@ -120,3 +120,6 @@ case class TLMMIO2Port       (val getIO: () => HeterogeneousBag[TLBundle])
 
 case class TLIn2Port       (val getIO: () => HeterogeneousBag[TLBundle])
     extends Port[HeterogeneousBag[TLBundle]]
+
+case class GCDBusyPort     (val getIO: () => Bool)
+    extends Port[Bool]

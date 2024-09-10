@@ -59,6 +59,7 @@ class AbstractConfig extends Config(
   new chipyard.iobinders.WithNICIOPunchthrough ++
   new chipyard.iobinders.WithTraceIOPunchthrough ++
   new chipyard.iobinders.WithUARTTSIPunchthrough ++
+  new chipyard.iobinders.WithGCDBusyPunchthrough ++
   new chipyard.iobinders.WithNMITiedOff ++
   new chipyard.iobinders.WithTLMMIOPunchthrough ++
   new chipyard.iobinders.WithTLSlavePunchthrough ++
@@ -124,7 +125,7 @@ class AbstractConfig extends Config(
 
   // Bus/interconnect settings
   new freechips.rocketchip.subsystem.WithCoherentBusTopology ++     /** hierarchical buses including sbus/mbus/pbus/fbus/cbus/l2 */
-  //new chipyard.config.WithSV48IfPossible ++                         /** use sv48 if possible */
+  //new chipyard.config.WithSV48 ++                                 /** use sv48 if possible */
 
 
   // ================================================

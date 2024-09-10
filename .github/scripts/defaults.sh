@@ -6,9 +6,6 @@ CI_MAKE_NPROC=8
 REMOTE_MAKE_NPROC=4
 
 # remote variables
-# CI_DIR is defined externally based on the GH repository secret BUILDDIR
-
-REMOTE_PREFIX=$CI_DIR/${GITHUB_REPOSITORY#*/}-${GITHUB_REF_NAME//\//-}
 REMOTE_WORK_DIR=$GITHUB_WORKSPACE
 REMOTE_CHIPYARD_DIR=$GITHUB_WORKSPACE
 REMOTE_SIM_DIR=$REMOTE_CHIPYARD_DIR/sims/verilator
@@ -30,7 +27,7 @@ REMOTE_COURSIER_CACHE=$REMOTE_WORK_DIR/.coursier-cache
 declare -A grouping
 grouping["group-cores"]="chipyard-cva6 chipyard-ibex chipyard-rocket chipyard-hetero chipyard-boomv3 chipyard-boomv4 chipyard-sodor chipyard-digitaltop chipyard-multiclock-rocket chipyard-nomem-scratchpad chipyard-spike chipyard-clone chipyard-prefetchers chipyard-shuttle"
 grouping["group-peripherals"]="chipyard-dmirocket chipyard-dmiboomv3 chipyard-dmiboomv4 chipyard-spiflashwrite chipyard-mmios chipyard-nocores chipyard-manyperipherals chipyard-chiplike chipyard-tethered chipyard-symmetric chipyard-llcchiplet"
-grouping["group-accels"]="chipyard-mempress chipyard-sha3 chipyard-hwacha chipyard-gemmini chipyard-manymmioaccels chipyard-nvdla chipyard-aes256ecb"
+grouping["group-accels"]="chipyard-compressacc chipyard-mempress chipyard-gemmini chipyard-manymmioaccels chipyard-nvdla chipyard-aes256ecb chipyard-rerocc chipyard-rocketvector chipyard-shuttlevector chipyard-shuttleara"
 grouping["group-constellation"]="chipyard-constellation"
 grouping["group-tracegen"]="tracegen tracegen-boomv3 tracegen-boomv4"
 grouping["group-other"]="icenet testchipip constellation rocketchip-amba rocketchip-tlsimple rocketchip-tlwidth rocketchip-tlxbar chipyard-clusters"
@@ -39,20 +36,21 @@ grouping["group-fpga"]="arty35t arty100t nexysvideo vc707 vcu118"
 # key value store to get the build strings
 declare -A mapping
 mapping["chipyard-rocket"]=" CONFIG=QuadChannelRocketConfig"
+# TODO: Verilator chokes on cospikeCheckpointingRocketConfig
+# mapping["chipyard-dmirocket"]=" CONFIG=dmiCospikeCheckpointingRocketConfig"
 mapping["chipyard-dmirocket"]=" CONFIG=dmiRocketConfig"
-mapping["chipyard-sha3"]=" CONFIG=Sha3RocketConfig"
 mapping["chipyard-mempress"]=" CONFIG=MempressRocketConfig"
+mapping["chipyard-compressacc"]=" CONFIG=ZstdCompressorRocketConfig"
 mapping["chipyard-prefetchers"]=" CONFIG=PrefetchingRocketConfig"
 mapping["chipyard-digitaltop"]=" TOP=DigitalTop"
 mapping["chipyard-manymmioaccels"]=" CONFIG=ManyMMIOAcceleratorRocketConfig"
 mapping["chipyard-nvdla"]=" CONFIG=SmallNVDLARocketConfig verilog"
 mapping["chipyard-hetero"]=" CONFIG=LargeBoomAndRocketConfig"
 mapping["chipyard-boomv3"]=" CONFIG=MediumBoomV3CosimConfig"
-mapping["chipyard-dmiboomv3"]=" CONFIG=dmiMediumBoomV3CosimConfig"
+mapping["chipyard-dmiboomv3"]=" CONFIG=dmiCheckpointingMediumBoomV3Config"
 mapping["chipyard-boomv4"]=" CONFIG=MediumBoomV4CosimConfig"
-mapping["chipyard-dmiboomv4"]=" CONFIG=dmiMediumBoomV4CosimConfig"
-mapping["chipyard-spike"]=" CONFIG=SpikeConfig EXTRA_SIM_FLAGS='+spike-ipc=10'"
-mapping["chipyard-hwacha"]=" CONFIG=HwachaRocketConfig"
+mapping["chipyard-dmiboomv4"]=" CONFIG=dmiCheckpointingMediumBoomV4Config"
+mapping["chipyard-spike"]=" CONFIG=SpikeZicntrConfig EXTRA_SIM_FLAGS='+spike-ipc=10'"
 mapping["chipyard-gemmini"]=" CONFIG=GemminiRocketConfig"
 mapping["chipyard-cva6"]=" CONFIG=CVA6Config"
 mapping["chipyard-ibex"]=" CONFIG=IbexConfig"
@@ -74,10 +72,12 @@ mapping["chipyard-nomem-scratchpad"]=" CONFIG=MMIOScratchpadOnlyRocketConfig"
 mapping["chipyard-constellation"]=" CONFIG=SharedNoCConfig"
 mapping["chipyard-clusters"]=" CONFIG=ClusteredRocketConfig verilog"
 mapping["chipyard-aes256ecb"]=" CONFIG=AES256ECBRocketConfig"
+mapping["chipyard-rerocc"]=" CONFIG=ReRoCCTestConfig"
+mapping["chipyard-rocketvector"]=" CONFIG=MINV128D64RocketConfig"
+mapping["chipyard-shuttlevector"]=" CONFIG=GENV256D128ShuttleConfig"
+mapping["chipyard-shuttleara"]=" CONFIG=V4096Ara2LaneShuttleConfig USE_ARA=1 verilog"
 
 mapping["constellation"]=" SUB_PROJECT=constellation"
-mapping["firesim"]="SCALA_TEST=firesim.firesim.RocketNICF1Tests"
-mapping["fireboom"]="SCALA_TEST=firesim.firesim.BoomF1Tests"
 mapping["icenet"]="SUB_PROJECT=icenet"
 mapping["testchipip"]="SUB_PROJECT=testchipip"
 mapping["rocketchip-amba"]="SUB_PROJECT=rocketchip CONFIG=AMBAUnitTestConfig"

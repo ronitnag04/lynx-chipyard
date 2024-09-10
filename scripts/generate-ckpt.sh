@@ -14,7 +14,6 @@ ISA="rv64gc"
 OUTPATH=""
 MEMOVERRIDE=""
 VERBOSE=0
-DTB=
 DTS=
 TYPE="defaultspikedts"
 
@@ -41,10 +40,9 @@ usage() {
     echo "  Group: Use Spike default DTS with modifications (can choose multiple)"
     echo "    -n <n>     : Number of harts [default $NHARTS]"
     echo "    -m <isa>   : ISA to pass to spike for checkpoint generation [default $ISA]"
-    echo "  Group: Use custom DT{B,S} (choose one)"
-    echo "    Important Note: a dt{b,s} only affects the devices used, pmps, mmu."
-    echo "                    the isa string and num. of harts from the dt{b,s} is inferred from this script to pass to the spike --isa and -p flags, respectively."
-    echo "    -d <dtb>   : DTB file to use. Passed to spike's '--dtb' flag. [default is to use ${DTB:-none}]"
+    echo "  Group: Use custom DTS"
+    echo "    Important Note: a dts only affects the devices used, pmps, mmu."
+    echo "                    the isa string and num. of harts from the dts is inferred from this script to pass to the spike --isa and -p flags, respectively."
     echo "    -s <dts>   : DTS file to use. Converted to a DTB then passed to spike's '--dtb' flag. [default is to use ${DTS:-none}]"
     exit "$1"
 }
@@ -80,10 +78,6 @@ do
             MEMOVERRIDE=$1 ;;
         -v )
             VERBOSE=1 ;;
-	-d )
-	    shift
-	    TYPE="customdts"
-	    DTB=$1 ;;
 	-s )
 	    shift
 	    TYPE="customdts"
@@ -110,6 +104,7 @@ rm -rf $OUTPATH
 mkdir -p $OUTPATH
 
 SPIKEFLAGS=""
+
 if [ -z "$MEMOVERRIDE" ] ; then
     BASEMEM="$(($DEFAULT_MEM_START_ADDR)):$((0x10000000))"
 else
@@ -117,16 +112,18 @@ else
 fi
 SPIKEFLAGS+=" -m$BASEMEM"
 
+DTB=
 if [ ! -z "$DTS" ] ; then
     dtc -I dts -O dtb -o $OUTPATH/tmp.dtb $(readlink -f $DTS)
     DTB=$OUTPATH/tmp.dtb
 fi
 
+# TODO: unsure if mem region can be set from dtb (for now users must provide it separately)
 if [ ! -z "$DTB" ]; then
     SPIKEFLAGS+=" --dtb=$DTB"
+
     # HACK: set the global spike isa string with the dtb value (ensure isa's are the same across harts)
     all_isas=$(dtc -I dtb -O dts $(readlink -f $DTB) | grep "riscv,isa")
-    NHARTS=$(echo "$all_isas" | wc -l)
     unique_isas=$(echo "$all_isas" | sort -u)
     if [[ $(echo "$unique_isas" | wc -l) == "1" ]]; then
 	ISA=$(echo "$unique_isas" | sed 's/.*"\(.*\)".*/\1/')
@@ -134,6 +131,9 @@ if [ ! -z "$DTB" ]; then
 	echo "Unable to set ISA from DT{B,S}. Ensure all hart ISAs are equivalent."
 	exit 1
     fi
+
+    # HACK: set the global spike number of harts with the dtb hart count
+    NHARTS=$(echo "$all_isas" | wc -l)
 fi
 
 # pmpregions is overridden by the dt{b,s} so fine to include on CLI here
@@ -204,7 +204,8 @@ echo "quit" >> $CMDS_FILE
 echo "spike -d --debug-cmd=$CMDS_FILE $SPIKEFLAGS $BINARY" > $SPIKECMD_FILE
 
 echo "Capturing state at checkpoint to spikeout"
-spike -d --debug-cmd=$CMDS_FILE $SPIKEFLAGS $BINARY 2> $LOADARCH_FILE
+echo $NHARTS > $LOADARCH_FILE
+spike -d --debug-cmd=$CMDS_FILE $SPIKEFLAGS $BINARY 2>> $LOADARCH_FILE
 
 
 echo "Finding tohost/fromhost in elf file to inject in new elf"
