@@ -1,0 +1,46 @@
+# Hardware config database for FireSim Simulation Manager
+# See https://docs.fires.im/en/stable/Advanced-Usage/Manager/Manager-Configuration-Files.html for documentation of all of these params.
+
+# Hardware configs represent a combination of an agfi, a deployquintuplet override
+# (if needed), and a custom runtime config (if needed)
+
+# The AGFIs provided below are public and available to all users.
+# Only AGFIs for the latest release of FireSim are guaranteed to be available.
+# If you are using an older version of FireSim, you will need to generate your
+# own images.
+
+xilinx_u250_grpc_minimal:
+    bitstream_tar: file:///scratch/abejgonza/hyperscale-grpc-bitstreams/cl_xilinx_alveo_u250-firesim-FireSim-FireSimRocketConfig-Preserve_Remove_MinQSFPXilinxAlveoConfig-2-1/firesim.tar.gz
+    deploy_quintuplet_override: null
+    custom_runtime_config: null
+xilinx_u250_grpc_minimal2:
+    bitstream_tar: file:///scratch/abejgonza/hyperscale-grpc-bitstreams/cl_xilinx_alveo_u250-firesim-FireSim-FireSimRocketConfig-Preserve_Extract_MinQSFPXilinxAlveoConfig-2-0/firesim.tar.gz
+    deploy_quintuplet_override: null
+    custom_runtime_config: null
+
+#xilinx_u250_grpc_2fpga_base:
+#    bitstream_tar: file:///scratch/abejgonza/hyperscale-grpc-bitstreams/cl_xilinx_alveo_u250-firesim-FireSim-WithNIC_FireSimGRPCConfig-Preserve_Remove_GRPC2FPGAQSFPXilinxAlveoConfig-2-1/firesim.tar.gz
+#    deploy_quintuplet_override: null
+#    custom_runtime_config: null
+#xilinx_u250_grpc_2fpga_p1:
+#    bitstream_tar: file:///scratch/abejgonza/hyperscale-grpc-bitstreams/cl_xilinx_alveo_u250-firesim-FireSim-WithNIC_FireSimGRPCConfig-Preserve_Extract_GRPC2FPGAQSFPXilinxAlveoConfig-2-0/firesim.tar.gz
+#    deploy_quintuplet_override: null
+#    custom_runtime_config: null
+
+#xilinx_u250_grpc_2fpga_base:
+#    bitstream_tar: file:///scratch/abejgonza/hyperscale-grpc-chipyard/sims/firesim/deploy/results-build/2024-03-05--04-10-53-xilinx_u250_grpc_2fpga_base/cl_xilinx_alveo_u250-firesim-FireSim-FireSimGRPCConfig-Preserve_Remove_GRPC2FPGAQSFPXilinxAlveoConfig-2-1/firesim.tar.gz
+#    deploy_quintuplet_override: null
+#    custom_runtime_config: null
+#xilinx_u250_grpc_2fpga_p1:
+#    bitstream_tar: file:///scratch/abejgonza/hyperscale-grpc-chipyard/sims/firesim/deploy/results-build/2024-03-05--20-58-48-xilinx_u250_grpc_2fpga_p1/cl_xilinx_alveo_u250-firesim-FireSim-FireSimGRPCConfig-Preserve_Extract_GRPC2FPGAQSFPXilinxAlveoConfig-2-0/firesim.tar.gz
+#    deploy_quintuplet_override: null
+#    custom_runtime_config: null
+
+xilinx_u250_grpc_2fpga_base:
+    bitstream_tar: file:///scratch/abejgonza/hyperscale-grpc-chipyard/sims/firesim/deploy/results-build/2024-03-14--20-15-53-xilinx_u250_grpc_2fpga_base/cl_xilinx_alveo_u250-firesim-FireSim-FireSimGRPCConfig-Preserve_Remove_GRPC2FPGAQSFPXilinxAlveoConfig-2-1/firesim.tar.gz
+    deploy_quintuplet_override: null
+    custom_runtime_config: null
+xilinx_u250_grpc_2fpga_p1:
+    bitstream_tar: file:///scratch/abejgonza/hyperscale-grpc-chipyard/sims/firesim/deploy/results-build/2024-03-14--20-15-53-xilinx_u250_grpc_2fpga_p1/cl_xilinx_alveo_u250-firesim-FireSim-FireSimGRPCConfig-Preserve_Extract_GRPC2FPGAQSFPXilinxAlveoConfig-2-0/firesim.tar.gz
+    deploy_quintuplet_override: null
+    custom_runtime_config: null
