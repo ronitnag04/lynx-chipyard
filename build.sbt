@@ -170,11 +170,6 @@ lazy val chipyard = (project in file("generators/chipyard"))
   .settings(commonSettings)
   .settings(Compile / unmanagedSourceDirectories += file("tools/stage/src/main/scala"))
 
-lazy val compressacc = (project in file("generators/compress-acc"))
-  .dependsOn(rocketchip)
-  .settings(libraryDependencies ++= rocketLibDeps.value)
-  .settings(commonSettings)
-
 lazy val mempress = (project in file("generators/mempress"))
   .dependsOn(rocketchip)
   .settings(libraryDependencies ++= rocketLibDeps.value)
