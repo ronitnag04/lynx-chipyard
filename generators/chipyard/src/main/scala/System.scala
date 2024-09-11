@@ -113,8 +113,8 @@ trait CanHaveCustomMasterTLMMIOPort { this: BaseSubsystem =>
   val mmioTLNode = TLManagerNode(
     mmioPortParamsOpt.map(params => {
       val dramAS = AddressSet.misaligned(params.base, params.size)
-      val icenicAS = AddressSet(x"1001_6000", x"fff")
-      val clintAS = AddressSet(x"b000_0000", x"ffff")
+      val icenicAS = AddressSet(0x1001_6000, 0xfff)
+      val clintAS = AddressSet(0xb000_0000, 0xffff)
       val overallAS = dramAS :+ icenicAS :+ clintAS
       TLSlavePortParameters.v1(
         managers = Seq(TLSlaveParameters.v1(

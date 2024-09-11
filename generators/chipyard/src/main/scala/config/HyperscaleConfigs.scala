@@ -2,7 +2,7 @@ package chipyard
 
 import chisel3._
 import chisel3.util.{DecoupledIO}
-import chisel3.experimental.{DataMirror}
+import chisel3.reflect.{DataMirror}
 
 import org.chipsalliance.cde.config.{Config}
 import freechips.rocketchip.subsystem._
@@ -29,8 +29,8 @@ class WithAppSoCModifications extends Config(
   // setup master port (master to SmartNICSoC)
   new Config((site, here, up) => {
     case ExtBus => Some(MasterPortParams(
-      base = x"a000_0000",
-      size = x"1000_0000",
+      base = 0xa000_0000,
+      size = 0x1000_0000,
       beatBytes = site(MemoryBusKey).beatBytes, // 64b of data per xfer
       idBits = 4, // 4b of source
       executable = true // left true otherwise it will add extra bundle fields
@@ -48,15 +48,15 @@ class WithSmartNICSoCModifications extends Config(
     // disable tsi on this soc
     case SerialTLKey => Nil
     // move CLINT to know addr
-    case CLINTKey => Some(CLINTParams(baseAddress = x"b000_0000"))
+    case CLINTKey => Some(CLINTParams(baseAddress = 0xb000_0000))
     // have bootrom jump to proper dram loc
-    case BootAddrRegKey => up(BootAddrRegKey).map(_.copy(defaultBootAddress = x"a000_0000", defaultClintAddress = x"b000_0000"))
+    case BootAddrRegKey => up(BootAddrRegKey).map(_.copy(defaultBootAddress = 0xa000_0000, defaultClintAddress = 0xb000_0000))
   }) ++
   // setup memory to be at different location
   new Config((site, here, up) => {
     case ExtMem => Some(MemoryPortParams(MasterPortParams(
-      base = x"a000_0000",
-      size = x"1000_0000",
+      base = 0xa000_0000,
+      size = 0x1000_0000,
       beatBytes = site(MemoryBusKey).beatBytes,
       idBits = 7), // has to be 7 to match the app soc
       1 // 1 mem. channels
@@ -73,8 +73,8 @@ class WithSmartNICSoCModifications extends Config(
   // setup master port (master to AppSoC)
   new Config((site, here, up) => {
     case ExtBus2 => Some(MasterPortParams(
-      base = x"8000_0000",
-      size = x"1000_0000",
+      base = 0x8000_0000,
+      size = 0x1000_0000,
       beatBytes = site(MemoryBusKey).beatBytes, // 64b of data per xfer
       idBits = 4, // 4b of source
       executable = true // left true otherwise it will add extra bundle fields
@@ -172,7 +172,7 @@ class AESMemCpyConfig extends Config(
 class ProtoBaseConfig extends Config(
   new freechips.rocketchip.subsystem.WithoutTLMonitors ++
   new freechips.rocketchip.subsystem.WithExtMemSize((1<<30) * 8L) ++
-  new chipyard.config.WithSV39 ++
+//  new chipyard.config.WithSV39 ++
   new HyperscaleRocketBaseConfig)
 
 class SerProtoConfig extends Config(
@@ -306,8 +306,8 @@ class WithAppSoCMinModifications extends Config(
   // setup master port (master to SmartNICSoC)
   new Config((site, here, up) => {
     case ExtBus => Some(MasterPortParams(
-      base = x"a000_0000",
-      size = x"1000_0000",
+      base = 0xa000_0000,
+      size = 0x1000_0000,
       beatBytes = site(MemoryBusKey).beatBytes, // 64b of data per xfer
       idBits = 4, // 4b of source
       executable = true // left true otherwise it will add extra bundle fields
@@ -325,15 +325,15 @@ class WithSmartNICSoCMinModifications extends Config(
     // disable tsi on this soc
     case SerialTLKey => Nil
     // move CLINT to know addr
-    case CLINTKey => Some(CLINTParams(baseAddress = x"b000_0000"))
+    case CLINTKey => Some(CLINTParams(baseAddress = 0xb000_0000))
     // have bootrom jump to proper dram loc
-    case BootAddrRegKey => up(BootAddrRegKey).map(_.copy(defaultBootAddress = x"a000_0000", defaultClintAddress = x"b000_0000"))
+    case BootAddrRegKey => up(BootAddrRegKey).map(_.copy(defaultBootAddress = 0xa000_0000, defaultClintAddress = 0xb000_0000))
   }) ++
   // setup memory to be at different location
   new Config((site, here, up) => {
     case ExtMem => Some(MemoryPortParams(MasterPortParams(
-      base = x"a000_0000",
-      size = x"1000_0000",
+      base = 0xa000_0000,
+      size = 0x1000_0000,
       beatBytes = site(MemoryBusKey).beatBytes,
       idBits = 7), // has to be 7 to match the app soc
       1 // 1 mem. channels
@@ -350,8 +350,8 @@ class WithSmartNICSoCMinModifications extends Config(
   // setup master port (master to AppSoC)
   new Config((site, here, up) => {
     case ExtBus2 => Some(MasterPortParams(
-      base = x"8000_0000",
-      size = x"1000_0000",
+      base = 0x8000_0000,
+      size = 0x1000_0000,
       beatBytes = site(MemoryBusKey).beatBytes, // 64b of data per xfer
       idBits = 4, // 4b of source
       executable = true // left true otherwise it will add extra bundle fields
