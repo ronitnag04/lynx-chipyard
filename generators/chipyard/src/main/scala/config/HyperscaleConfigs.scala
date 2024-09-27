@@ -162,13 +162,6 @@ class MemCpyConfig extends Config(
   new memcpyacc.WithMemcpyAccel ++
   new HyperscaleRocketBaseConfig)
 
-// ---------------------------------
-
-class AESMemCpyConfig extends Config(
-  new aes.WithAES256ECBAccel ++
-  new memcpyacc.WithMemcpyAccel ++
-  new HyperscaleRocketBaseConfig)
-
 class ProtoBaseConfig extends Config(
   new freechips.rocketchip.subsystem.WithoutTLMonitors ++
   new freechips.rocketchip.subsystem.WithExtMemSize((1<<30) * 8L) ++
@@ -183,30 +176,19 @@ class DesProtoConfig extends Config(
   new protoacc.WithProtoAccelDeserOnly ++
   new ProtoBaseConfig)
 
-//class cospikeRocketConfig extends Config(
-//  new freechips.rocketchip.subsystem.WithRocketDebugROB ++
-//  new chipyard.harness.WithCospike ++
-//  new chipyard.config.WithTraceIO ++
-//  new chipyard.config.WithNPMPs(0) ++
-//  new chipyard.harness.WithSerialTLTiedOff ++
-//  new chipyard.config.WithDMIDTM ++
-//  new chipyard.config.WithSV39 ++
-//  new HyperscaleRocketBaseConfig)
+// ---------------------------------
 
-class dmiProtoBaseConfig extends Config(
-  new chipyard.harness.WithSerialTLTiedOff ++
-  new chipyard.config.WithDMIDTM ++
+class ReRoCCHyperscaleConfig extends Config(
+  //new rerocc.WithReRoCC ++
+  new compressacc.WithZstdDecompressor32 ++
+  new compressacc.WithZstdCompressor ++
   new ProtoBaseConfig)
 
-class dmiCkptSerProtoConfig extends Config(
-  new chipyard.config.WithNPMPs(0) ++
+class ProtoSerDesHyperscaleConfig extends Config(
+  new rerocc.WithReRoCC ++
   new protoacc.WithProtoAccelSerOnly ++
-  new dmiProtoBaseConfig)
-
-class dmiCkptDesProtoConfig extends Config(
-  new chipyard.config.WithNPMPs(0) ++
   new protoacc.WithProtoAccelDeserOnly ++
-  new dmiProtoBaseConfig)
+  new ProtoBaseConfig)
 
 // ---------------------------------
 
@@ -228,6 +210,13 @@ class ZstdDeCConfig extends Config(
 class ZstdCConfig extends Config(
   new freechips.rocketchip.subsystem.WithExtMemSize((1 << 30) * 1L) ++
   new compressacc.WithZstdCompressor ++
+  new HyperscaleRocketBaseConfig)
+
+class ZstdConfig extends Config(
+  new rerocc.WithReRoCC ++
+  new freechips.rocketchip.subsystem.WithExtMemSize((1 << 30) * 1L) ++
+  new compressacc.WithZstdDecompressor32 ++
+  //new compressacc.WithZstdCompressor ++
   new HyperscaleRocketBaseConfig)
 
 class HyperBoomConfig extends Config(

@@ -100,8 +100,8 @@ class WithFireSimDesignTweaks extends Config(
   new chipyard.config.WithNoUART() ++       // so we overwrite the default one
   // Optional: Adds IO to attach tracerV bridges
   new chipyard.config.WithTraceIO ++
-  //// Optional: Request 16 GiB of target-DRAM by default (can safely request up to 32 GiB on F1)
-  //new freechips.rocketchip.subsystem.WithExtMemSize((1 << 30) * 16L) ++ // not good since this overlaps the MMIO space of the smartnic
+  // Optional: Request 16 GiB of target-DRAM by default (can safely request up to 32 GiB on F1)
+  new freechips.rocketchip.subsystem.WithExtMemSize((1 << 30) * 16L) ++ // AJG: not good since this overlaps the MMIO space of the smartnic
   // Optional: Removing this will require using an initramfs under linux
   new testchipip.iceblk.WithBlockDevice
 )
@@ -397,52 +397,59 @@ class FireSimLargeBoomSV39CospikeConfig extends Config(
 
 // ----------------------------------------------------
 
-class FireSimGRPCConfig extends Config(
-  new WithFireSimHarnessClockBridgeInstantiator ++
-  new chipyard.harness.WithHarnessBinderClockFreqMHz(1000.0) ++
-  new chipyard.WithSN2ATLBus(1, 0, "clock_1000MHz", 1000) ++ // SoC1 is mastering so it goes 1st
-  new chipyard.WithA2SNTLBus(0, 1, "clock_1000MHz", 1000) ++ // freq changed since WithFireSimConfigTweaks changes pbus freq
-  new WithDefaultMemModel ++ // TODO: Not sure why this needs to be global
-  new chipyard.harness.WithMultiChip(0,
-    new WithDefaultFireSimBridgesNoNIC ++
-    new WithDefaultMemModel ++
-    new WithFireSimConfigTweaks ++
-    new chipyard.AppSoCConfig) ++
-  new chipyard.harness.WithMultiChip(1,
-    new WithDefaultFireSimBridgesNoNIC ++
-    new WithDefaultMemModel ++
-    new WithFireSimConfigTweaks ++
-    new chipyard.SmartNICSoCConfig))
-
-class FireSimGRPCMinimalConfig extends Config(
-  new WithFireSimHarnessClockBridgeInstantiator ++
-  new chipyard.harness.WithHarnessBinderClockFreqMHz(1000.0) ++
-  new chipyard.WithSN2ATLBus(1, 0, "clock_1000MHz", 1000) ++ // SoC1 is mastering so it goes 1st
-  new chipyard.WithA2SNTLBus(0, 1, "clock_1000MHz", 1000) ++ // freq changed since WithFireSimConfigTweaks changes pbus freq
-  new WithDefaultMemModel ++ // TODO: Not sure why this needs to be global
-  new chipyard.harness.WithMultiChip(0,
-    new WithDefaultFireSimBridgesNoNIC ++
-    new WithDefaultMemModel ++
-    new WithFireSimConfigTweaks ++
-    new chipyard.AppSoCMinimalConfig) ++
-  new chipyard.harness.WithMultiChip(1,
-    new WithDefaultFireSimBridgesNoNIC ++
-    new WithDefaultMemModel ++
-    new WithFireSimConfigTweaks ++
-    new chipyard.SmartNICSoCMinimalConfig))
+//class FireSimGRPCConfig extends Config(
+//  new WithFireSimHarnessClockBridgeInstantiator ++
+//  new chipyard.harness.WithHarnessBinderClockFreqMHz(1000.0) ++
+//  new chipyard.WithSN2ATLBus(1, 0, "clock_1000MHz", 1000) ++ // SoC1 is mastering so it goes 1st
+//  new chipyard.WithA2SNTLBus(0, 1, "clock_1000MHz", 1000) ++ // freq changed since WithFireSimConfigTweaks changes pbus freq
+//  new chipyard.harness.WithMultiChip(0,
+//    new WithDefaultFireSimBridgesNoNIC ++
+//    new WithFireSimConfigTweaks ++
+//    new chipyard.AppSoCConfig) ++
+//  new chipyard.harness.WithMultiChip(1,
+//    new WithDefaultFireSimBridgesNoNIC ++
+//    new WithFireSimConfigTweaks ++
+//    new chipyard.SmartNICSoCConfig))
+//
+//class FireSimGRPCMinimalConfig extends Config(
+//  new WithFireSimHarnessClockBridgeInstantiator ++
+//  new chipyard.harness.WithHarnessBinderClockFreqMHz(1000.0) ++
+//  new chipyard.WithSN2ATLBus(1, 0, "clock_1000MHz", 1000) ++ // SoC1 is mastering so it goes 1st
+//  new chipyard.WithA2SNTLBus(0, 1, "clock_1000MHz", 1000) ++ // freq changed since WithFireSimConfigTweaks changes pbus freq
+//  new chipyard.harness.WithMultiChip(0,
+//    new WithDefaultFireSimBridgesNoNIC ++
+//    new WithFireSimConfigTweaks ++
+//    new chipyard.AppSoCMinimalConfig) ++
+//  new chipyard.harness.WithMultiChip(1,
+//    new WithDefaultFireSimBridgesNoNIC ++
+//    new WithFireSimConfigTweaks ++
+//    new chipyard.SmartNICSoCMinimalConfig))
 
 // ----------------------------------------------------
 
-class FireSimProtoRocketConfig extends Config(
+class FireSimProtoSerOnlyRocketConfig extends Config(
   new protoacc.WithProtoAccelPrintf ++
   new WithDefaultFireSimBridges ++
-  new WithDefaultMemModel ++
   new WithFireSimConfigTweaks ++
   new chipyard.SerProtoConfig)
 
 class FireSimProtoDesOnlyRocketConfig extends Config(
   new protoacc.WithProtoAccelPrintf ++
   new WithDefaultFireSimBridges ++
-  new WithDefaultMemModel ++
   new WithFireSimConfigTweaks ++
   new chipyard.DesProtoConfig)
+
+class FireSimReRoCCRocketConfig extends Config(
+  new WithDefaultFireSimBridges ++
+  new WithFireSimConfigTweaks ++
+  new chipyard.ReRoCCHyperscaleConfig )
+
+class FireSimProtoSerDesRocketConfig extends Config(
+  new WithDefaultFireSimBridges ++
+  new WithFireSimConfigTweaks ++
+  new chipyard.ProtoSerDesHyperscaleConfig )
+
+class FireSimDeAndCompressRocketConfig extends Config(
+  new WithDefaultFireSimBridges ++
+  new WithFireSimConfigTweaks ++
+  new chipyard.DeAndCompressHyperscaleConfig )

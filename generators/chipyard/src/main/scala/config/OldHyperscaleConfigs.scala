@@ -39,70 +39,70 @@ class HyperscaleRocketBaseConfig64MBL2And8MemChan extends Config(
   new freechips.rocketchip.subsystem.WithNMemoryChannels(8) ++
   new HyperscaleRocketBaseConfig64MBL2)
 
-// compress-acc rocket configs
-class SnappyDecompressorHyperscaleRocketConfig extends Config(
-  new compressacc.WithSnappyDecompressor ++
-  new HyperscaleRocketBaseConfig)
-
-class SnappyDecompressorHyperscaleRocketConfig16MBL2 extends Config(
-  new compressacc.WithSnappyDecompressor ++
-  new HyperscaleRocketBaseConfig16MBL2)
-
-class SnappyDecompressorHyperscaleRocketConfig16MBL2And8MemChan extends Config(
-  new compressacc.WithSnappyDecompressor ++
-  new HyperscaleRocketBaseConfig16MBL2And8MemChan)
-
-class SnappyCompressorHyperscaleRocketConfig16MBL2And8MemChan extends Config(
-  new compressacc.WithSnappyCompressorRuntimeOverprovision ++
-  new HyperscaleRocketBaseConfig16MBL2And8MemChan)
-
-class SnappyBothFireSimHyperscaleRocketConfig16MBL2And8MemChanRoCC extends Config(
-  new compressacc.AcceleratorPlacementRoCC ++
-  new compressacc.WithSnappyCompleteFireSim ++
-  new HyperscaleRocketBaseConfig16MBL2And8MemChan)
-
-class SnappyBothFireSimHyperscaleRocketConfig16MBL2And8MemChanPCIeNoCache extends Config(
-  new compressacc.AcceleratorPlacementPCIeNoCache ++
-  new compressacc.WithSnappyCompleteFireSim ++
-  new HyperscaleRocketBaseConfig16MBL2And8MemChan)
-
-class SnappyBothFireSimHyperscaleRocketConfig16MBL2And8MemChanPCIeLocalCache extends Config(
-  new compressacc.AcceleratorPlacementPCIeLocalCache ++
-  new compressacc.WithSnappyCompleteFireSim ++
-  new HyperscaleRocketBaseConfig16MBL2And8MemChan)
-
-class SnappyBothFireSimHyperscaleRocketConfig16MBL2And8MemChanChiplet extends Config(
-  new compressacc.AcceleratorPlacementChiplet ++
-  new compressacc.WithSnappyCompleteFireSim ++
-  new HyperscaleRocketBaseConfig16MBL2And8MemChan)
-
-class SnappyDecompressorHyperscaleRocketConfig16MBL2And8MemChanPCIeNoCache extends Config(
-  new compressacc.AcceleratorPlacementPCIeNoCache ++
-  new compressacc.WithSnappyDecompressor ++
-  new HyperscaleRocketBaseConfig16MBL2And8MemChan)
-
-class SnappyCompressorHyperscaleRocketConfig16MBL2And8MemChanPCIeNoCache extends Config(
-  new compressacc.AcceleratorPlacementPCIeNoCache ++
-  new compressacc.WithSnappyCompressorRuntimeOverprovision ++
-  new HyperscaleRocketBaseConfig16MBL2And8MemChan)
-
-class SnappyDecompressorHyperscaleRocketConfig16MBL2And8MemChanPCIeLocalCache extends Config(
-  new compressacc.AcceleratorPlacementPCIeLocalCache ++
-  new compressacc.WithSnappyDecompressor ++
-  new HyperscaleRocketBaseConfig16MBL2And8MemChan)
-
-class SnappyCompressorHyperscaleRocketConfig16MBL2And8MemChanPCIeLocalCache extends Config(
-  new compressacc.AcceleratorPlacementPCIeLocalCache ++
-  new compressacc.WithSnappyCompressorRuntimeOverprovision ++
-  new HyperscaleRocketBaseConfig16MBL2And8MemChan)
-
-class SnappyCompressorHyperscaleRocketConfig16MBL2And8MemChanPrintf extends Config(
-  new compressacc.WithCompressAccelPrintf ++
-  new SnappyCompressorHyperscaleRocketConfig16MBL2And8MemChan)
-
-class SnappyDecompressorHyperscaleRocketConfig16MBL2And8MemChanPrintf extends Config(
-  new compressacc.WithCompressAccelPrintf ++
-  new SnappyDecompressorHyperscaleRocketConfig16MBL2And8MemChan)
+//// compress-acc rocket configs
+//class SnappyDecompressorHyperscaleRocketConfig extends Config(
+//  new compressacc.WithSnappyDecompressor ++
+//  new HyperscaleRocketBaseConfig)
+//
+//class SnappyDecompressorHyperscaleRocketConfig16MBL2 extends Config(
+//  new compressacc.WithSnappyDecompressor ++
+//  new HyperscaleRocketBaseConfig16MBL2)
+//
+//class SnappyDecompressorHyperscaleRocketConfig16MBL2And8MemChan extends Config(
+//  new compressacc.WithSnappyDecompressor ++
+//  new HyperscaleRocketBaseConfig16MBL2And8MemChan)
+//
+//class SnappyCompressorHyperscaleRocketConfig16MBL2And8MemChan extends Config(
+//  new compressacc.WithSnappyCompressorRuntimeOverprovision ++
+//  new HyperscaleRocketBaseConfig16MBL2And8MemChan)
+//
+//class SnappyBothFireSimHyperscaleRocketConfig16MBL2And8MemChanRoCC extends Config(
+//  new compressacc.AcceleratorPlacementRoCC ++
+//  new compressacc.WithSnappyCompleteFireSim ++
+//  new HyperscaleRocketBaseConfig16MBL2And8MemChan)
+//
+//class SnappyBothFireSimHyperscaleRocketConfig16MBL2And8MemChanPCIeNoCache extends Config(
+//  new compressacc.AcceleratorPlacementPCIeNoCache ++
+//  new compressacc.WithSnappyCompleteFireSim ++
+//  new HyperscaleRocketBaseConfig16MBL2And8MemChan)
+//
+//class SnappyBothFireSimHyperscaleRocketConfig16MBL2And8MemChanPCIeLocalCache extends Config(
+//  new compressacc.AcceleratorPlacementPCIeLocalCache ++
+//  new compressacc.WithSnappyCompleteFireSim ++
+//  new HyperscaleRocketBaseConfig16MBL2And8MemChan)
+//
+//class SnappyBothFireSimHyperscaleRocketConfig16MBL2And8MemChanChiplet extends Config(
+//  new compressacc.AcceleratorPlacementChiplet ++
+//  new compressacc.WithSnappyCompleteFireSim ++
+//  new HyperscaleRocketBaseConfig16MBL2And8MemChan)
+//
+//class SnappyDecompressorHyperscaleRocketConfig16MBL2And8MemChanPCIeNoCache extends Config(
+//  new compressacc.AcceleratorPlacementPCIeNoCache ++
+//  new compressacc.WithSnappyDecompressor ++
+//  new HyperscaleRocketBaseConfig16MBL2And8MemChan)
+//
+//class SnappyCompressorHyperscaleRocketConfig16MBL2And8MemChanPCIeNoCache extends Config(
+//  new compressacc.AcceleratorPlacementPCIeNoCache ++
+//  new compressacc.WithSnappyCompressorRuntimeOverprovision ++
+//  new HyperscaleRocketBaseConfig16MBL2And8MemChan)
+//
+//class SnappyDecompressorHyperscaleRocketConfig16MBL2And8MemChanPCIeLocalCache extends Config(
+//  new compressacc.AcceleratorPlacementPCIeLocalCache ++
+//  new compressacc.WithSnappyDecompressor ++
+//  new HyperscaleRocketBaseConfig16MBL2And8MemChan)
+//
+//class SnappyCompressorHyperscaleRocketConfig16MBL2And8MemChanPCIeLocalCache extends Config(
+//  new compressacc.AcceleratorPlacementPCIeLocalCache ++
+//  new compressacc.WithSnappyCompressorRuntimeOverprovision ++
+//  new HyperscaleRocketBaseConfig16MBL2And8MemChan)
+//
+//class SnappyCompressorHyperscaleRocketConfig16MBL2And8MemChanPrintf extends Config(
+//  new compressacc.WithCompressAccelPrintf ++
+//  new SnappyCompressorHyperscaleRocketConfig16MBL2And8MemChan)
+//
+//class SnappyDecompressorHyperscaleRocketConfig16MBL2And8MemChanPrintf extends Config(
+//  new compressacc.WithCompressAccelPrintf ++
+//  new SnappyDecompressorHyperscaleRocketConfig16MBL2And8MemChan)
 
 // --------------------------------------------------------------------------------------
 // BOOM Configs
@@ -129,9 +129,9 @@ class HyperscaleMegaBoomBaseConfig16MBL2And8MemChan extends Config(
   new freechips.rocketchip.subsystem.WithNMemoryChannels(8) ++
   new HyperscaleMegaBoomBaseConfig16MBL2)
 
-class HyperscaleSoCTapeout extends Config(
-  new compressacc.WithSnappyCompleteASIC ++
-  new HyperscaleMegaBoomBaseConfig16MBL2And8MemChan)
+//class HyperscaleSoCTapeout extends Config(
+//  new compressacc.WithSnappyCompleteASIC ++
+//  new HyperscaleMegaBoomBaseConfig16MBL2And8MemChan)
 
 // protoacc mega boom configs
 class ProtoSerMegaBoomConfig extends Config(

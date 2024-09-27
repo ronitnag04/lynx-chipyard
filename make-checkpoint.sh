@@ -14,23 +14,26 @@ do
     shift
 done
 
+WRKLD=grpc-hello-proto-ckpt
 if [ "$DO_CKPT" = true ]; then
 TMPDTS=modified.dts
+# memory of spike can be less than what rtl provides
+# 0x8013 is for stopping at special inst
 ./scripts/generate-ckpt.sh \
-    -b ./software/firemarshal/images/firechip/protoacc-des-ubmark/protoacc-des-ubmark-bin-nodisk \
+    -b ./software/firemarshal/images/firechip/${WRKLD}/${WRKLD}-bin-nodisk \
     -t 0x8013 \
     -r $((0x80000000)):$((0x80000000)) \
     -s $TMPDTS -v
 fi
 
-CFG_STR=dmiCkptDesProtoConfig
+CFG_STR=dmiCkptSerProtoConfig
 pushd sims/vcs
 rm -rf simv*${CFG_STR}*
 make \
     CONFIG=${CFG_STR} \
     run-binary-fast \
     timeout_cycles=100000000 \
-    LOADARCH=$(readlink -f $SCRIPT_DIR/protoacc-des-ubmark*8013*loadarch)
+    LOADARCH=$(readlink -f $SCRIPT_DIR/${WRKLD}*8013*loadarch)
 
 # other
 
