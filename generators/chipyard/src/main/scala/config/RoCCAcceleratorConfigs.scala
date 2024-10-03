@@ -42,8 +42,8 @@ class MempressRocketConfig extends Config(
   new freechips.rocketchip.rocket.WithNHugeCores(1) ++
   new chipyard.config.AbstractConfig)
 
-class AES256ECBRocketConfig extends Config(
-  new aes.WithAES256ECBAccel ++                                   // use Caliptra AES 256 ECB accelerator
+class AES256CBCRocketConfig extends Config(
+  new aes.WithAESCBCAccel ++                                   // use Caliptra AES 256 CBC accelerator
   new freechips.rocketchip.rocket.WithNHugeCores(1) ++
   new chipyard.config.WithSystemBusWidth(256) ++
   new chipyard.config.AbstractConfig)

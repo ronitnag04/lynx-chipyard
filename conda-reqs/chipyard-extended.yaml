@@ -17,6 +17,7 @@ dependencies:
 
     # misc
     - readline
+    - pycryptodome
 
     # firemarshal deps
     - qemu # from ucb-bar channel - https://github.com/ucb-bar/qemu-feedstock

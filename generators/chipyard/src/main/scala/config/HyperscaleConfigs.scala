@@ -155,7 +155,7 @@ class WithSN2ATLBus(chip0: Int, chip1: Int, freqStr: String = "clock_500MHz", fr
 // ---------------------------------------------------------------------------
 
 class AESConfig extends Config(
-  new aes.WithAES256ECBAccel ++
+  new aes.WithAESCBCAccel ++
   new HyperscaleRocketBaseConfig)
 
 class MemCpyConfig extends Config(
@@ -251,7 +251,7 @@ class AppSoCConfig extends Config(
   new protoacc.WithProtoAccelSerOnly ++
   new protoacc.WithProtoAccelDeserOnly ++
   new memcpyacc.WithMemcpyAccel ++
-  new aes.WithAES256ECBAccel ++
+  new aes.WithAESCBCAccel ++
   new WithAppSoCModifications ++
   new HyperscaleMegaBoomBaseConfig)
 
@@ -266,7 +266,7 @@ class SmartNICSoCConfig extends Config(
   new protoacc.WithProtoAccelSerOnly ++
   new protoacc.WithProtoAccelDeserOnly ++
   new memcpyacc.WithMemcpyAccel ++
-  new aes.WithAES256ECBAccel ++
+  new aes.WithAESCBCAccel ++
   new chipyard.harness.WithLoopbackNIC ++
   new icenet.WithIceNIC(inBufFlits = 8192, ctrlQueueDepth = 64) ++ // match FireSim def.
   new WithSmartNICSoCModifications ++
