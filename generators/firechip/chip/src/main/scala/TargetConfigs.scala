@@ -56,6 +56,11 @@ class WithFireSimMultiCycleRegfile extends Config((site, here, up) => {
   case FireSimMultiCycleRegFile => true
 })
 
+// Only annotate 1st tile (hack for clone modules)
+class WithFireSimSingleTileAnnotate extends Config((site, here, up) => {
+  case FireSimAllAnnotate => false
+})
+
 // Model multithreading optimization
 class WithFireSimFAME5 extends Config((site, here, up) => {
   case FireSimFAME5 => true
@@ -364,36 +369,29 @@ class FireSimLargeBoomSV39CospikeConfig extends Config(
 
 // ----------------------------------------------------
 
-////HyperscaleConfigTweaks
-//class WithFireSimHyperscaleClocking extends Config(
-//  new chipyard.config.WithTileFrequency(2000.0) ++
-//  new chipyard.clocking.WithClockGroupsCombinedByName(("uncore", Seq("sbus", "cbus", "implicit"), Nil),
-//    ("periphery", Seq("pbus", "fbus"), Nil)
-//  ) ++
-//  new chipyard.config.WithSystemBusFrequency(2000.0) ++
-//  new chipyard.config.WithMemoryBusFrequency(1000.0) ++
-//  new chipyard.config.WithPeripheryBusFrequency(2000.0) ++
-//  new chipyard.config.WithFbusToSbusCrossingType(AsynchronousCrossing()) ++
-//  new chipyard.config.WithCbusToPbusCrossingType(AsynchronousCrossing()) ++
-//  new chipyard.config.WithSbusToMbusCrossingType(AsynchronousCrossing())
-///*
-//  // Optional: This sets the default frequency for all buses in the system to 2.0 GHz
-//  // (since unspecified bus frequencies will use the pbus frequency)
-//  new chipyard.config.WithPeripheryBusFrequency(2000.0) ++
-//  // Optional: These three configs put the DRAM memory system in it's own clock domain.
-//  // Removing the first config will result in the FASED timing model running
-//  // at the pbus freq (above, 2.0 GHz), which is outside the range of valid DDR3 speedgrades.
-//  // 1 GHz matches the FASED default, using some other frequency will require
-//  // runnings the FASED runtime configuration generator to generate faithful DDR3 timing values.
-//  new chipyard.config.WithMemoryBusFrequency(1000.0) ++
-//  new chipyard.config.WithAsynchrousMemoryBusCrossing ++
-//  new testchipip.WithAsynchronousSerialSlaveCrossing
-//*/
-//)
-//class WithFireSimHyperscaleConfigTweaks extends Config(
-//  new WithFireSimHyperscaleClocking ++
-//  new WithFireSimDesignTweaks
-//)
+//HyperscaleConfigTweaks
+class WithFireSimHyperscaleClocking extends Config(
+ new chipyard.config.WithTileFrequency(2000.0) ++
+ new chipyard.config.WithSystemBusFrequency(2000.0) ++
+ new chipyard.config.WithMemoryBusFrequency(1000.0) ++
+ new chipyard.config.WithPeripheryBusFrequency(2000.0) ++
+ new chipyard.config.WithFrontBusFrequency(2000.0) ++
+ new chipyard.config.WithControlBusFrequency(2000.0) ++
+ new chipyard.clocking.WithClockGroupsCombinedByName(("uncore", Seq("sbus", "cbus", "implicit"), Nil),
+   ("periphery", Seq("pbus", "fbus"), Nil)
+ ) ++
+ new chipyard.config.WithSbusToMbusCrossingType(AsynchronousCrossing()) ++ // says Async. but is replaced by Rational
+ new chipyard.config.WithSbusToCbusCrossingType(AsynchronousCrossing()) ++
+ new chipyard.config.WithCbusToPbusCrossingType(AsynchronousCrossing()) ++
+ new chipyard.config.WithFbusToSbusCrossingType(AsynchronousCrossing()) ++
+ new freechips.rocketchip.rocket.WithRationalCDCs ++
+ new boom.v3.common.WithRationalBoomTiles
+)
+
+class WithFireSimHyperscaleConfigTweaks extends Config(
+ new WithFireSimHyperscaleClocking ++
+ new WithFireSimDesignTweaks
+)
 
 // ----------------------------------------------------
 
@@ -427,29 +425,46 @@ class FireSimLargeBoomSV39CospikeConfig extends Config(
 
 // ----------------------------------------------------
 
-class FireSimProtoSerOnlyRocketConfig extends Config(
-  new protoacc.WithProtoAccelPrintf ++
-  new WithDefaultFireSimBridges ++
-  new WithFireSimConfigTweaks ++
-  new chipyard.SerProtoConfig)
+//class FireSimProtoSerOnlyRocketConfig extends Config(
+//  new protoacc.WithProtoAccelPrintf ++
+//  new WithDefaultFireSimBridges ++
+//  new WithFireSimConfigTweaks ++
+//  new chipyard.SerProtoConfig)
+//
+//class FireSimProtoDesOnlyRocketConfig extends Config(
+//  new protoacc.WithProtoAccelPrintf ++
+//  new WithDefaultFireSimBridges ++
+//  new WithFireSimConfigTweaks ++
+//  new chipyard.DesProtoConfig)
+//
+//class FireSimReRoCCRocketConfig extends Config(
+//  new WithDefaultFireSimBridges ++
+//  new WithFireSimConfigTweaks ++
+//  new chipyard.ReRoCCHyperscaleConfig )
+//
+//class FireSimProtoSerDesRocketConfig extends Config(
+//  new WithDefaultFireSimBridges ++
+//  new WithFireSimConfigTweaks ++
+//  new chipyard.ProtoSerDesHyperscaleConfig )
+//
+////class FireSimDeAndCompressRocketConfig extends Config(
+////  new WithDefaultFireSimBridges ++
+////  new WithFireSimConfigTweaks ++
+////  new chipyard.DeAndCompressHyperscaleConfig )
+//
+//class FireSimHyperscaleEightCoreMegaBoomBaseConfig extends Config(
+//  new chipyard.config.WithNoTraceIO ++
+//  new WithFireSimSingleTileAnnotate ++
+//  new WithDefaultFireSimBridges ++
+//  new WithFireSimConfigTweaks ++
+//  new chipyard.HyperscaleEightCoreMegaBoomBaseConfig  )
 
-class FireSimProtoDesOnlyRocketConfig extends Config(
-  new protoacc.WithProtoAccelPrintf ++
-  new WithDefaultFireSimBridges ++
-  new WithFireSimConfigTweaks ++
-  new chipyard.DesProtoConfig)
+class WithChipyardClonedTiles extends Config(
+  new chipyard.config.WithNoTraceIO ++
+  new WithFireSimSingleTileAnnotate)
 
-class FireSimReRoCCRocketConfig extends Config(
+class FireSimHyperscaleTotalConfig extends Config(
+  //new WithChipyardClonedTiles ++
   new WithDefaultFireSimBridges ++
-  new WithFireSimConfigTweaks ++
-  new chipyard.ReRoCCHyperscaleConfig )
-
-class FireSimProtoSerDesRocketConfig extends Config(
-  new WithDefaultFireSimBridges ++
-  new WithFireSimConfigTweaks ++
-  new chipyard.ProtoSerDesHyperscaleConfig )
-
-class FireSimDeAndCompressRocketConfig extends Config(
-  new WithDefaultFireSimBridges ++
-  new WithFireSimConfigTweaks ++
-  new chipyard.DeAndCompressHyperscaleConfig )
+  new WithFireSimHyperscaleConfigTweaks ++
+  new chipyard.HyperscaleTotalConfig)

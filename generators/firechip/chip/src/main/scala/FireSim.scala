@@ -25,6 +25,7 @@ import midas.targetutils.{MemModelAnnotation, EnableModelMultiThreadingAnnotatio
 
 case object FireSimMultiCycleRegFile extends Field[Boolean](false)
 case object FireSimFAME5 extends Field[Boolean](false)
+case object FireSimAllAnnotate extends Field[Boolean](true)
 
 /**
   * Under FireSim's current multiclock implementation there can be only a
@@ -122,28 +123,47 @@ class FireSim(implicit val p: Parameters) extends RawModule with HasHarnessInsta
   chiptops.foreach {
     case c: ChipTop => c.lazySystem match {
       case ls: InstantiatesHierarchicalElements => {
-        if (p(FireSimMultiCycleRegFile)) ls.totalTiles.values.map {
-          case r: RocketTile => {
-            annotate(MemModelAnnotation(r.module.core.rocketImpl.rf.rf))
-            r.module.fpuOpt.foreach(fpu => annotate(MemModelAnnotation(fpu.fpuImpl.regfile)))
-          }
-          case b: BoomTile => {
-            val core = b.module.core
-            core.iregfile match {
-              case irf: boom.v3.exu.RegisterFileSynthesizable => annotate(MemModelAnnotation(irf.regfile))
+        if (p(FireSimMultiCycleRegFile)) ls.totalTiles.values.zipWithIndex.map {
+          case (t, i) =>
+            // TODO: hack for clone module
+            if (p(FireSimAllAnnotate) || i == 0) {
+              t match {
+                case r: RocketTile => {
+                  annotate(MemModelAnnotation(r.module.core.rocketImpl.rf.rf))
+                  r.module.fpuOpt.foreach(fpu => annotate(MemModelAnnotation(fpu.fpuImpl.regfile)))
+                }
+                case b: BoomTile => {
+                  val core = b.module.core
+                  core.iregfile match {
+                    case irf: boom.v3.exu.RegisterFileSynthesizable => annotate(MemModelAnnotation(irf.regfile))
+                  }
+                  if (core.fp_pipeline != null) core.fp_pipeline.fregfile match {
+                    case frf: boom.v3.exu.RegisterFileSynthesizable => annotate(MemModelAnnotation(frf.regfile))
+                  }
+                }
+                case _ => Nil
+              }
+            } else {
+              println(s"Skipping coreid $i")
+              Nil
             }
-            if (core.fp_pipeline != null) core.fp_pipeline.fregfile match {
-              case frf: boom.v3.exu.RegisterFileSynthesizable => annotate(MemModelAnnotation(frf.regfile))
-            }
-          }
-          case _ =>
         }
-        if (p(FireSimFAME5)) ls.totalTiles.values.map {
-          case b: BoomTile =>
-            annotate(EnableModelMultiThreadingAnnotation(b.module))
-          case r: RocketTile =>
-            annotate(EnableModelMultiThreadingAnnotation(r.module))
-          case _ => Nil
+
+        if (p(FireSimFAME5)) ls.totalTiles.values.zipWithIndex.map {
+          case (t, i) =>
+            // TODO: hack for clone module
+            if (p(FireSimAllAnnotate) || i == 0) {
+              t match {
+                case b: BoomTile =>
+                  annotate(EnableModelMultiThreadingAnnotation(b.module))
+                case r: RocketTile =>
+                  annotate(EnableModelMultiThreadingAnnotation(r.module))
+                case _ => Nil
+              }
+            } else {
+              println(s"Skipping coreid $i")
+              Nil
+            }
         }
       }
       case _ =>

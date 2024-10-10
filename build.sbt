@@ -246,7 +246,7 @@ lazy val nvdla = (project in file("generators/nvdla"))
   .settings(commonSettings)
 
 lazy val protoacc = (project in file("generators/protoacc"))
-  .dependsOn(rocketchip, rocc_acc_utils, midas_target_utils)
+  .dependsOn(rocketchip, rocc_acc_utils, midas_target_utils, testchipip)
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(commonSettings)
 
@@ -256,7 +256,7 @@ lazy val rerocc = (project in file("generators/rerocc"))
   .settings(commonSettings)
 
 lazy val compressacc = (project in file("generators/compress-acc"))
-  .dependsOn(rocketchip, midas_target_utils)
+  .dependsOn(rocketchip, midas_target_utils, testchipip)
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(commonSettings)
 
@@ -271,7 +271,7 @@ lazy val memcpyacc = (project in file("generators/memcpy-acc"))
   .settings(commonSettings)
 
 lazy val rocc_acc_utils = (project in file("generators/rocc-acc-utils"))
-  .dependsOn(rocketchip)
+  .dependsOn(rocketchip, testchipip)
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(commonSettings)
 
