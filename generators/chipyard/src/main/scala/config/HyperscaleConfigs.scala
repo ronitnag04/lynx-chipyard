@@ -47,3 +47,10 @@ class HyperscaleTotalConfig extends Config(
   new HyperscaleReRoCCAccelerators ++
   new HyperscaleEightCoreRocketBaseConfig
 )
+
+class HyperscaleMinimalConfig extends Config(
+  new HyperscaleUncore ++
+  //new protoacc.WithProtoAccelSerOnly(Some(BankedScratchpadParams(0x51000000L, 256 << 10))) ++
+  //new protoacc.WithProtoAccelDeserOnly(Some(BankedScratchpadParams(0x41000000L, 256 << 10))) ++
+  new freechips.rocketchip.rocket.WithNHugeCores(1) ++
+  new chipyard.config.AbstractConfig)

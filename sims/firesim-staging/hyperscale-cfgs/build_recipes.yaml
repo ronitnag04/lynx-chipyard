@@ -1,0 +1,168 @@
+protoser:
+    PLATFORM: xilinx_alveo_u250
+    TARGET_PROJECT: firesim
+    TARGET_PROJECT_MAKEFRAG: ../../../generators/firechip/chip/src/main/makefrag/firesim
+    DESIGN: FireSim
+    TARGET_CONFIG: FireSimProtoSerOnlyRocketConfig
+    PLATFORM_CONFIG: BaseXilinxAlveoU250Config
+    deploy_quintuplet: null
+    platform_config_args:
+        fpga_frequency: 60
+        build_strategy: TIMING
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/xilinx_alveo_u250.yaml
+
+protodes:
+    PLATFORM: xilinx_alveo_u250
+    TARGET_PROJECT: firesim
+    TARGET_PROJECT_MAKEFRAG: ../../../generators/firechip/chip/src/main/makefrag/firesim
+    DESIGN: FireSim
+    TARGET_CONFIG: FireSimProtoDesOnlyRocketConfig
+    PLATFORM_CONFIG: BaseXilinxAlveoU250Config
+    deploy_quintuplet: null
+    platform_config_args:
+        fpga_frequency: 60
+        build_strategy: TIMING
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/xilinx_alveo_u250.yaml
+
+protoser_print:
+    PLATFORM: xilinx_alveo_u250
+    TARGET_PROJECT: firesim
+    TARGET_PROJECT_MAKEFRAG: ../../../generators/firechip/chip/src/main/makefrag/firesim
+    DESIGN: FireSim
+    TARGET_CONFIG: FireSimProtoSerOnlyRocketConfig
+    PLATFORM_CONFIG: WithPrintfSynthesis_BaseXilinxAlveoU250Config
+    deploy_quintuplet: null
+    platform_config_args:
+        fpga_frequency: 10
+        build_strategy: TIMING
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/xilinx_alveo_u250.yaml
+
+protodes_print:
+    PLATFORM: xilinx_alveo_u250
+    TARGET_PROJECT: firesim
+    TARGET_PROJECT_MAKEFRAG: ../../../generators/firechip/chip/src/main/makefrag/firesim
+    DESIGN: FireSim
+    TARGET_CONFIG: FireSimProtoDesOnlyRocketConfig
+    PLATFORM_CONFIG: WithPrintfSynthesis_BaseXilinxAlveoU250Config
+    deploy_quintuplet: null
+    platform_config_args:
+        fpga_frequency: 60
+        build_strategy: TIMING
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/xilinx_alveo_u250.yaml
+
+
+
+rocket_singlecore_no_nic:
+    PLATFORM: xilinx_alveo_u250
+    TARGET_PROJECT: firesim
+    TARGET_PROJECT_MAKEFRAG: ../../../generators/firechip/chip/src/main/makefrag/firesim
+    DESIGN: FireSim
+    TARGET_CONFIG: FireSimRocketConfig
+    PLATFORM_CONFIG: BaseXilinxAlveoU250Config
+    deploy_quintuplet: null
+    platform_config_args:
+        fpga_frequency: 60
+        build_strategy: TIMING
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/xilinx_alveo_u250.yaml
+
+rerocc:
+    PLATFORM: xilinx_alveo_u250
+    TARGET_PROJECT: firesim
+    TARGET_PROJECT_MAKEFRAG: ../../../generators/firechip/chip/src/main/makefrag/firesim
+    DESIGN: FireSim
+    TARGET_CONFIG: FireSimReRoCCRocketConfig
+    PLATFORM_CONFIG: BaseXilinxAlveoU250Config
+    deploy_quintuplet: null
+    platform_config_args:
+        fpga_frequency: 10
+        build_strategy: GRPC
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/xilinx_alveo_u250.yaml
+
+protoserdes:
+    PLATFORM: xilinx_alveo_u250
+    TARGET_PROJECT: firesim
+    TARGET_PROJECT_MAKEFRAG: ../../../generators/firechip/chip/src/main/makefrag/firesim
+    DESIGN: FireSim
+    TARGET_CONFIG: FireSimProtoSerDesRocketConfig
+    PLATFORM_CONFIG: BaseXilinxAlveoU250Config
+    deploy_quintuplet: null
+    platform_config_args:
+        fpga_frequency: 50
+        build_strategy: GRPC
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/xilinx_alveo_u250.yaml
+
+deandcompress:
+    PLATFORM: xilinx_alveo_u250
+    TARGET_PROJECT: firesim
+    TARGET_PROJECT_MAKEFRAG: ../../../generators/firechip/chip/src/main/makefrag/firesim
+    DESIGN: FireSim
+    TARGET_CONFIG: FireSimDeAndCompressRocketConfig
+    PLATFORM_CONFIG: BaseXilinxAlveoU250Config
+    deploy_quintuplet: null
+    platform_config_args:
+        fpga_frequency: 50
+        build_strategy: GRPC
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/xilinx_alveo_u250.yaml
+
+# AREA, TIMING, GRPC don't work
+
+fullcfg-area:
+    PLATFORM: xilinx_alveo_u250
+    TARGET_PROJECT: firesim
+    TARGET_PROJECT_MAKEFRAG: ../../../generators/firechip/chip/src/main/makefrag/firesim
+    DESIGN: FireSim
+    TARGET_CONFIG: FireSimHyperscaleTotalConfig
+    PLATFORM_CONFIG: MTModels_MCRams_BaseXilinxAlveoU250Config
+    deploy_quintuplet: null
+    platform_config_args:
+        fpga_frequency: 50
+        build_strategy: GRPC
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/xilinx_alveo_u250.yaml
+
+fullcfg-timing:
+    PLATFORM: xilinx_alveo_u250
+    TARGET_PROJECT: firesim
+    TARGET_PROJECT_MAKEFRAG: ../../../generators/firechip/chip/src/main/makefrag/firesim
+    DESIGN: FireSim
+    TARGET_CONFIG: FireSimHyperscaleTotalConfig
+    PLATFORM_CONFIG: MTModels_MCRams_BaseXilinxAlveoU250Config
+    deploy_quintuplet: null
+    platform_config_args:
+        fpga_frequency: 50
+        build_strategy: EXPLORE
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/xilinx_alveo_u250.yaml
+
+min:
+    PLATFORM: xilinx_alveo_u250
+    TARGET_PROJECT: firesim
+    TARGET_PROJECT_MAKEFRAG: ../../../generators/firechip/chip/src/main/makefrag/firesim
+    DESIGN: FireSim
+    TARGET_CONFIG: WithNIC_FireSimHyperscaleMinimalConfig
+    PLATFORM_CONFIG: BaseXilinxAlveoU250Config
+    deploy_quintuplet: null
+    platform_config_args:
+        fpga_frequency: 50
+        build_strategy: GRPC
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/xilinx_alveo_u250.yaml

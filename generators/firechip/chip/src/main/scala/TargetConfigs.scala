@@ -468,3 +468,9 @@ class FireSimHyperscaleTotalConfig extends Config(
   new WithDefaultFireSimBridges ++
   new WithFireSimHyperscaleConfigTweaks ++
   new chipyard.HyperscaleTotalConfig)
+
+class FireSimHyperscaleMinimalConfig extends Config(
+  //new WithChipyardClonedTiles ++
+  new WithDefaultFireSimBridges ++
+  new WithFireSimHyperscaleConfigTweaks ++
+  new chipyard.HyperscaleMinimalConfig )
