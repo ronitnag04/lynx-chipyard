@@ -326,7 +326,8 @@ class DesProtoConfig extends Config(
 
 class ReRoCCHyperscaleConfig extends Config(
   //new rerocc.WithReRoCC ++
-  new compressacc.WithZstdDecompressor32 ++
+  new compressacc.WithHufSpecAmt32 ++
+  new compressacc.WithZstdDecompressor ++
   new compressacc.WithZstdCompressor ++
   new ProtoBaseConfig)
 
@@ -350,7 +351,8 @@ class SnappyCConfig extends Config(
 
 class ZstdDeCConfig extends Config(
   new freechips.rocketchip.subsystem.WithExtMemSize((1 << 30) * 1L) ++
-  new compressacc.WithZstdDecompressor32 ++
+  new compressacc.WithHufSpecAmt32 ++
+  new compressacc.WithZstdDecompressor ++
   new HyperscaleRocketBaseConfig)
 
 class ZstdCConfig extends Config(
@@ -402,7 +404,8 @@ class AppSoCConfig extends Config(
   new HyperscaleMegaBoomBaseConfig)
 
 class SmartNICSoCConfig extends Config(
-  new compressacc.WithZstdDecompressor16 ++
+  new compressacc.WithHufSpecAmt16 ++
+  new compressacc.WithZstdDecompressor ++
   new Config((site, here, up) => {
     case compressacc.ZstdLiteralLengthMaxAccuracy => 6
     case compressacc.ZstdMatchLengthMaxAccuracy => 6

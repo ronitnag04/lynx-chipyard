@@ -120,38 +120,6 @@ deandcompress:
     metasim_customruntimeconfig: null
     bit_builder_recipe: bit-builder-recipes/xilinx_alveo_u250.yaml
 
-# AREA, TIMING, GRPC don't work
-
-fullcfg-area:
-    PLATFORM: xilinx_alveo_u250
-    TARGET_PROJECT: firesim
-    TARGET_PROJECT_MAKEFRAG: ../../../generators/firechip/chip/src/main/makefrag/firesim
-    DESIGN: FireSim
-    TARGET_CONFIG: FireSimHyperscaleTotalConfig
-    PLATFORM_CONFIG: MTModels_MCRams_BaseXilinxAlveoU250Config
-    deploy_quintuplet: null
-    platform_config_args:
-        fpga_frequency: 50
-        build_strategy: GRPC
-    post_build_hook: null
-    metasim_customruntimeconfig: null
-    bit_builder_recipe: bit-builder-recipes/xilinx_alveo_u250.yaml
-
-fullcfg-timing:
-    PLATFORM: xilinx_alveo_u250
-    TARGET_PROJECT: firesim
-    TARGET_PROJECT_MAKEFRAG: ../../../generators/firechip/chip/src/main/makefrag/firesim
-    DESIGN: FireSim
-    TARGET_CONFIG: FireSimHyperscaleTotalConfig
-    PLATFORM_CONFIG: MTModels_MCRams_BaseXilinxAlveoU250Config
-    deploy_quintuplet: null
-    platform_config_args:
-        fpga_frequency: 50
-        build_strategy: EXPLORE
-    post_build_hook: null
-    metasim_customruntimeconfig: null
-    bit_builder_recipe: bit-builder-recipes/xilinx_alveo_u250.yaml
-
 min:
     PLATFORM: xilinx_alveo_u250
     TARGET_PROJECT: firesim
@@ -163,6 +131,84 @@ min:
     platform_config_args:
         fpga_frequency: 50
         build_strategy: GRPC
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/xilinx_alveo_u250.yaml
+
+##############################################################
+
+fullcfg-working:
+    PLATFORM: xilinx_alveo_u250
+    TARGET_PROJECT: firesim
+    TARGET_PROJECT_MAKEFRAG: ../../../generators/firechip/chip/src/main/makefrag/firesim
+    DESIGN: FireSim
+    TARGET_CONFIG: WithNIC_FireSimHyperscaleTotalConfig
+    PLATFORM_CONFIG: MTModels_MCRams_FRFCFS16GBQuadRankLLC4MB_BaseXilinxAlveoU250Config
+    deploy_quintuplet: null
+    platform_config_args:
+        fpga_frequency: 50
+        build_strategy: WORKING
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/xilinx_alveo_u250.yaml
+
+# 0 and 2 closest with 110, 1 and 3 with 112
+fullcfg-0:
+    PLATFORM: xilinx_alveo_u250
+    TARGET_PROJECT: firesim
+    TARGET_PROJECT_MAKEFRAG: ../../../generators/firechip/chip/src/main/makefrag/firesim
+    DESIGN: FireSim
+    TARGET_CONFIG: WithNIC_FireSimHyperscaleTotalConfig
+    PLATFORM_CONFIG: WithAutoCounter_MTModels_MCRams_FRFCFS16GBQuadRankLLC4MB_BaseXilinxAlveoU250Config
+    deploy_quintuplet: null
+    platform_config_args:
+        fpga_frequency: 30
+        build_strategy: GRPC0
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/xilinx_alveo_u250.yaml
+
+fullcfg-1:
+    PLATFORM: xilinx_alveo_u250
+    TARGET_PROJECT: firesim
+    TARGET_PROJECT_MAKEFRAG: ../../../generators/firechip/chip/src/main/makefrag/firesim
+    DESIGN: FireSim
+    TARGET_CONFIG: WithNIC_FireSimHyperscaleTotalConfig
+    PLATFORM_CONFIG: WithAutoCounter_MTModels_MCRams_FRFCFS16GBQuadRankLLC4MB_BaseXilinxAlveoU250Config
+    deploy_quintuplet: null
+    platform_config_args:
+        fpga_frequency: 30
+        build_strategy: GRPC1
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/xilinx_alveo_u250.yaml
+
+fullcfg-2:
+    PLATFORM: xilinx_alveo_u250
+    TARGET_PROJECT: firesim
+    TARGET_PROJECT_MAKEFRAG: ../../../generators/firechip/chip/src/main/makefrag/firesim
+    DESIGN: FireSim
+    TARGET_CONFIG: WithNIC_FireSimHyperscaleTotalConfig
+    PLATFORM_CONFIG: WithAutoCounter_MTModels_MCRams_FRFCFS16GBQuadRankLLC4MB_BaseXilinxAlveoU250Config
+    deploy_quintuplet: null
+    platform_config_args:
+        fpga_frequency: 30
+        build_strategy: GRPC2
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/xilinx_alveo_u250.yaml
+
+fullcfg-3:
+    PLATFORM: xilinx_alveo_u250
+    TARGET_PROJECT: firesim
+    TARGET_PROJECT_MAKEFRAG: ../../../generators/firechip/chip/src/main/makefrag/firesim
+    DESIGN: FireSim
+    TARGET_CONFIG: WithNIC_FireSimHyperscaleTotalConfig
+    PLATFORM_CONFIG: WithAutoCounter_MTModels_MCRams_FRFCFS16GBQuadRankLLC4MB_BaseXilinxAlveoU250Config
+    deploy_quintuplet: null
+    platform_config_args:
+        fpga_frequency: 30
+        build_strategy: GRPC3
     post_build_hook: null
     metasim_customruntimeconfig: null
     bit_builder_recipe: bit-builder-recipes/xilinx_alveo_u250.yaml

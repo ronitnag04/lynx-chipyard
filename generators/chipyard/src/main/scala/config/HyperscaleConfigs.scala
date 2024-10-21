@@ -7,9 +7,12 @@ class HyperscaleReRoCCAccelerators extends Config(
   new rerocc.WithReRoCC(reRoCCManagerParams=rerocc.manager.ReRoCCTileParams(l2TLBEntries=512, l2TLBWays=4)) ++ // matches prior aurora-like setup
   // idN-1
   // Using 256KB spad (*8 = 2MB)
-  // TODO: Zstd accs. are too large to duplicate
-  new compressacc.WithZstdDecompressor16(Some(BankedScratchpadParams(0x70000000L, 256 << 10))) ++
-  new compressacc.WithZstdCompressor(Some(BankedScratchpadParams(0x60000000L, 256 << 10))) ++
+  new compressacc.WithSnappyDecompressor(Some(BankedScratchpadParams(0x70000000L, 256 << 10))) ++
+  new compressacc.WithSnappyCompressor(Some(BankedScratchpadParams(0x61000000L, 256 << 10))) ++
+  new compressacc.WithSnappyCompressor(Some(BankedScratchpadParams(0x60000000L, 256 << 10))) ++
+  // // TODO: Zstd accs. are too large to duplicate
+  // new compressacc.WithZstdDecompressor4(Some(BankedScratchpadParams(0x70000000L, 256 << 10))) ++
+  // new compressacc.WithZstdCompressor(Some(BankedScratchpadParams(0x60000000L, 256 << 10))) ++
   new protoacc.WithProtoAccelSerOnly(Some(BankedScratchpadParams(0x51000000L, 256 << 10))) ++
   new protoacc.WithProtoAccelSerOnly(Some(BankedScratchpadParams(0x50000000L, 256 << 10))) ++
   new protoacc.WithProtoAccelDeserOnly(Some(BankedScratchpadParams(0x41000000L, 256 << 10))) ++
@@ -32,8 +35,8 @@ class HyperscaleUncore extends Config(
 
 class HyperscaleEightCoreRocketBaseConfig extends Config(
   new HyperscaleUncore ++
-  //new freechips.rocketchip.rocket.WithCloneRocketTiles(7, 0) ++
-  new freechips.rocketchip.rocket.WithNHugeCores(8) ++
+  //new freechips.rocketchip.rocket.WithCloneRocketTiles(15, 0) ++
+  new freechips.rocketchip.rocket.WithNHugeCores(12) ++
   new chipyard.config.AbstractConfig)
 
 class HyperscaleEightCoreMegaBoomBaseConfig extends Config(

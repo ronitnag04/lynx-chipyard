@@ -1,0 +1,70 @@
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+	name = "rocc",
+	hdrs = [
+		":rocc.h",
+	],
+	alwayslink = True,
+)
+
+cc_library(
+	name = "rerocc",
+	hdrs = [
+		":rerocc.h",
+	],
+	deps = [
+		":rocc"
+	],
+	alwayslink = True,
+)
+
+cc_library(
+	name = "rocc_proto",
+	hdrs = [
+		":proto_rocc.h",
+	],
+	srcs = [
+		":proto_rocc.c"
+	],
+	deps = [
+		":rocc"
+	],
+	alwayslink = True,
+)
+
+cc_library(
+	name = "rocc_compress",
+	hdrs = [
+		":compress_rocc.h",
+	],
+	deps = [
+		":rocc"
+	],
+	alwayslink = True,
+)
+
+cc_library(
+	name = "rocc_crypto",
+	hdrs = [
+		":crypto_rocc.h",
+	],
+	deps = [
+		":rocc"
+	],
+	alwayslink = True,
+)
+
+cc_library(
+	name = "rerocc_scheduler",
+	hdrs = [
+		":rerocc_scheduler.h",
+	],
+	srcs = [
+		":rerocc_scheduler.c"
+	],
+	deps = [
+		":rerocc"
+	],
+	alwayslink = True,
+)

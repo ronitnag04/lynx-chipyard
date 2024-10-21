@@ -369,14 +369,14 @@ class FireSimLargeBoomSV39CospikeConfig extends Config(
 
 // ----------------------------------------------------
 
-//HyperscaleConfigTweaks
-class WithFireSimHyperscaleClocking extends Config(
- new chipyard.config.WithTileFrequency(2000.0) ++
- new chipyard.config.WithSystemBusFrequency(2000.0) ++
- new chipyard.config.WithMemoryBusFrequency(1000.0) ++
- new chipyard.config.WithPeripheryBusFrequency(2000.0) ++
- new chipyard.config.WithFrontBusFrequency(2000.0) ++
- new chipyard.config.WithControlBusFrequency(2000.0) ++
+// @ 3000 s.t. 64b * 3G ~= 200Gb/s (technically just shy of it)
+class WithFireSimHyperscaleClocking(freq: Int = 3000) extends Config(
+ new chipyard.config.WithTileFrequency(freq) ++
+ new chipyard.config.WithSystemBusFrequency(freq) ++
+ new chipyard.config.WithMemoryBusFrequency(1000) ++ // kept at 1000 to have proper dram timing
+ new chipyard.config.WithPeripheryBusFrequency(freq) ++
+ new chipyard.config.WithFrontBusFrequency(freq) ++
+ new chipyard.config.WithControlBusFrequency(freq) ++
  new chipyard.clocking.WithClockGroupsCombinedByName(("uncore", Seq("sbus", "cbus", "implicit"), Nil),
    ("periphery", Seq("pbus", "fbus"), Nil)
  ) ++

@@ -201,7 +201,7 @@ lazy val tracegen = (project in file("generators/tracegen"))
   .settings(commonSettings)
 
 lazy val icenet = (project in file("generators/icenet"))
-  .dependsOn(rocketchip)
+  .dependsOn(rocketchip, midas_target_utils)
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(commonSettings)
 
