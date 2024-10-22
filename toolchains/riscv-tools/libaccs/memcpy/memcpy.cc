@@ -9,23 +9,25 @@ memcpy_t::memcpy_t(){
 }
 
 reg_t memcpy_t::custom0(rocc_insn_t insn, reg_t xs1, reg_t UNUSED xs2){
-  switch(insn.funct % 64){
+  switch(insn.funct){
     case 0: //FENCE
       break;
     case 1: //Get input source info
       ip = xs1; isize = xs2; size_processed = 0;
       break;
     case 2: //Get output address info
+      printf("src=0x%lx sz=0x%lx dst=0x%lx cmgflagptr=0x%lx\n", ip, isize, xs1, xs2);
       op = xs1; cmpflag = xs2;
       while(size_processed<isize){
-        uint64_t temp = p->get_mmu()->load<uint64_t>(ip+size_processed);
-        p->get_mmu()->store<uint64_t>(op+size_processed, temp);
-        size_processed += (isize-size_processed>=8 ? 8 : isize-size_processed);
+        uint8_t temp = p->get_mmu()->load<uint8_t>(ip+size_processed);
+        p->get_mmu()->store<uint8_t>(op+size_processed, temp);
+        size_processed += (isize-size_processed>=1 ? 1 : isize-size_processed);
       }
       break;
     case 3: //Check completion
-      cmpflag = isize==size_processed ? 1 : 0;
-      return cmpflag;
+      //printf("m[cmpflg]=0x%lx\n", isize==size_processed ? 1 : 0);
+      p->get_mmu()->store<uint64_t>(cmpflag, isize==size_processed ? 1 : 0);
+      return 1; // dummy
       break;
     case 4: //Custom function added to check the output.
       return p->get_mmu()->load<uint64_t>(op);
@@ -55,4 +57,3 @@ std::vector<disasm_insn_t*> memcpy_t::get_disasms()
 
 REGISTER_EXTENSION(memcpy, []() { return new memcpy_t; })
 #endif
-
