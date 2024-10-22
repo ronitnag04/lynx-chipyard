@@ -31,6 +31,7 @@ typedef struct metadata {
   // given by scheduler (after schedule_run_on_acc)
   bool given_accelerator;
   uint8_t given_cfgid;
+  uint8_t given_accid;
 
   // provide to scheduler (before schedule_release_and_update)
   uint64_t runtime;
@@ -45,13 +46,18 @@ void schedule_run_on_acc(metadata_t* metadata);
 // TODO: must be process and thread-safe
 void schedule_release_and_update(metadata_t* metadata);
 
-void PassSerInfoToScheduler(volatile char** string_pointer_region, volatile char* string_data_region);
+void PassSerInfoToScheduler(volatile uint8_t** string_pointer_region, volatile uint8_t* string_data_region);
 // TODO: must be just thread-safe
-void GetSerInfoFromScheduler(volatile char*** string_pointer_region_out, volatile char** string_data_region_out);
+void GetSerInfoFromScheduler(volatile uint8_t*** string_pointer_region_out, volatile uint8_t** string_data_region_out);
 
-void PassDeserInfoToScheduler(volatile char* fixed_alloc_region, volatile char* array_alloc_region);
+void PassDeserInfoToScheduler(volatile uint8_t* fixed_alloc_region, volatile uint8_t* array_alloc_region);
 // TODO: must be just thread-safe
-void GetDeserInfoFromScheduler(volatile char** fixed_alloc_region_out, volatile char** array_alloc_region_out);
+void GetDeserInfoFromScheduler(volatile uint8_t** fixed_alloc_region_out, volatile uint8_t** array_alloc_region_out);
+
+void CompressMemSetup(void);
+void GiveCompressMemTemps(uint8_t acc_id, volatile uint8_t** litbuf_out, size_t* litbuf_sz_out, volatile uint8_t** seqbuf_out, size_t* seqbuf_sz_out);
+void DecompressMemSetup(void);
+void GiveDecompressMemTemps(uint8_t acc_id, volatile uint8_t** workspace_out, size_t* workspace_sz_out);
 
 #endif
 

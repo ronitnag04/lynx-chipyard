@@ -2,12 +2,11 @@
 
 #if defined(USE_PROTO_SER_ACC) || defined(USE_PROTO_DES_ACC)
 
-#include <stdbool.h>
-#include <malloc.h>
 #include <inttypes.h>
 #include <assert.h>
 #include "rocc.h"
 #include "proto_rocc.h"
+#include "helpers.h"
 
 #define FUNCT_SER_SFENCE 0
 #define FUNCT_HASBITS_INFO 1
@@ -15,49 +14,19 @@
 #define FUNCT_SER_MEM_SETUP 3
 #define FUNCT_SER_CHECK_COMPLETION 4
 
-#define PAGESIZE_BYTES 4096
-#define MAX_BUS_WIDTH 256
-
 #define accprintf(...) (0)
-
-static inline void ForcePagedIn(void* region, size_t size) {
-#if defined(__linux) && defined(USE_MLOCK)
-    if (mlock(region, size) != 0) {
-      accprintf("E: mlock failed: unable to pin pages\n");
-    }
-#else
-  for (size_t i = 0; i < size; i += PAGESIZE_BYTES) {
-    ((char*)region)[i] = 0;
-  }
-#endif
-}
-
-static inline size_t MultipleOf(size_t in, size_t multiple_of) {
-  assert(multiple_of >= 0);
-  return ((in + multiple_of - 1) / multiple_of) * multiple_of;
-}
-
-static void* AllocAligned(size_t size, size_t* alloc_size) {
-  size_t mult_size = MultipleOf(size, MAX_BUS_WIDTH); // round up to nearest multiple of MAX_BUS_WIDTH (buswidth) (also 64 since accelerator deals with 64 only)
-  void* region = memalign(PAGESIZE_BYTES, mult_size);
-  if (region == NULL) {
-    accprintf("E: malloc failed: nullptr returned\n");
-  }
-  *alloc_size = mult_size;
-  return region;
-}
 
 void SerClearAccelTLB(void) {
     ROCC_INSTRUCTION(PROTOACC_SER_OPCODE, FUNCT_SER_SFENCE); // should clear the accel TLB
 }
 
 // will fill string_pointer_region, string_data_region with allocated pointers
-void SerCreateArenas(size_t num_string_pointers, size_t total_string_data_bytes, volatile char*** string_pointer_region_out, volatile char** string_data_region_out) {
+void SerCreateArenas(size_t num_string_pointers, size_t total_string_data_bytes, volatile uint8_t*** string_pointer_region_out, volatile uint8_t** string_data_region_out) {
     accprintf("I: NumStrs:%ld TotalBytes:%ld\n", num_string_pointers, total_string_data_bytes);
 
     // string data allocation
     size_t string_data_region_size;
-    char* string_data_region = (char*)AllocAligned(sizeof(char) * total_string_data_bytes, &string_data_region_size);
+    uint8_t* string_data_region = (uint8_t*)AllocAligned(sizeof(uint8_t) * total_string_data_bytes, &string_data_region_size);
     ForcePagedIn((void*)string_data_region, string_data_region_size);
     uint64_t string_data_region_ptr_as_int = (uint64_t)string_data_region;
     uint64_t string_data_region_ptr_as_int_tail = string_data_region_ptr_as_int + (uint64_t)string_data_region_size;
@@ -65,10 +34,10 @@ void SerCreateArenas(size_t num_string_pointers, size_t total_string_data_bytes,
 
     // string pointer allocation
     size_t string_pointer_region_size;
-    char** string_pointer_region = (char**)AllocAligned(sizeof(char*) * num_string_pointers, &string_pointer_region_size);
+    uint8_t** string_pointer_region = (uint8_t**)AllocAligned(sizeof(uint8_t*) * num_string_pointers, &string_pointer_region_size);
     ForcePagedIn((void*)string_pointer_region, string_pointer_region_size);
     // TODO: unsure what this does exactly
-    string_pointer_region[0] = (char*)string_data_region_ptr_as_int_tail;
+    string_pointer_region[0] = (uint8_t*)string_data_region_ptr_as_int_tail;
     string_pointer_region += 1;
     uint64_t string_pointer_region_ptr_as_int = (uint64_t)string_pointer_region;
     accprintf("I: SPR: %lld byte alloc'ed, starting at 0x%016llx\n", (uint64_t)string_pointer_region_size, string_pointer_region_ptr_as_int);
@@ -76,26 +45,26 @@ void SerCreateArenas(size_t num_string_pointers, size_t total_string_data_bytes,
     assert((string_data_region_ptr_as_int_tail & 0x7) == 0x0);
     assert((string_pointer_region_ptr_as_int & 0x7) == 0x0);
 
-    *string_data_region_out = (volatile char*)string_data_region_ptr_as_int_tail;
-    *string_pointer_region_out = (volatile char**)string_pointer_region;
+    *string_data_region_out = (volatile uint8_t*)string_data_region_ptr_as_int_tail;
+    *string_pointer_region_out = (volatile uint8_t**)string_pointer_region;
 }
 
-void SerSetArenaInfoAndClearTLB(volatile char** string_pointer_region, volatile char* string_data_region) {
+void SerSetArenaInfoAndClearTLB(volatile uint8_t** string_pointer_region, volatile uint8_t* string_data_region) {
   SerClearAccelTLB();
   ROCC_INSTRUCTION_SS(PROTOACC_SER_OPCODE, (uint64_t)string_data_region, (uint64_t)string_pointer_region, FUNCT_SER_MEM_SETUP);
 }
 
 // OLD
-volatile char ** AccelSetupAllocRegionSerializer(size_t num_string_pointers, size_t total_string_data_bytes) {
-    volatile char** spr; // string ptr region
-    volatile char* sdr; // string data region
+volatile uint8_t ** AccelSetupAllocRegionSerializer(size_t num_string_pointers, size_t total_string_data_bytes) {
+    volatile uint8_t** spr; // string ptr region
+    volatile uint8_t* sdr; // string data region
     SerCreateArenas(num_string_pointers, total_string_data_bytes, &spr, &sdr);
 
     SerSetArenaInfoAndClearTLB(spr, sdr);
     return spr;
 }
 
-volatile char * BlockOnSerializedValue(volatile char ** ptrs, int index) {
+volatile uint8_t * BlockOnSerializedValue(volatile uint8_t ** ptrs, int index) {
     accprintf("SerAcc: CheckCompletion\n");
     uint64_t retval;
     ROCC_INSTRUCTION_D(PROTOACC_SER_OPCODE, retval, FUNCT_SER_CHECK_COMPLETION);
@@ -112,7 +81,7 @@ volatile char * BlockOnSerializedValue(volatile char ** ptrs, int index) {
     return ptrs[index];
 }
 
-size_t GetSerializedLength(volatile char ** ptrs, int index) {
+size_t GetSerializedLength(volatile uint8_t ** ptrs, int index) {
     return (size_t)(ptrs[index-1] - ptrs[index]);
 }
 
@@ -138,19 +107,19 @@ void DeserClearAccelTLB(void) {
 }
 
 // will fill fixed_alloc_region, array_alloc_region with allocated pointers
-void DeserCreateArenas(size_t region_size_bytes, volatile char** fixed_alloc_region_out, volatile char** array_alloc_region_out) {
+void DeserCreateArenas(size_t region_size_bytes, volatile uint8_t** fixed_alloc_region_out, volatile uint8_t** array_alloc_region_out) {
     accprintf("I: TotalBytes:%ld\n", region_size_bytes);
 
     // fixed alloc region allocation
     size_t fixed_alloc_region_size;
-    char* fixed_alloc_region = (char*)AllocAligned(sizeof(char) * region_size_bytes, &fixed_alloc_region_size);
+    uint8_t* fixed_alloc_region = (uint8_t*)AllocAligned(sizeof(uint8_t) * region_size_bytes, &fixed_alloc_region_size);
     ForcePagedIn((void*)fixed_alloc_region, fixed_alloc_region_size);
     uint64_t fixed_alloc_region_ptr_as_int = (uint64_t)fixed_alloc_region;
     accprintf("I: FAR: %lld bytes alloc'ed, start at 0x%016llx\n", (uint64_t)fixed_alloc_region_size, fixed_alloc_region_ptr_as_int);
 
     // array alloc region allocation
     size_t array_alloc_region_size;
-    char* array_alloc_region = (char**)AllocAligned(sizeof(char) * region_size_bytes, &array_alloc_region_size);
+    uint8_t* array_alloc_region = (uint8_t*)AllocAligned(sizeof(uint8_t) * region_size_bytes, &array_alloc_region_size);
     ForcePagedIn((void*)array_alloc_region, array_alloc_region_size);
     uint64_t array_alloc_region_ptr_as_int = (uint64_t)array_alloc_region;
     accprintf("I: AAR: %lld byte alloc'ed, starting at 0x%016llx\n", (uint64_t)array_alloc_region_size, array_alloc_region_ptr_as_int);
@@ -158,19 +127,19 @@ void DeserCreateArenas(size_t region_size_bytes, volatile char** fixed_alloc_reg
     assert((fixed_alloc_region_ptr_as_int & 0x7) == 0x0);
     assert((array_alloc_region_ptr_as_int & 0x7) == 0x0);
 
-    *fixed_alloc_region_out = (volatile char*)fixed_alloc_region;
-    *array_alloc_region_out = (volatile char*)array_alloc_region;
+    *fixed_alloc_region_out = (volatile uint8_t*)fixed_alloc_region;
+    *array_alloc_region_out = (volatile uint8_t*)array_alloc_region;
 }
 
-void DeserSetArenaInfoAndClearTLB(volatile char* fixed_alloc_region, volatile char* array_alloc_region) {
+void DeserSetArenaInfoAndClearTLB(volatile uint8_t* fixed_alloc_region, volatile uint8_t* array_alloc_region) {
   DeserClearAccelTLB();
   ROCC_INSTRUCTION_SS(PROTOACC_OPCODE, (uint64_t)fixed_alloc_region, (uint64_t)array_alloc_region, FUNCT_MEM_SETUP);
 }
 
 // OLD
 void AccelSetupFixedAllocRegion(size_t region_size_bytes) {
-    volatile char* far; // fixed alloc region
-    volatile char* aar; // array alloc region
+    volatile uint8_t* far; // fixed alloc region
+    volatile uint8_t* aar; // array alloc region
     DeserCreateArenas(region_size_bytes, &far, &aar);
 
     DeserSetArenaInfoAndClearTLB(far, aar);

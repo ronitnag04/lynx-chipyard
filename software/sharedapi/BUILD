@@ -1,6 +1,17 @@
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
+	name = "helpers",
+	hdrs = [
+		":helpers.h",
+	],
+	srcs = [
+		":helpers.c"
+	],
+	alwayslink = True,
+)
+
+cc_library(
 	name = "rocc",
 	hdrs = [
 		":rocc.h",
@@ -28,7 +39,8 @@ cc_library(
 		":proto_rocc.c"
 	],
 	deps = [
-		":rocc"
+		":rocc",
+		":helpers"
 	],
 	alwayslink = True,
 )
@@ -38,8 +50,12 @@ cc_library(
 	hdrs = [
 		":compress_rocc.h",
 	],
+	srcs = [
+		":compress_rocc.c"
+	],
 	deps = [
-		":rocc"
+		":rocc",
+		":helpers"
 	],
 	alwayslink = True,
 )
@@ -64,7 +80,8 @@ cc_library(
 		":rerocc_scheduler.c"
 	],
 	deps = [
-		":rerocc"
+		":rerocc",
+		":helpers"
 	],
 	alwayslink = True,
 )

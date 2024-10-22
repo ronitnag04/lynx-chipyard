@@ -3,8 +3,10 @@
 #include <assert.h>
 #include <semaphore.h>
 #include <fcntl.h>
+
 #include "rerocc_scheduler.h"
 #include "rerocc.h"
+#include "helpers.h"
 
 #define MAX_PROTOBUF_SER_IDS (1)
 uint8_t protobuf_ser_acc_ids[MAX_PROTOBUF_SER_IDS] = {1};
@@ -105,6 +107,7 @@ void schedule_run_on_acc(metadata_t* metadata) {
   if (acq && viable) {
     metadata->given_accelerator = true;
     metadata->given_cfgid = cfgid;
+    metadata->given_accid = cur_acc_id;
     rr_set_opc(metadata->opcode/*accelopcode*/, cfgid/*cfgreg*/);
   }
   sem_post(sem);
@@ -121,14 +124,14 @@ void schedule_release_and_update(metadata_t* metadata) {
 // assuming shared across translation units
 // assuming only written at start, can be read by multiple threads
 typedef struct ser_data {
-  volatile char** string_pointer_region;
-  volatile char* string_data_region;
+  volatile uint8_t** string_pointer_region;
+  volatile uint8_t* string_data_region;
 } ser_data_t;
 ser_data_t sched_ser_data[MAX_THREADS];
 size_t num_sched_ser_data = 0;
 size_t sched_ser_data_idx = 0;
 
-void PassSerInfoToScheduler(volatile char** string_pointer_region, volatile char* string_data_region) {
+void PassSerInfoToScheduler(volatile uint8_t** string_pointer_region, volatile uint8_t* string_data_region) {
   assert(num_sched_ser_data < MAX_THREADS);
   sched_ser_data[num_sched_ser_data].string_pointer_region = string_pointer_region;
   sched_ser_data[num_sched_ser_data].string_data_region = string_data_region;
@@ -136,7 +139,7 @@ void PassSerInfoToScheduler(volatile char** string_pointer_region, volatile char
 }
 
 // TODO: threadsafe
-void GetSerInfoFromScheduler(volatile char*** string_pointer_region_out, volatile char** string_data_region_out) {
+void GetSerInfoFromScheduler(volatile uint8_t*** string_pointer_region_out, volatile uint8_t** string_data_region_out) {
   if (sched_ser_data_idx == num_sched_ser_data) {
     // rollover back to 0
     sched_ser_data_idx = 0;
@@ -151,14 +154,14 @@ void GetSerInfoFromScheduler(volatile char*** string_pointer_region_out, volatil
 // assuming shared across translation units
 // assuming only written at start, can be read by multiple threads
 typedef struct deser_data {
-  volatile char* fixed_alloc_region;
-  volatile char* array_alloc_region;
+  volatile uint8_t* fixed_alloc_region;
+  volatile uint8_t* array_alloc_region;
 } deser_data_t;
 deser_data_t sched_deser_data[MAX_THREADS];
 size_t num_sched_deser_data = 0;
 size_t sched_deser_data_idx = 0;
 
-void PassDeserInfoToScheduler(volatile char* fixed_alloc_region, volatile char* array_alloc_region) {
+void PassDeserInfoToScheduler(volatile uint8_t* fixed_alloc_region, volatile uint8_t* array_alloc_region) {
   assert(num_sched_deser_data < MAX_THREADS);
   // TODO: use different struct. for now just reuse even w/ wrong names
   sched_deser_data[num_sched_deser_data].fixed_alloc_region = fixed_alloc_region;
@@ -167,7 +170,7 @@ void PassDeserInfoToScheduler(volatile char* fixed_alloc_region, volatile char* 
 }
 
 // TODO: threadsafe
-void GetDeserInfoFromScheduler(volatile char** fixed_alloc_region_out, volatile char** array_alloc_region_out) {
+void GetDeserInfoFromScheduler(volatile uint8_t** fixed_alloc_region_out, volatile uint8_t** array_alloc_region_out) {
   if (sched_deser_data_idx == num_sched_deser_data) {
     // rollover back to 0
     sched_deser_data_idx = 0;
@@ -176,6 +179,61 @@ void GetDeserInfoFromScheduler(volatile char** fixed_alloc_region_out, volatile 
   *fixed_alloc_region_out = v->fixed_alloc_region;
   *array_alloc_region_out = v->array_alloc_region;
   ++sched_deser_data_idx;
+}
+
+typedef struct comp_data {
+  uint8_t acc_id;
+  volatile uint8_t* litbuf;
+  size_t litbuf_sz;
+  volatile uint8_t* seqbuf;
+  size_t seqbuf_sz;
+} comp_data_t;
+comp_data_t sched_comp_data[MAX_COMPRESS_IDS];
+
+// called from client/server
+void CompressMemSetup(void) {
+  const size_t buffer_size_wanted = 64UL << 10;
+  for (size_t i = 0; i < MAX_COMPRESS_IDS; ++i) {
+    sched_comp_data[i].acc_id = compress_acc_ids[i];
+    sched_comp_data[i].litbuf = AllocAligned(buffer_size_wanted, &(sched_comp_data[i].litbuf_sz));
+    sched_comp_data[i].seqbuf = AllocAligned(buffer_size_wanted, &(sched_comp_data[i].seqbuf_sz));
+  }
+}
+
+void GiveCompressMemTemps(uint8_t acc_id, volatile uint8_t** litbuf_out, size_t* litbuf_sz_out, volatile uint8_t** seqbuf_out, size_t* seqbuf_sz_out) {
+  for (size_t i = 0; i < MAX_COMPRESS_IDS; ++i) {
+    if (sched_comp_data[i].acc_id = acc_id) {
+      *litbuf_out = sched_comp_data[i].litbuf;
+      *litbuf_sz_out = sched_comp_data[i].litbuf_sz;
+      *seqbuf_out = sched_comp_data[i].seqbuf;
+      *seqbuf_sz_out = sched_comp_data[i].seqbuf_sz;
+    }
+  }
+}
+
+typedef struct decomp_data {
+  uint8_t acc_id;
+  volatile uint8_t* workspace;
+  size_t workspace_sz;
+} decomp_data_t;
+decomp_data_t sched_decomp_data[MAX_DECOMPRESS_IDS];
+
+// called from client/server
+void DecompressMemSetup(void) {
+  const size_t buffer_size_wanted = 64UL << 10; // must be large enough to hold all decompressed data
+  for (size_t i = 0; i < MAX_DECOMPRESS_IDS; ++i) {
+    sched_decomp_data[i].acc_id = decompress_acc_ids[i];
+    sched_decomp_data[i].workspace = AllocAligned(buffer_size_wanted, &(sched_decomp_data[i].workspace_sz));
+  }
+}
+
+void GiveDecompressMemTemps(uint8_t acc_id, volatile uint8_t** workspace_out, size_t* workspace_sz_out) {
+  for (size_t i = 0; i < MAX_DECOMPRESS_IDS; ++i) {
+    if (sched_decomp_data[i].acc_id = acc_id) {
+      *workspace_out = sched_decomp_data[i].workspace;
+      *workspace_sz_out = sched_decomp_data[i].workspace_sz;
+    }
+  }
 }
 
 #endif
