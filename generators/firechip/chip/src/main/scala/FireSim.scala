@@ -130,7 +130,7 @@ class FireSim(implicit val p: Parameters) extends RawModule with HasHarnessInsta
               t match {
                 case r: RocketTile => {
                   annotate(MemModelAnnotation(r.module.core.rocketImpl.rf.rf))
-                  r.module.fpuOpt.foreach(fpu => annotate(MemModelAnnotation(fpu.fpuImpl.regfile)))
+                  //r.module.fpuOpt.foreach(fpu => annotate(MemModelAnnotation(fpu.fpuImpl.regfile)))
                 }
                 case b: BoomTile => {
                   val core = b.module.core

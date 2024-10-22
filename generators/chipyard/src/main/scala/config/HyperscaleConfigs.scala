@@ -8,7 +8,7 @@ class HyperscaleReRoCCAccelerators extends Config(
   // idN-1
   // Using 256KB spad (*8 = 2MB)
   new compressacc.WithSnappyDecompressor(Some(BankedScratchpadParams(0x70000000L, 256 << 10))) ++
-  new compressacc.WithSnappyCompressor(Some(BankedScratchpadParams(0x61000000L, 256 << 10))) ++
+  // new compressacc.WithSnappyCompressor(Some(BankedScratchpadParams(0x61000000L, 256 << 10))) ++
   new compressacc.WithSnappyCompressor(Some(BankedScratchpadParams(0x60000000L, 256 << 10))) ++
   // // TODO: Zstd accs. are too large to duplicate
   // new compressacc.WithZstdDecompressor4(Some(BankedScratchpadParams(0x70000000L, 256 << 10))) ++
@@ -24,11 +24,12 @@ class HyperscaleReRoCCAccelerators extends Config(
   // id0
 )
 
+// NIC gives 64 * 3G = 192 Gb/s
 class HyperscaleUncore extends Config(
-  new freechips.rocketchip.subsystem.WithInclusiveCache(nWays=16, capacityKB=2048) ++
+  new freechips.rocketchip.subsystem.WithInclusiveCache(nWays=16, capacityKB=2048) ++ // 256 * 3G = 768Gb/s BW
   new freechips.rocketchip.subsystem.WithNBanks(8) ++
   new chipyard.config.WithExtMemIdBits(7) ++
-  new freechips.rocketchip.subsystem.WithNMemoryChannels(1) ++
+  new freechips.rocketchip.subsystem.WithNMemoryChannels(4) ++ // 64 * 4 * 1G = 256Gb/s BW
   new chipyard.config.WithSystemBusWidth(256) ++
   new freechips.rocketchip.subsystem.WithoutTLMonitors
 )
@@ -36,7 +37,7 @@ class HyperscaleUncore extends Config(
 class HyperscaleEightCoreRocketBaseConfig extends Config(
   new HyperscaleUncore ++
   //new freechips.rocketchip.rocket.WithCloneRocketTiles(15, 0) ++
-  new freechips.rocketchip.rocket.WithNHugeCores(12) ++
+  new freechips.rocketchip.rocket.WithNHugeCores(8) ++
   new chipyard.config.AbstractConfig)
 
 class HyperscaleEightCoreMegaBoomBaseConfig extends Config(
@@ -52,8 +53,22 @@ class HyperscaleTotalConfig extends Config(
 )
 
 class HyperscaleMinimalConfig extends Config(
+  new rerocc.WithReRoCC(reRoCCManagerParams=rerocc.manager.ReRoCCTileParams(l2TLBEntries=512, l2TLBWays=4)) ++ // matches prior aurora-like setup
+  // idN-1
+  new protoacc.WithProtoAccelSerOnly(Some(BankedScratchpadParams(0x50000000L, 256 << 10))) ++
+  new protoacc.WithProtoAccelDeserOnly(Some(BankedScratchpadParams(0x40000000L, 256 << 10))) ++
+  new memcpyacc.WithMemcpyAccel ++
+  new aes.WithAESCBCAccel(Some(BankedScratchpadParams(0x30000000L, 256 << 10))) ++
+  // id0
   new HyperscaleUncore ++
-  //new protoacc.WithProtoAccelSerOnly(Some(BankedScratchpadParams(0x51000000L, 256 << 10))) ++
-  //new protoacc.WithProtoAccelDeserOnly(Some(BankedScratchpadParams(0x41000000L, 256 << 10))) ++
+  new freechips.rocketchip.rocket.WithNHugeCores(1) ++
+  new chipyard.config.AbstractConfig)
+
+class HMemcpyConfig extends Config(
+  new rerocc.WithReRoCC(reRoCCManagerParams=rerocc.manager.ReRoCCTileParams(l2TLBEntries=512, l2TLBWays=4)) ++ // matches prior aurora-like setup
+  // idN-1
+  new memcpyacc.WithMemcpyAccel ++
+  // id0
+  new HyperscaleUncore ++
   new freechips.rocketchip.rocket.WithNHugeCores(1) ++
   new chipyard.config.AbstractConfig)

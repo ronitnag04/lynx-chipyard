@@ -5,23 +5,25 @@
 #include <fcntl.h>
 
 #include "rerocc_scheduler.h"
+#ifdef USE_REROCC
 #include "rerocc.h"
+#endif
 #include "helpers.h"
 
 #define MAX_PROTOBUF_SER_IDS (1)
-uint8_t protobuf_ser_acc_ids[MAX_PROTOBUF_SER_IDS] = {1};
+uint8_t protobuf_ser_acc_ids[MAX_PROTOBUF_SER_IDS] = {0};
 
 #define MAX_PROTOBUF_DESER_IDS (1)
-uint8_t protobuf_deser_acc_ids[MAX_PROTOBUF_DESER_IDS] = {1};
+uint8_t protobuf_deser_acc_ids[MAX_PROTOBUF_DESER_IDS] = {0};
 
 #define MAX_COMPRESS_IDS (1)
-uint8_t compress_acc_ids[MAX_COMPRESS_IDS] = {1};
+uint8_t compress_acc_ids[MAX_COMPRESS_IDS] = {0};
 
 #define MAX_DECOMPRESS_IDS (1)
-uint8_t decompress_acc_ids[MAX_DECOMPRESS_IDS] = {1};
+uint8_t decompress_acc_ids[MAX_DECOMPRESS_IDS] = {0};
 
 #define MAX_ENCRYPT_DECRYPT_IDS (1)
-uint8_t encrypt_decrypt_acc_ids[MAX_ENCRYPT_DECRYPT_IDS] = {1};
+uint8_t encrypt_decrypt_acc_ids[MAX_ENCRYPT_DECRYPT_IDS] = {0};
 
 // fill arr + len with arr/len of the accelerator wanted
 void get_acc_ids(acc_type_t acc_type, uint8_t** arr, uint8_t* len) {
@@ -80,6 +82,7 @@ void init_scheduler(void) {
 // has the potential to block
 void schedule_run_on_acc(metadata_t* metadata) {
   sem_wait(sem);
+#ifdef USE_REROCC
   int32_t cfgid = rr_viable_cfgid();
   if (cfgid == -1) {
     metadata->given_accelerator = false;
@@ -110,12 +113,18 @@ void schedule_run_on_acc(metadata_t* metadata) {
     metadata->given_accid = cur_acc_id;
     rr_set_opc(metadata->opcode/*accelopcode*/, cfgid/*cfgreg*/);
   }
+#else
+  metadata->given_accelerator = true;
+  metadata->given_accid = 0;
+#endif
   sem_post(sem);
 }
 
 void schedule_release_and_update(metadata_t* metadata) {
+#ifdef USE_REROCC
   // this is already globally synchronized
   rr_release(metadata->given_cfgid); // this should clear the rerocc L2 TLB
+#endif
 }
 
 #define MAX_THREADS (10000) // arb. to start
