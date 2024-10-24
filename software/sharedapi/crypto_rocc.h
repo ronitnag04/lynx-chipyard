@@ -9,25 +9,12 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-#define AES256_OPCODE 1
+#define AES_OPCODE 1
 
-#define FUNCT_SFENCE 0
-#define FUNCT_SRC_INFO 1
-#define FUNCT_MODE 4
-#define FUNCT_KEY_0 5
-#define FUNCT_KEY_1 6
-#define FUNCT_IV 7
-#define FUNCT_DEST_INFO 2
-#define FUNCT_CHECK_COMPLETION 3
-
-// TODO: how to make this inline to optimize it out at compile time?
-void AESCBCPinPages(void);
-void AESCBCUnpinPages(void);
-
-unsigned char * AESCBCAccelSetup(size_t write_region_size);
+uint8_t * AESCBCAccelSetup(size_t write_region_size);
 
 void AESCBCAccelNonblocking(bool encrypt,
-                const unsigned char* data,
+                const uint8_t* data,
                 size_t data_length,
                 uint64_t key0,
                 uint64_t key1,
@@ -35,11 +22,11 @@ void AESCBCAccelNonblocking(bool encrypt,
                 uint64_t key3,
                 uint64_t iv0,
                 uint64_t iv1,
-                unsigned char* result,
+                uint8_t* result,
                 int* success_flag);
 
 int AESCBCAccel(bool encrypt,
-                const unsigned char* data,
+                const uint8_t* data,
                 size_t data_length,
                 uint64_t key0,
                 uint64_t key1,
@@ -47,7 +34,7 @@ int AESCBCAccel(bool encrypt,
                 uint64_t key3,
                 uint64_t iv0,
                 uint64_t iv1,
-                unsigned char* result);
+                uint8_t* result);
 
 volatile int AESCBCBlockOnCompletion(volatile int * completion_flag);
 

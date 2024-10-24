@@ -1,6 +1,7 @@
 #include <malloc.h>
 #include <stdint.h>
 #include <assert.h>
+#include <sys/mman.h>
 #include "helpers.h"
 
 #define PAGESIZE_BYTES 4096
@@ -9,15 +10,40 @@
 #define accprintf(...) (0)
 
 void ForcePagedIn(void* region, size_t size) {
+  ForcePagedInOverride(region, size, false);
+}
+
+// note: mlock versions of these functions take a long time to run
+void ForcePagedInOverride(void* region, size_t size, bool override_no_mlock) {
+  bool can_use_mlock = false;
 #if defined(__linux) && defined(USE_MLOCK)
+  can_use_mlock = true;
+#endif
+  if (can_use_mlock && !override_no_mlock) {
     if (mlock(region, size) != 0) {
       accprintf("E: mlock failed: unable to pin pages\n");
     }
-#else
-  for (size_t i = 0; i < size; i += PAGESIZE_BYTES) {
-    ((char*)region)[i] = 0;
+  } else {
+    for (size_t i = 0; i < size; i += PAGESIZE_BYTES) {
+      ((char*)region)[i] = 0;
+    }
   }
+}
+
+void ForcePagedOut(void* region, size_t size) {
+  ForcePagedOutOverride(region, size, false);
+}
+
+void ForcePagedOutOverride(void* region, size_t size, bool override_no_mlock) {
+  bool can_use_mlock = false;
+#if defined(__linux) && defined(USE_MLOCK)
+  can_use_mlock = true;
 #endif
+  if (can_use_mlock && !override_no_mlock) {
+    if (munlock(region, size) != 0) {
+      accprintf("E: munlock failed: unable to free pages\n");
+    }
+  }
 }
 
 size_t MultipleOf(size_t in, size_t multiple_of) {

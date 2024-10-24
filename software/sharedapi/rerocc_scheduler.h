@@ -35,6 +35,7 @@ typedef struct metadata {
 
   // provide to scheduler (before schedule_release_and_update)
   uint64_t runtime;
+  bool enc_or_dec;
 } metadata_t;
 
 void init_scheduler(void);

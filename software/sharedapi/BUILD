@@ -65,8 +65,12 @@ cc_library(
 	hdrs = [
 		":crypto_rocc.h",
 	],
+	srcs = [
+		":crypto_rocc.c",
+	],
 	deps = [
-		":rocc"
+		":rocc",
+		":helpers"
 	],
 	alwayslink = True,
 )
