@@ -10,20 +10,20 @@
 #endif
 #include "helpers.h"
 
-#define MAX_PROTOBUF_SER_IDS (1)
-uint8_t protobuf_ser_acc_ids[MAX_PROTOBUF_SER_IDS] = {0};
+#define MAX_PROTOBUF_SER_IDS (2)
+uint8_t protobuf_ser_acc_ids[MAX_PROTOBUF_SER_IDS] = {6, 7};
 
-#define MAX_PROTOBUF_DESER_IDS (1)
-uint8_t protobuf_deser_acc_ids[MAX_PROTOBUF_DESER_IDS] = {0};
+#define MAX_PROTOBUF_DESER_IDS (2)
+uint8_t protobuf_deser_acc_ids[MAX_PROTOBUF_DESER_IDS] = {4, 5};
 
 #define MAX_COMPRESS_IDS (1)
-uint8_t compress_acc_ids[MAX_COMPRESS_IDS] = {0};
+uint8_t compress_acc_ids[MAX_COMPRESS_IDS] = {8};
 
 #define MAX_DECOMPRESS_IDS (1)
-uint8_t decompress_acc_ids[MAX_DECOMPRESS_IDS] = {0};
+uint8_t decompress_acc_ids[MAX_DECOMPRESS_IDS] = {9};
 
-#define MAX_ENCRYPT_DECRYPT_IDS (1)
-uint8_t encrypt_decrypt_acc_ids[MAX_ENCRYPT_DECRYPT_IDS] = {0};
+#define MAX_ENCRYPT_DECRYPT_IDS (2)
+uint8_t encrypt_decrypt_acc_ids[MAX_ENCRYPT_DECRYPT_IDS] = {0, 1};
 
 // fill arr + len with arr/len of the accelerator wanted
 void get_acc_ids(acc_type_t acc_type, uint8_t** arr, uint8_t* len) {
