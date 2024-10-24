@@ -31,6 +31,7 @@ class HyperscaleUncore extends Config(
   new chipyard.config.WithExtMemIdBits(7) ++
   new freechips.rocketchip.subsystem.WithNMemoryChannels(4) ++ // 64 * 4 * 1G = 256Gb/s BW
   new chipyard.config.WithSystemBusWidth(256) ++
+  new chipyard.config.WithL2TLBs(1024, 4) ++
   new freechips.rocketchip.subsystem.WithoutTLMonitors
 )
 

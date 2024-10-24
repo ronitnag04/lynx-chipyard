@@ -13,14 +13,14 @@ import ibex.{IbexTileAttachParams}
 import testchipip.cosim.{TracePortKey, TracePortParams}
 import barf.{TilePrefetchingMasterPortParams}
 
-class WithL2TLBs(entries: Int) extends Config((site, here, up) => {
+class WithL2TLBs(entries: Int, ways: Int = 1) extends Config((site, here, up) => {
   case TilesLocated(InSubsystem) => up(TilesLocated(InSubsystem), site) map {
     case tp: RocketTileAttachParams => tp.copy(tileParams = tp.tileParams.copy(
-      core = tp.tileParams.core.copy(nL2TLBEntries = entries)))
+      core = tp.tileParams.core.copy(nL2TLBEntries = entries, nL2TLBWays = ways)))
     case tp: boom.v3.common.BoomTileAttachParams => tp.copy(tileParams = tp.tileParams.copy(
-      core = tp.tileParams.core.copy(nL2TLBEntries = entries)))
+      core = tp.tileParams.core.copy(nL2TLBEntries = entries, nL2TLBWays = ways)))
     case tp: boom.v4.common.BoomTileAttachParams => tp.copy(tileParams = tp.tileParams.copy(
-      core = tp.tileParams.core.copy(nL2TLBEntries = entries)))
+      core = tp.tileParams.core.copy(nL2TLBEntries = entries, nL2TLBWays = ways)))
     case other => other
   }
 })
