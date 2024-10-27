@@ -56,8 +56,6 @@ class HyperscaleTotalConfig extends Config(
 class HyperscaleMinimalConfig extends Config(
   new rerocc.WithReRoCC(reRoCCManagerParams=rerocc.manager.ReRoCCTileParams(l2TLBEntries=512, l2TLBWays=4)) ++ // matches prior aurora-like setup
   // idN-1
-  new protoacc.WithProtoAccelSerOnly(Some(BankedScratchpadParams(0x50000000L, 256 << 10))) ++
-  new protoacc.WithProtoAccelDeserOnly(Some(BankedScratchpadParams(0x40000000L, 256 << 10))) ++
   new memcpyacc.WithMemcpyAccel ++
   new aes.WithAESCBCAccel(Some(BankedScratchpadParams(0x30000000L, 256 << 10))) ++
   // id0

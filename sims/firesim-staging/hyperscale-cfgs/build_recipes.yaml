@@ -135,20 +135,54 @@ min:
     metasim_customruntimeconfig: null
     bit_builder_recipe: bit-builder-recipes/xilinx_alveo_u250.yaml
 
-min-fast:
+min-jumbo:
+    PLATFORM: xilinx_alveo_u250
+    TARGET_PROJECT: firesim
+    TARGET_PROJECT_MAKEFRAG: ../../../generators/firechip/chip/src/main/makefrag/firesim
+    DESIGN: FireSim
+    TARGET_CONFIG: WithJumboFrames_WithNIC_FireSimHyperscaleMinimalConfig
+    PLATFORM_CONFIG: WithAutoCounter_MCRams_FRFCFS16GBQuadRank_BaseXilinxAlveoU250Config
+    deploy_quintuplet: null
+    platform_config_args:
+        fpga_frequency: 70
+        build_strategy: GRPC0
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/xilinx_alveo_u250.yaml
+
+min-debug:
     PLATFORM: xilinx_alveo_u250
     TARGET_PROJECT: firesim
     TARGET_PROJECT_MAKEFRAG: ../../../generators/firechip/chip/src/main/makefrag/firesim
     DESIGN: FireSim
     TARGET_CONFIG: WithNIC_FireSimHyperscaleMinimalConfig
-    PLATFORM_CONFIG: WithAutoCounter_MCRams_FRFCFS16GBQuadRank_BaseXilinxAlveoU250Config
+    PLATFORM_CONFIG: WithSynthAsserts_MCRams_FRFCFS16GBQuadRank_BaseXilinxAlveoU250Config
     deploy_quintuplet: null
     platform_config_args:
-        fpga_frequency: 100
+        fpga_frequency: 30
         build_strategy: GRPC0
     post_build_hook: null
     metasim_customruntimeconfig: null
     bit_builder_recipe: bit-builder-recipes/xilinx_alveo_u250.yaml
+
+min-jumbo-debug:
+    PLATFORM: xilinx_alveo_u250
+    TARGET_PROJECT: firesim
+    TARGET_PROJECT_MAKEFRAG: ../../../generators/firechip/chip/src/main/makefrag/firesim
+    DESIGN: FireSim
+    TARGET_CONFIG: WithJumboFrames_WithNIC_FireSimHyperscaleMinimalConfig
+    PLATFORM_CONFIG: WithSynthAsserts_MCRams_FRFCFS16GBQuadRank_BaseXilinxAlveoU250Config
+    deploy_quintuplet: null
+    platform_config_args:
+        fpga_frequency: 30
+        build_strategy: GRPC0
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/xilinx_alveo_u250.yaml
+
+
+
+
 
 ##############################################################
 

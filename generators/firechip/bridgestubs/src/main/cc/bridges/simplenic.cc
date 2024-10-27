@@ -17,6 +17,9 @@
 
 char simplenic_t::KIND;
 
+//#define DEBUG_NIC_PRINT
+#define TOKENVERIFY
+
 // DO NOT MODIFY PARAMS BELOW THIS LINE
 #define TOKENS_PER_BIGTOKEN 7
 
@@ -274,6 +277,12 @@ void simplenic_t::init() {
 }
 
 // #define TOKENVERIFY
+#ifdef TOKENVERIFY
+uint64_t timeelapsed_cycles = 0;
+// checking for token loss
+uint32_t next_token_from_fpga = 0;
+uint32_t next_token_from_socket = 0;
+#endif
 
 void simplenic_t::tick() {
   /* #define DEBUG_NIC_PRINT */
@@ -309,7 +318,7 @@ void simplenic_t::tick() {
     // the widget is designed to tag tokens with a 43 bit number,
     // incrementing for each sent token. verify that we are not losing
     // tokens over PCIS
-    for (int i = 0; i < tokens_this_round; i++) {
+    for (size_t i = 0; i < tokens_this_round; i++) {
       uint64_t TOKENLRV_AND_COUNT =
           *(((uint64_t *)pcis_read_bufs[currentround]) + i * 8);
       uint8_t LAST;
@@ -317,8 +326,9 @@ void simplenic_t::tick() {
            token_in_bigtoken++) {
         if (TOKENLRV_AND_COUNT & (1L << (43 + token_in_bigtoken * 3))) {
           LAST = (TOKENLRV_AND_COUNT >> (45 + token_in_bigtoken * 3)) & 0x1;
-          niclog_printf("sending to other node, valid data chunk: "
+          niclog_printf("r%d: sending to other node, valid data chunk: "
                         "%016lx, last %x, sendcycle: %016ld\n",
+                        currentround,
                         *((((uint64_t *)pcis_read_bufs[currentround]) + i * 8) +
                           1 + token_in_bigtoken),
                         LAST,
@@ -368,7 +378,7 @@ void simplenic_t::tick() {
 #ifdef TOKENVERIFY
     // this does not do tokenverify - it's just printing tokens
     // there should not be tokenverify on this interface
-    for (int i = 0; i < tokens_this_round; i++) {
+    for (size_t i = 0; i < tokens_this_round; i++) {
       uint64_t TOKENLRV_AND_COUNT =
           *(((uint64_t *)pcis_write_bufs[currentround]) + i * 8);
       uint8_t LAST;
@@ -377,8 +387,9 @@ void simplenic_t::tick() {
         if (TOKENLRV_AND_COUNT & (1L << (43 + token_in_bigtoken * 3))) {
           LAST = (TOKENLRV_AND_COUNT >> (45 + token_in_bigtoken * 3)) & 0x1;
           niclog_printf(
-              "from other node, valid data chunk: %016lx, "
+              "r%d: from other node, valid data chunk: %016lx, "
               "last %x, recvcycle: %016ld\n",
+              currentround,
               *((((uint64_t *)pcis_write_bufs[currentround]) + i * 8) + 1 +
                 token_in_bigtoken),
               LAST,

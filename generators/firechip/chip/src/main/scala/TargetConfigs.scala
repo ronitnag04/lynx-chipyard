@@ -66,9 +66,10 @@ class WithFireSimFAME5 extends Config((site, here, up) => {
   case FireSimFAME5 => true
 })
 
+class WithJumboFrames extends icenet.WithNICJumboFrames
+
 class WithNIC extends Config(
-  new icenet.WithNICJumboFrames ++
-  new icenet.WithIceNIC(inBufFlits = 8192, ctrlQueueDepth = 64)
+  new icenet.WithIceNIC(inBufFlits = 8192, outBufFlits = 8192, ctrlQueueDepth = 64)
 )
 
 
