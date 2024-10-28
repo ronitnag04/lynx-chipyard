@@ -18,7 +18,7 @@ libtracerv := libtracerv.a
 libtracerv_srcs := \
 	$(srcdir)/tracerv_dwarf.cc \
 	$(srcdir)/tracerv_elf.cc \
-	$(srcdir)/../tracerv_processing.cc
+	$(srcdir)/tracerv_processing.cc
 
 libtracerv_hdrs := $(libtracerv_srcs:.cc=.h)
 libtracerv_objs := $(libtracerv_srcs:.cc=.o)
@@ -35,4 +35,3 @@ $(tests): %: %.cc $(libtracerv)
 .PHONY: clean
 clean:
 	rm -rf -- $(libtracerv) $(libtracerv_objs) $(tests)
-

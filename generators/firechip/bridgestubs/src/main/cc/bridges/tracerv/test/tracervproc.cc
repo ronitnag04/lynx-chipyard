@@ -1,4 +1,4 @@
-#include "../../tracerv_processing.h"
+#include "../tracerv_processing.h"
 
 int main(int argc, char *argv[]) {
   ObjdumpedBinary bin((argc > 1) ? argv[1]

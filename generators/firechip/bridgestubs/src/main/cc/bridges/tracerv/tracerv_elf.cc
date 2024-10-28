@@ -162,10 +162,16 @@ std::pair<uint64_t, uint64_t> elf_t::subroutines(subroutine_map &table) {
 
       char *name = elf_strptr(this->elf, shdr.sh_link, sym.st_name);
       if ((name != nullptr) && (name[0] != '\0')) {
+        // HACK: add to the symbol name the value of the symbol s.t. symbols with gibberish names can be identified from
+        // a symbol dump later
+        std::string s(name);
+        char hex[100]; // large enough to hold full hex value
+        sprintf(hex, "0x%lx", sym.st_value);
+        s += "^" + std::string(hex);
         table.emplace_hint(
             iter,
             sym.st_value,
-            subroutine_t(name, 0, (GELF_ST_TYPE(sym.st_info) == STT_FUNC)));
+            subroutine_t(s.c_str(), 0, (GELF_ST_TYPE(sym.st_info) == STT_FUNC)));
       }
     }
   }

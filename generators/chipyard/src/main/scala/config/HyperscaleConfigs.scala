@@ -53,6 +53,7 @@ class HyperscaleTotalConfig extends Config(
   new HyperscaleEightCoreRocketBaseConfig
 )
 
+
 class HyperscaleMinimalConfig extends Config(
   new rerocc.WithReRoCC(reRoCCManagerParams=rerocc.manager.ReRoCCTileParams(l2TLBEntries=512, l2TLBWays=4)) ++ // matches prior aurora-like setup
   // idN-1
