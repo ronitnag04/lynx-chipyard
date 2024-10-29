@@ -192,7 +192,7 @@ fullcfg-0:
     TARGET_PROJECT: firesim
     TARGET_PROJECT_MAKEFRAG: ../../../generators/firechip/chip/src/main/makefrag/firesim
     DESIGN: FireSim
-    TARGET_CONFIG: WithNIC_FireSimHyperscaleTotalConfig
+    TARGET_CONFIG: WithJumboFrames_WithNIC_FireSimHyperscaleTotalConfig
     PLATFORM_CONFIG: WithAutoCounter_MTModels_MCRams_FRFCFS16GBQuadRank_BaseXilinxAlveoU250Config
     deploy_quintuplet: null
     platform_config_args:
