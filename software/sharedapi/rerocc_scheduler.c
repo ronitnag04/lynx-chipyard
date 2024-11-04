@@ -80,22 +80,28 @@ void init_scheduler(void) {
 }
 
 // has the potential to block
+#define FCFS_SKIP
+//#define FCFS_BLOCK
 void schedule_run_on_acc(metadata_t* metadata) {
   sem_wait(sem);
+
 #ifdef USE_REROCC
-  int32_t cfgid = rr_viable_cfgid();
+  uint8_t* accel_ids;
+  uint8_t accel_ids_len;
+  get_acc_ids(metadata->acc_type, &accel_ids, &accel_ids_len);
+
+  // grabbing a cfgid, then accelerator, then opcode are combined (since a cfgid + accid + opc lifetimes are matched)
+  int32_t cfgid;
+  bool acq = false;
+  size_t cur_acc_id;
+#ifdef FCFS_SKIP
+  bool viable;
+  cfgid = rr_viable_cfgid();
   if (cfgid == -1) {
     metadata->given_accelerator = false;
     return;
   }
 
-  uint8_t* accel_ids;
-  uint8_t accel_ids_len;
-  get_acc_ids(metadata->acc_type, &accel_ids, &accel_ids_len);
-
-  bool acq = false;
-  size_t cur_acc_id;
-  bool cur_acq;
   for (size_t i = 0; i < accel_ids_len; ++i) {
     acq = rr_acquire_single(cfgid, accel_ids[i]);
     if (acq) {
@@ -104,26 +110,59 @@ void schedule_run_on_acc(metadata_t* metadata) {
     }
   }
 
+  // order matters, need to acquire 1st
   // need to check if the accelerator is being used AND if the opcode is available
-  bool viable = rr_is_viable_opcode(metadata->opcode, cfgid);
-
+  viable = rr_is_viable_opcode(metadata->opcode, cfgid);
   if (acq && viable) {
     metadata->given_accelerator = true;
     metadata->given_cfgid = cfgid;
     metadata->given_accid = cur_acc_id;
     rr_set_opc(metadata->opcode/*accelopcode*/, cfgid/*cfgreg*/);
   }
+#else // FCFS_BLOCK
+  // TODO: switch to semaphore based? signal to linux that this can context switch
+  do {
+    cfgid = rr_viable_cfgid();
+    if (cfgid != -1) {
+      for (size_t i = 0; i < accel_ids_len; ++i) {
+        acq = rr_acquire_single(cfgid, accel_ids[i]);
+        if (acq) {
+          cur_acc_id = accel_ids[i];
+          break;
+        }
+      }
+
+      if (!acq) {
+        cfgid = -1;
+      } else {
+        if (!rr_is_viable_opcode(metadata->opcode, cfgid)) {
+          // opcode not available since another acc has it on this core, drop the accelerator
+          rr_release(cfgid);
+          cfgid = -1;
+        }
+      }
+    }
+  } while (cfgid == -1);
+
+  metadata->given_accelerator = true;
+  metadata->given_cfgid = cfgid;
+  metadata->given_accid = cur_acc_id;
+  rr_set_opc(metadata->opcode/*accelopcode*/, cfgid/*cfgreg*/);
+#endif
+
 #else
   metadata->given_accelerator = true;
   metadata->given_accid = 0;
 #endif
+
   sem_post(sem);
 }
 
 void schedule_release_and_update(metadata_t* metadata) {
 #ifdef USE_REROCC
   // this is already globally synchronized
-  rr_release(metadata->given_cfgid); // this should clear the rerocc L2 TLB
+  rr_fence(metadata->given_cfgid); // clear tlb
+  rr_release(metadata->given_cfgid); // TODO: do we need to fence before this? does this clear tlb?
 #endif
 }
 

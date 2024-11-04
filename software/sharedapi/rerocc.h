@@ -116,7 +116,7 @@ static int32_t rr_viable_cfgid() {
   for (size_t i = 0; i < 16; ++i) {
     uint32_t csrid = CSR_RRCFG0 + i;
     if ((read_rr_csr(csrid) & RR_CFG_ACQ_MASK) == 0) {
-      return csrid;
+      return i;
     }
   }
   return -1;

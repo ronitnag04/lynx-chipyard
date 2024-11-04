@@ -26,7 +26,10 @@ typedef struct metadata {
 
   // proto specific provide to scheduler (before schedule_run_on_acc)
   uint64_t size;
-  const void* descriptor_ptr;
+  const void* descriptor_ptr; // also compression (for when comp_ratio can't be determined immediately)
+
+  // compression sepcific provide to scheduler (before schedule_run_on_acc)
+  double compression_ratio;
 
   // given by scheduler (after schedule_run_on_acc)
   bool given_accelerator;
