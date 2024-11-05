@@ -13,6 +13,25 @@
 #define accprintf(...) (0)
 
 size_t GetZStdDecompressSize(uint8_t* compressed_data, size_t len){
+  #define rshl(x, y) ((x) >> (y))
+
+/* For Snappy */
+  // Varint decoding of the first 1-5 bytes
+  // Reference: https://protobuf.dev/programming-guides/encoding/
+  uint64_t result = 0;
+  int shift = 0;
+  for(int i=0; i<5; ++i){
+    const uint8_t byte_i = compressed_data[i];
+    result |= static_cast<uint64_t>(byte_i & 0x7F) << shift;
+    const uint8_t continue_i = (byte_i & 0x80);
+    if(!continue_i){
+      return result;
+    }
+    shift += 7;
+  }
+  return -1; // Error if not returned in the for loop
+
+/* For ZStd
   // Assumption: compressed_data follows the right zstd format. (No format errors)
   // Using: https://github.com/facebook/zstd/blob/dev/doc/zstd_compression_format.md
   // Reference C++: https://github.com/facebook/zstd/blob/dev/doc/educational_decoder/zstd_decompress.c#L555
@@ -28,7 +47,6 @@ size_t GetZStdDecompressSize(uint8_t* compressed_data, size_t len){
   //assert (((uint32_t*)compressed_data)[0] == 0xFD2FB528);
 
   // Frame Header (2-14B)
-  #define rshl(x, y) ((x) >> (y))
   const uint8_t frame_header_descriptor = compressed_data[4];
   const uint8_t            dict_id_flag = rshl(frame_header_descriptor, 0) & 0x3; // 2b
   const uint8_t   content_checksum_flag = rshl(frame_header_descriptor, 2) & 0x1;
@@ -63,7 +81,8 @@ size_t GetZStdDecompressSize(uint8_t* compressed_data, size_t len){
   const int size_array[] = {0, 1, 2, 4};
   const uint8_t did_field_size = size_array[dict_id_flag];
 
-  const uint8_t frame_content_size_boffset = 4 /* Magic Number */ + 1 /* Frame Header Descriptor */ + window_descriptor_size + did_field_size;
+  // Below: 4 is the magic number size, and 1 is the frame header descriptor size
+	const uint8_t frame_content_size_boffset = 4 + 1 + window_descriptor_size + did_field_size;
   //gpr_log(GPR_INFO, "fcsboff=%d wds=%d dfs=%d", frame_content_size_boffset, window_descriptor_size, did_field_size);
 
   //for (size_t i = frame_content_size_boffset; i < len - frame_content_size_boffset; i++)
@@ -85,6 +104,7 @@ size_t GetZStdDecompressSize(uint8_t* compressed_data, size_t len){
 
   //gpr_log(GPR_INFO, "frame_content_size: %d", frame_content_size);
   return frame_content_size;
+*/
 }
 
 size_t ZStdCompress(volatile uint8_t* litbuf, size_t litbuf_sz, volatile uint8_t* seqbuf, size_t seqbuf_sz, uint8_t* src, size_t src_sz, uint8_t* dest) {
