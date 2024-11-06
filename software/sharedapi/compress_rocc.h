@@ -8,11 +8,16 @@
 #include <inttypes.h>
 #include <stddef.h>
 
-#define COMP_OPCODE 2
+#define DECOMP_OPCODE 0
+#define COMP_OPCODE 1
 
 size_t GetZStdDecompressSize(uint8_t* compressed_data, size_t len);
 size_t ZStdCompress(volatile uint8_t* litbuf, size_t litbuf_sz, volatile uint8_t* seqbuf, size_t seqbuf_sz, uint8_t* src, size_t src_sz, uint8_t* dest);
 size_t ZStdDecompress(volatile uint8_t* workspace, uint8_t* src, size_t src_sz, uint8_t* dest);
+size_t SnappyCompress(uint8_t* src, size_t src_sz, uint8_t* dest);
+size_t SnappyDecompress(uint8_t* src, size_t src_sz, uint8_t* dest);
+unsigned char * SnappySetupAllocRegion(size_t write_region_size); 
+
 
 #endif
 

@@ -4,6 +4,7 @@
 
 #include <stdbool.h>
 #include <assert.h>
+#include <malloc.h>
 #include "rocc.h"
 #include "compress_rocc.h"
 #include "helpers.h"
@@ -22,7 +23,7 @@ size_t GetZStdDecompressSize(uint8_t* compressed_data, size_t len){
   int shift = 0;
   for(int i=0; i<5; ++i){
     const uint8_t byte_i = compressed_data[i];
-    result |= static_cast<uint64_t>(byte_i & 0x7F) << shift;
+    result |= ((uint64_t)(byte_i & 0x7F)) << shift;
     const uint8_t continue_i = (byte_i & 0x80);
     if(!continue_i){
       return result;
@@ -106,7 +107,6 @@ size_t GetZStdDecompressSize(uint8_t* compressed_data, size_t len){
   return frame_content_size;
 */
 }
-
 size_t ZStdCompress(volatile uint8_t* litbuf, size_t litbuf_sz, volatile uint8_t* seqbuf, size_t seqbuf_sz, uint8_t* src, size_t src_sz, uint8_t* dest) {
   bool cmpflag = 0;
   // TODO: Forgot to insert asm volatile fence here
@@ -130,6 +130,23 @@ size_t ZStdCompress(volatile uint8_t* litbuf, size_t litbuf_sz, volatile uint8_t
   // Check completion & Get compressed file size
   size_t out_size;
   ROCC_INSTRUCTION_D(COMP_OPCODE, out_size, 11+COMP_EXTEND);
+  return out_size;
+}
+size_t SnappyCompress(uint8_t* src, size_t src_sz, uint8_t* dest) {
+  bool cmpflag = 0;
+  // Fence -> Allocate write region (dest)
+  ROCC_INSTRUCTION(COMP_OPCODE, 0);//0
+  // Set hash table size: pick from 9 to 14
+  ROCC_INSTRUCTION_S(COMP_OPCODE, 14, 5);//5
+  // Set history size: pick from 2<<10 to 64<<10 
+  ROCC_INSTRUCTION_S(COMP_OPCODE, 64UL<<10, 4);//4
+  // Source info
+  ROCC_INSTRUCTION_SS(COMP_OPCODE, (uint64_t)src, (uint64_t)src_sz, 1);//1
+  // Destination info
+  ROCC_INSTRUCTION_SS(COMP_OPCODE, (uint64_t)dest, (uint64_t)cmpflag, 2);//2
+  size_t out_size;
+  ROCC_INSTRUCTION_D(COMP_OPCODE, out_size, 3);//3
+  // TODO: Snappy compressor should give the output size
   return out_size;
 }
 
@@ -156,6 +173,41 @@ size_t ZStdDecompress(volatile uint8_t* workspace, uint8_t* src, size_t src_sz, 
   size_t retval;
   ROCC_INSTRUCTION_D(COMP_OPCODE, retval, 6);
 }
+size_t SnappyDecompress(uint8_t* src, size_t src_sz, uint8_t* dest) {
+  // SnappyDecompressAccelSetup
+  ROCC_INSTRUCTION(DECOMP_OPCODE, 0);//0
+  // DecompressSetDynamicHistSize
+  ROCC_INSTRUCTION_S(DECOMP_OPCODE, 64UL<<10, 4);//4
+  // SnappyAccelRawUncompress(comp data, comp len, write region)
+  bool completion_flag = false;
+  ROCC_INSTRUCTION_SS(DECOMP_OPCODE, (uint64_t)src, (uint64_t)src_sz, 1);//1
+  ROCC_INSTRUCTION_SS(DECOMP_OPCODE, (uint64_t)dest, (uint64_t)completion_flag, 2);//2
+  uint64_t retval;
+  ROCC_INSTRUCTION_D(DECOMP_OPCODE, retval, 3);//3
+  /*
+  asm volatile ("fence");
+  while (! *(completion_flag)) {
+    asm volatile ("fence");
+  }
+  return *completion_flag;
+  */
+  return 0;
+}
+#define PAGESIZE_BYTES 4096
+unsigned char * SnappySetupAllocRegion(size_t write_region_size) {            
+    size_t regionsize = sizeof(char) * (write_region_size);                                                          
+    //size_t regionsize = sizeof(unsigned char) * (PAGESIZE_BYTES);                                                  
+                                                                                                                     
+    unsigned char * fixed_alloc_region = (unsigned char*)memalign(PAGESIZE_BYTES, regionsize);                       
+    for (uint64_t i = 0; i < regionsize; i += PAGESIZE_BYTES) {                                                      
+        fixed_alloc_region[i] = 0;                                                                                   
+    }                                                                                                                
+                                                                                                                     
+    uint64_t fixed_ptr_as_int = (uint64_t)fixed_alloc_region;                                                        
+    assert((fixed_ptr_as_int & 0x7) == 0x0);                                                                         
+
+    return fixed_alloc_region;                                                                                       
+}   
 
 #endif
 
