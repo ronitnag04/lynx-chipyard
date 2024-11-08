@@ -12,6 +12,14 @@ cc_library(
 )
 
 cc_library(
+	name = "queue",
+	hdrs = [
+		":queue.h",
+	],
+	alwayslink = True,
+)
+
+cc_library(
 	name = "rocc",
 	hdrs = [
 		":rocc.h",
@@ -85,6 +93,7 @@ cc_library(
 	],
 	deps = [
 		":rerocc",
+		":queue",
 		":helpers"
 	],
 	alwayslink = True,
