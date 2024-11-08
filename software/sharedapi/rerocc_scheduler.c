@@ -115,11 +115,11 @@ void schedule_run_on_acc(metadata_t* metadata) {
   uint8_t accel_ids_len;
   get_acc_ids(metadata->acc_type, &accel_ids, &accel_ids_len);
 
-  uint32_t i = 10000;
-  while (i > 0) {
-    printf("delay:%d\n", i);
-    --i;
-  }
+  // uint32_t i = 10000;
+  // while (i > 0) {
+  //   printf("delay:%d\n", i);
+  //   --i;
+  // }
 
   printf("SCHED: obtained accel ids + len\n");
 
@@ -257,11 +257,11 @@ void schedule_run_on_acc(metadata_t* metadata) {
   metadata->start_acc_cycle = read_csr(time);
 #endif
 
-  uint32_t i = 10000;
-  while (i > 0) {
-    printf("delay:%d\n", i);
-    --i;
-  }
+  // i = 10000;
+  // while (i > 0) {
+  //   printf("delay:%d\n", i);
+  //   --i;
+  // }
 
   sem_post(sem);
 }

@@ -110,6 +110,7 @@ if [ $TOOLCHAIN == "riscv-tools" ]; then
     make -C $RDIR/generators/gemmini/software/libgemmini install
 
     echo '==> Installing compression spike extensions'
+    make -C $RDIR/toolchains/riscv-tools/libaccs/comp clean
     make -C $RDIR/toolchains/riscv-tools/libaccs/comp install
 fi
 
@@ -132,6 +133,7 @@ echo '==>  Installing spike-devices'
 cd $RDIR
 git submodule update --init toolchains/riscv-tools/riscv-spike-devices
 cd toolchains/riscv-tools/riscv-spike-devices
+make clean
 make install
 
 echo "Extra Toolchain Utilities/Tests Build Complete!"
