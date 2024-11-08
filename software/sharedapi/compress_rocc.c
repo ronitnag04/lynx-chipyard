@@ -146,7 +146,7 @@ size_t SnappyCompress(uint8_t* src, size_t src_sz, uint8_t* dest) {
   ROCC_INSTRUCTION_SS(COMP_OPCODE, (uint64_t)dest, (uint64_t)cmpflag, 2);//2
   size_t out_size;
   ROCC_INSTRUCTION_D(COMP_OPCODE, out_size, 3);//3
-  // TODO: Snappy compressor should give the output size
+  // TODO: Snappy compressor should give the output size -- spike=OK, RTL=?
   return out_size;
 }
 
