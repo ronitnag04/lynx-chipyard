@@ -3,6 +3,8 @@
 #include <riscv/mmu.h>
 #include <riscv/rerocc.h>
 
+#define printf(...) (0)
+
 rerocc_cluster_t::rerocc_cluster_t() {
   memcpy_state[0] = {0};
   memcpy_state[1] = {0};
@@ -14,43 +16,89 @@ rerocc_cluster_t::rerocc_cluster_t() {
   printf("DEBUG: " STRINGIZE_VALUE_OF(CUR_DIR) "\n");
   printf("DEBUG: " STRINGIZE_VALUE_OF(SNAPPY_COMP_BIN) "\n");
   printf("DEBUG: " STRINGIZE_VALUE_OF(SNAPPY_DECOMP_BIN) "\n");
+  printf("DEBUG: " STRINGIZE_VALUE_OF(OPENSSL_BIN) "\n");
+}
+
+static void run_command(char* cmd) {
+  printf("Running command: \"%s\"\n", cmd);
+  int r = system(cmd);
+  if (r) {
+    printf("Failed: \"%s\". Exiting.\n", cmd);
+    exit(1);
+  }
+}
+
+static void rm(char* file) {
+  char buffer[1024];
+  snprintf(buffer, 1024, "rm -rf %s", file);
+  run_command(buffer);
+}
+
+void rerocc_cluster_t::write_to_file(char* dstfile, reg_t srcptr, reg_t size) {
+  rm(dstfile);
+  FILE* file = fopen(dstfile, "w");
+  assert(file != NULL);
+  for (size_t i = 0; i < size; ++i) {
+    uint8_t temp = p->get_mmu()->load<uint8_t>(srcptr + i);
+    fwrite(&temp, sizeof(uint8_t), 1, file);
+  }
+  fclose(file);
+}
+
+size_t rerocc_cluster_t::write_from_file(char* srcfile, reg_t destptr) {
+  FILE* file = fopen(srcfile, "r");
+  assert(file != NULL);
+  fseek(file, 0, SEEK_END);
+  size_t file_bytes = ftell(file);
+  fseek(file, 0, SEEK_SET);
+  for (size_t i = 0; i < file_bytes; ++i) {
+    uint8_t temp;
+    fread(&temp, sizeof(uint8_t), 1, file);
+    p->get_mmu()->store<uint8_t>(destptr + i, temp);
+  }
+  fclose(file);
+  return file_bytes;
 }
 
 reg_t rerocc_cluster_t::memcpy(memcpy_state_t* memcpy_state, rocc_insn_t insn, reg_t xs1, reg_t UNUSED xs2){
   switch(insn.funct){
-    case 0: //FENCE
+    case 0:
       break;
-    case 1: //Get input source info
+    case 1:
       memcpy_state->ip = xs1;
       memcpy_state->isize = xs2;
-      memcpy_state->size_processed = 0;
       break;
-    case 2: //Get output address info
-      //printf("src=0x%lx sz=0x%lx dst=0x%lx cmgflagptr=0x%lx\n", memcpy_state->ip, memcpy_state->isize, xs1, xs2);
+    case 2:
       memcpy_state->op = xs1;
-      memcpy_state->cmpflag = xs2;
-      while (memcpy_state->size_processed < memcpy_state->isize) {
-        uint8_t temp = p->get_mmu()->load<uint8_t>(memcpy_state->ip + memcpy_state->size_processed);
-        p->get_mmu()->store<uint8_t>(memcpy_state->op + memcpy_state->size_processed, temp);
-        memcpy_state->size_processed += (memcpy_state->isize - memcpy_state->size_processed >= 1 ? 1 : memcpy_state->isize - memcpy_state->size_processed);
+      memcpy_state->cmpflagp = xs2;
+      printf("src=0x%lx sz=0x%lx dst=0x%lx cmgflagptr=0x%lx\n", memcpy_state->ip, memcpy_state->isize, memcpy_state->op, memcpy_state->cmpflagp);
+      for (size_t i = 0; i < memcpy_state->isize; ++i) {
+        p->get_mmu()->store<uint8_t>(memcpy_state->op + i, p->get_mmu()->load<uint8_t>(memcpy_state->ip + i));
       }
       break;
-    case 3: //Check completion
-      p->get_mmu()->store<uint64_t>(memcpy_state->cmpflag, memcpy_state->isize == memcpy_state->size_processed ? 1 : 0);
-      //printf("m[cmpflg]=0x%lx\n", memcpy_state->isize == memcpy_state->size_processed ? 1 : 0);
-      return 1; // dummy
-      break;
-    case 4: //Custom function added to check the output.
-      return p->get_mmu()->load<uint64_t>(memcpy_state->op);
+    case 3:
+      p->get_mmu()->store<compflag_t>(memcpy_state->cmpflagp, 1);
       break;
     default:
       illegal_instruction();
       break;
   }
-  return memcpy_state->isize;
+  return SUCCESS;
 }
 
-reg_t rerocc_cluster_t::aes256cbc(aes_state_t* aes_state, rocc_insn_t insn, reg_t xs1, reg_t UNUSED xs2){
+static uint64_t reverse_bytes(uint64_t bytes) {
+  uint64_t aux = 0;
+  for (size_t i = 0; i < 8; ++i) {
+    uint64_t byte = (bytes >> i*8) & 0xFF;
+    aux |= byte << (64 - 8 - i*8);
+  }
+  return aux;
+}
+
+reg_t rerocc_cluster_t::aescbc(uint8_t accid, aes_state_t* aes_state, rocc_insn_t insn, reg_t xs1, reg_t UNUSED xs2){
+  char ibuf[1024] = {0};
+  char obuf[1024] = {0};
+  char ebuf[1024] = {0};
   switch(insn.funct){
     case 0: //FENCE
       break;
@@ -67,52 +115,51 @@ reg_t rerocc_cluster_t::aes256cbc(aes_state_t* aes_state, rocc_insn_t insn, reg_
       aes_state->iv1 = xs2;
       break;
     case 4:
-      aes_state->enc = xs1 != 0;
+      aes_state->enc = (xs1 != 0);
       break;
     case 1:
       aes_state->ip = xs1;
       aes_state->isize = xs2;
       break;
     case 2:
-      // TODO: actually implement, for now this is just memcpy
-      //printf("src=0x%lx sz=0x%lx dst=0x%lx cmgflagptr=0x%lx\n", aes_state->ip, aes_state->isize, xs1, xs2);
       aes_state->op = xs1;
-      aes_state->cmpflag = xs2;
-      while (aes_state->size_processed < aes_state->isize) {
-        uint8_t temp = p->get_mmu()->load<uint8_t>(aes_state->ip + aes_state->size_processed);
-        p->get_mmu()->store<uint8_t>(aes_state->op + aes_state->size_processed, temp);
-        aes_state->size_processed += (aes_state->isize - aes_state->size_processed >= 1 ? 1 : aes_state->isize - aes_state->size_processed);
-      }
+      aes_state->cmpflagp = xs2;
+      printf("src=0x%lx sz=0x%lx dst=0x%lx cmgflagptr=0x%lx\n", aes_state->ip, aes_state->isize, aes_state->op, aes_state->cmpflagp);
+
+      // create unique files for i/o
+      snprintf(ibuf, 1024, STRINGIZE_VALUE_OF(CUR_DIR) "/encdec_input%d", accid);
+      snprintf(obuf, 1024, STRINGIZE_VALUE_OF(CUR_DIR) "/encdec_input%d_out", accid);
+      write_to_file(ibuf, aes_state->ip, aes_state->isize);
+
+      // NOTE: RTL key = (xs1, xs2, (xs1, xs2)) = (key2, key3, (key0, key1))
+      // NOTE: RTL iv = (xs1, xs2) = (iv0, iv1)
+
+      // defaulting to AES128 CBC
+      // openssl cli uses big endian so reverse the bytes
+      snprintf(ebuf, 1024, STRINGIZE_VALUE_OF(OPENSSL_BIN) " enc -aes-128-cbc -nosalt -nopad %s -in %s -out %s -K '%016lx%016lx' -iv '%016lx%016lx'",
+         aes_state->enc ? "-e" : "-d",
+         ibuf,
+         obuf,
+         reverse_bytes(aes_state->key0),
+         reverse_bytes(aes_state->key1),
+         reverse_bytes(aes_state->iv0),
+         reverse_bytes(aes_state->iv1)
+      );
+      run_command(ebuf);
+
+      write_from_file(obuf, aes_state->op);
+
+      rm(ibuf);
+      rm(obuf);
       break;
-    case 3: //Check completion
-      p->get_mmu()->store<uint64_t>(aes_state->cmpflag, aes_state->isize == aes_state->size_processed ? 1 : 0);
-      //printf("m[cmpflg]=0x%lx\n", aes_state->isize == aes_state->size_processed ? 1 : 0);
-      return 1; // dummy
+    case 3:
+      p->get_mmu()->store<compflag_t>(aes_state->cmpflagp, 1);
       break;
     default:
       illegal_instruction();
       break;
   }
-  return aes_state->isize;
-}
-
-void rerocc_cluster_t::write_to_file(char* file_str, reg_t size, reg_t start_ptr) {
-  printf("Writing to file: %s\n", file_str);
-  char buffer[1024];
-  int ret = snprintf(buffer, 1024, "rm -rf %s", file_str);
-  printf("First deleting with: '%s'\n", buffer);
-  system(buffer);
-  FILE* file = fopen(file_str, "w");
-  assert(file != NULL);
-  int size_processed = 0;
-  while(size_processed < size){
-    uint8_t temp = p->get_mmu()->load<uint8_t>(start_ptr + size_processed);
-    fwrite(&temp, sizeof(uint8_t), 1, file);
-    ++size_processed;
-    //size_processed += (isize-size_processed>=8 ? 8 : isize-size_processed);
-  }
-  fclose(file);
-  printf("Done writing to file: %s\n", file_str);
+  return SUCCESS;
 }
 
 reg_t rerocc_cluster_t::compress(compress_state_t* compress_state, rocc_insn_t insn, reg_t xs1, reg_t UNUSED xs2){
@@ -120,52 +167,30 @@ reg_t rerocc_cluster_t::compress(compress_state_t* compress_state, rocc_insn_t i
     case 0: // Fence
       break;
     case 5: // hash table size
-      compress_state->htsize_log2_snappycomp = xs1;
       break;
     case 4: // history size
-      compress_state->hist_snappycomp = xs1;
       break;
-//    case 10:
-//      latency_snappycomp = xs1; has_intermediate_cache_snappycomp = xs2;
-//      break;
     case 1: // src info
-      compress_state->ip_snappycomp = xs1; compress_state->isize_snappycomp = xs2;
+      compress_state->ip = xs1; compress_state->isize = xs2;
       break;
     case 2: // dest info
-      compress_state->op_snappycomp = xs1; compress_state->cmpflag_snappycomp = xs2;
+      compress_state->op = xs1; compress_state->cmpflagp = xs2;
       printf("DEBUG: Doing snappycompression\n");
       // Just use the snappy binary
       // 1. Load from ip(mmu) and store into a file(file pointer)
       // 2. snappycompress that file(snappy binary) and store to op(mmu)
-      write_to_file(STRINGIZE_VALUE_OF(CUR_DIR) "/snappydecomped", compress_state->isize_snappycomp, compress_state->ip_snappycomp);
-      system(STRINGIZE_VALUE_OF(SNAPPY_COMP_BIN) " " STRINGIZE_VALUE_OF(CUR_DIR) "/snappydecomped");
-      {
-        printf("DEBUG: Finished doing host snappy\n");
-        FILE* file2 = fopen(STRINGIZE_VALUE_OF(CUR_DIR) "/snappydecomped.comp", "r");
-        fseek(file2, 0, SEEK_END);
-        compress_state->osize = ftell(file2);
-        fseek(file2, 0, SEEK_SET);
-        compress_state->size_processed = 0;
-        while(compress_state->size_processed<compress_state->osize){
-          uint8_t temp;
-          fread(&temp, sizeof(uint8_t), 1, file2);
-          p->get_mmu()->store<uint8_t>(compress_state->op_snappycomp+compress_state->size_processed, temp);
-          ++compress_state->size_processed;
-          //size_processed += (osize-size_processed>=8 ? 8 : osize-size_processed);
-        }
-        fclose(file2);
-        printf("DEBUG: Wrote data back to memory\n");
-      }
-      compress_state->size_processed = 0;
-      system("rm -rf " STRINGIZE_VALUE_OF(CUR_DIR) "/snappydecomped");
-      system("rm -rf " STRINGIZE_VALUE_OF(CUR_DIR) "/snappydecomped.comp");
+      write_to_file(STRINGIZE_VALUE_OF(CUR_DIR) "/snappydecomped", compress_state->ip, compress_state->isize);
+      run_command(STRINGIZE_VALUE_OF(SNAPPY_COMP_BIN) " " STRINGIZE_VALUE_OF(CUR_DIR) "/snappydecomped");
+      compress_state->osize = write_from_file(STRINGIZE_VALUE_OF(CUR_DIR) "/snappydecomped.comp", compress_state->op);
+      rm(STRINGIZE_VALUE_OF(CUR_DIR) "/snappydecomped");
+      rm(STRINGIZE_VALUE_OF(CUR_DIR) "/snappydecomped.comp");
       break;
     case 3: // Check snappycompletion
-      printf("DEBUG: check snappycompletion 0x%lx\n", compress_state->cmpflag_snappycomp);
-      p->get_mmu()->store<uint32_t>(compress_state->cmpflag_snappycomp, 1);
+      printf("DEBUG: check snappycompletion 0x%lx\n", compress_state->cmpflagp);
+      p->get_mmu()->store<compflag_t>(compress_state->cmpflagp, 1);
       printf("DEBUG: done with snappycompletion\n");
-      //cmpflag = osize; // Return output size
-      //cmpflag = (requests_processed==somevalue) ? 1 : 0;
+      //cmpflagp = osize; // Return output size
+      //cmpflagp = (requests_processed==somevalue) ? 1 : 0;
       return compress_state->osize;
       break;
 
@@ -173,59 +198,36 @@ reg_t rerocc_cluster_t::compress(compress_state_t* compress_state, rocc_insn_t i
       illegal_instruction();
       break;
   }
-  return 0;
+  return SUCCESS;
 }
 
 reg_t rerocc_cluster_t::decompress(decompress_state_t* decompress_state, rocc_insn_t insn, reg_t xs1, reg_t UNUSED xs2){
   switch (insn.funct){
     case 0: // Fence
       break;
-
     case 4: // history size
-      decompress_state->hist_snappydecomp = xs1;
       break;
-//    case 10:
-//      latency_snappydecomp = xs1; has_intermediate_cache_snappydecomp = xs2;
-//      break;
     case 1: // src info
-      decompress_state->ip_snappydecomp = xs1; decompress_state->isize_snappydecomp = xs2;
+      decompress_state->ip = xs1; decompress_state->isize = xs2;
       break;
     case 2: // dest info
-      decompress_state->op_snappydecomp = xs1; decompress_state->cmpflag_snappydecomp = xs2;
+      decompress_state->op = xs1; decompress_state->cmpflagp = xs2;
       printf("DEBUG: Doing snappydecompression\n");
       // Just use the snappy binary
       // 1. Load from ip(mmu) and store into a file(file pointer)
       // 2. snappydecompress that file(snappy binary) and store to op(mmu)
-      write_to_file(STRINGIZE_VALUE_OF(CUR_DIR) "/snappycomped", decompress_state->isize_snappydecomp, decompress_state->ip_snappydecomp);
-      //system("rm -rf " STRINGIZE_VALUE_OF(CUR_DIR) "/snappycomped");
-      system(STRINGIZE_VALUE_OF(SNAPPY_DECOMP_BIN) " " STRINGIZE_VALUE_OF(CUR_DIR) "/snappycomped");
-      {
-        printf("DEBUG: Finished doing host snappy\n");
-        FILE* file2 = fopen(STRINGIZE_VALUE_OF(CUR_DIR) "/snappycomped.uncomp", "r");
-        fseek(file2, 0, SEEK_END);
-        decompress_state->osize = ftell(file2);
-        fseek(file2, 0, SEEK_SET);
-        decompress_state->size_processed = 0;
-        while(decompress_state->size_processed<decompress_state->osize){
-          uint8_t temp;
-          fread(&temp, sizeof(uint8_t), 1, file2);
-          p->get_mmu()->store<uint8_t>(decompress_state->op_snappydecomp+decompress_state->size_processed, temp);
-          ++decompress_state->size_processed;
-          //size_processed += (osize-size_processed>=8 ? 8 : osize-size_processed);
-        }
-        fclose(file2);
-        printf("DEBUG: Wrote data back to memory\n");
-      }
-      decompress_state->size_processed = 0;
-      system("rm -rf " STRINGIZE_VALUE_OF(CUR_DIR) "/snappycomped");
-      system("rm -rf " STRINGIZE_VALUE_OF(CUR_DIR) "/snappycomped.uncomp");
+      write_to_file(STRINGIZE_VALUE_OF(CUR_DIR) "/snappycomped", decompress_state->isize, decompress_state->ip);
+      run_command(STRINGIZE_VALUE_OF(SNAPPY_DECOMP_BIN) " " STRINGIZE_VALUE_OF(CUR_DIR) "/snappycomped");
+      decompress_state->osize = write_from_file(STRINGIZE_VALUE_OF(CUR_DIR) "/snappycomped.uncomp", decompress_state->op);
+      rm(STRINGIZE_VALUE_OF(CUR_DIR) "/snappycomped");
+      rm(STRINGIZE_VALUE_OF(CUR_DIR) "/snappycomped.uncomp");
       break;
     case 3: // Check snappydecompletion
-      printf("DEBUG: check snappydecompletion 0x%lx\n", decompress_state->cmpflag_snappydecomp);
-      p->get_mmu()->store<uint32_t>(decompress_state->cmpflag_snappydecomp, 1);
+      printf("DEBUG: check snappydecompletion 0x%lx\n", decompress_state->cmpflagp);
+      p->get_mmu()->store<compflag_t>(decompress_state->cmpflagp, 1);
       printf("DEBUG: done with snappydecompletion\n");
-      //cmpflag = osize; // Return output size
-      //cmpflag = (requests_processed==somevalue) ? 1 : 0;
+      //cmpflagp = osize; // Return output size
+      //cmpflagp = (requests_processed==somevalue) ? 1 : 0;
       return decompress_state->osize;
       break;
 
@@ -233,15 +235,16 @@ reg_t rerocc_cluster_t::decompress(decompress_state_t* decompress_state, rocc_in
       illegal_instruction();
       break;
   }
-  return 0;
+  return SUCCESS;
 }
 
+// todo: technically this should also be bounded by opcode
 reg_t rerocc_cluster_t::dispatch(uint8_t accid, rocc_insn_t insn, reg_t xs1, reg_t xs2) {
   switch (accid) {
     case 0:
-      return aes256cbc(&aes_state[0], insn, xs1, xs2);
+      return aescbc(accid, &aes_state[0], insn, xs1, xs2);
     case 1:
-      return aes256cbc(&aes_state[1], insn, xs1, xs2);
+      return aescbc(accid, &aes_state[1], insn, xs1, xs2);
     case 2:
       return memcpy(&memcpy_state[0], insn, xs1, xs2);
     case 3:
@@ -260,7 +263,7 @@ reg_t rerocc_cluster_t::dispatch(uint8_t accid, rocc_insn_t insn, reg_t xs1, reg
   return 0;
 }
 
-define_rerocc_funcs(rerocc_cluster_t, xstr(EXTENSION_NAME), dispatch)
+define_rerocc_funcs(rerocc_cluster_t, STRINGIZE_VALUE_OF(EXTENSION_NAME), dispatch)
 
 std::vector<insn_desc_t> rerocc_cluster_t::get_instructions()
 {

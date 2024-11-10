@@ -45,12 +45,13 @@ void get_acc_ids(acc_type_t acc_type, uint8_t** arr, uint8_t* len) {
       *arr = decompress_acc_ids;
       *len = MAX_DECOMPRESS_IDS;
       break;
-    case ENCRYPT_DECRYPT:
+    case ENCRYPT:
+    case DECRYPT:
       *arr = encrypt_decrypt_acc_ids;
       *len = MAX_ENCRYPT_DECRYPT_IDS;
       break;
     default:
-      printf("SCHED: unsupported acc_type\n", acc_type);
+      printf("SCHED: unsupported acc_type: %ld\n", acc_type);
   }
 }
 
@@ -88,23 +89,51 @@ static size_t proto_runtime_ns(bool ser, void* desc_ptr, size_t size) {
   return 0;
 }
 
-static size_t encrypt_runtime_ns(bool enc, size_t size) {
-  //return size / (enc ? enc_throughput_b_per_ns : dec_throughput_b_per_ns) ;
-  return size / 1;
+static size_t encrypt_runtime_cycles(bool enc, size_t size) {
+  // collect from baremetal testing w/ no contention
+#define MAX_ENC_DEC_SAMPLES (4)
+  size_t sizes_sampled[MAX_ENC_DEC_SAMPLES + 1] = {0, 160, 1600, 3200, 6400};
+  size_t enc_b_per_c[MAX_ENC_DEC_SAMPLES + 1] = {0, 2, 6, 6, 7}; // rounded up
+  size_t dec_b_per_c[MAX_ENC_DEC_SAMPLES + 1] = {0, 3, 7, 7, 8}; // rounded up
+
+  size_t max_idx = MAX_ENC_DEC_SAMPLES + 2;
+  for (size_t i = 0; i < MAX_ENC_DEC_SAMPLES + 1; ++i) {
+    if (size < sizes_sampled[i]) {
+      max_idx = i;
+      break;
+    }
+  }
+
+  if (max_idx == MAX_ENC_DEC_SAMPLES + 2) {
+    return 8 * size / (enc ? enc_b_per_c[MAX_ENC_DEC_SAMPLES] : dec_b_per_c[MAX_ENC_DEC_SAMPLES]);
+  } else {
+    // do interpolation to get close-ish throughput
+    size_t min_idx = max_idx - 1;
+    size_t max_tput = enc ? enc_b_per_c[max_idx] : dec_b_per_c[max_idx];
+    size_t min_tput = enc ? enc_b_per_c[min_idx] : dec_b_per_c[min_idx];
+    return ((8 * size) * (sizes_sampled[max_idx] - sizes_sampled[min_idx])) / ((size - sizes_sampled[min_idx]) * (max_tput - min_tput));
+  }
 }
 
 // has the potential to block
-//#define FCFS_SKIP
-//#define FCFS_BLOCK
-//#define FCFS_RUNTIME_SKIP
-
 void schedule_run_on_acc(metadata_t* metadata) {
-  printf("SCHED: schedule_run_on_acc enter\n");
-
-  printf("SCHED: acc_type:%d opcode:%d\n", metadata->acc_type, metadata->opcode);
-  printf("SCHED: proto: size:%lu descptr:%p\n", metadata->size, metadata->descriptor_ptr);
-  printf("SCHED: compress: size:%lu descptr:%p compratio:%.2f\n", metadata->size, metadata->descriptor_ptr, metadata->compression_ratio);
-  printf("SCHED: compress: size:%lu\n", metadata->size);
+  printf("SCHED: schedule_run_on_acc: acc_type:%d opcode:%d\n", metadata->acc_type, metadata->opcode);
+  switch (metadata->acc_type) {
+    case PROTOBUF_SER:
+    case PROTOBUF_DESER:
+      printf("SCHED: proto: size:%lu descptr:%p\n", metadata->size, metadata->descriptor_ptr);
+      break;
+    case COMPRESS:
+    case DECOMPRESS:
+      printf("SCHED: compress: size:%lu descptr:%p compratio:%.2f\n", metadata->size, metadata->descriptor_ptr, metadata->compression_ratio);
+      break;
+    case ENCRYPT:
+    case DECRYPT:
+      printf("SCHED: enc: size:%lu\n", metadata->size);
+      break;
+    default:
+      printf("SCHED: unsupported acc_type: %ld\n", metadata->acc_type);
+  }
 
   sem_wait(sem);
 
@@ -164,7 +193,7 @@ void schedule_run_on_acc(metadata_t* metadata) {
   }
 
   metadata->blocked_cycles = 0;
-  metadata->start_acc_cycle = read_csr(time);
+  metadata->start_cycle = read_csr(time);
 #elif defined(FCFS_BLOCK)
   uint64_t start = read_csr(time);
   // TODO: switch to semaphore based? signal to linux that this can context switch
@@ -198,30 +227,33 @@ void schedule_run_on_acc(metadata_t* metadata) {
   uint64_t end = read_csr(time);
 
   metadata->blocked_cycles = end - start;
-  metadata->start_acc_cycle = end;
+  metadata->start_cycle = end;
   metadata->given_accelerator = true;
   metadata->given_cfgid = cfgid;
   metadata->given_accid = cur_acc_id;
   rr_set_opc(metadata->opcode/*accelopcode*/, cfgid/*cfgreg*/);
 #elif defined(FCFS_RUNTIME_SKIP)
-  // size_t prediction_ns = 0;
-  // switch (metadata->acc_type) {
-  //   case PROTOBUF_SER:
-  //     prediction_ns = proto_runtime_ns(true, metadata->descriptor_ptr, metadata->size);
-  //     break;
-  //   case PROTOBUF_DESER:
-  //     prediction_ns = proto_runtime_ns(false, metadata->descriptor_ptr, metadata->size);
-  //     break;
-  //   case COMPRESS:
-  //     prediction_ns = 0;
-  //     break;
-  //   case DECOMPRESS:
-  //     prediction_ns = 0;
-  //     break;
-  //   case ENCRYPT_DECRYPT:
-  //     prediction_ns = encrypt_runtime_ns(true, metadata_size); // TODO: distinguish between enc/dec
-  //     break;
-  // }
+  size_t prediction_cycles = 0;
+  switch (metadata->acc_type) {
+    case PROTOBUF_SER:
+      prediction_cycles = proto_runtime_ns(true, metadata->descriptor_ptr, metadata->size);
+      break;
+    case PROTOBUF_DESER:
+      prediction_cycles = proto_runtime_ns(false, metadata->descriptor_ptr, metadata->size);
+      break;
+    case COMPRESS:
+      prediction_cycles = 0;
+      break;
+    case DECOMPRESS:
+      prediction_cycles = 0;
+      break;
+    case ENCRYPT:
+      prediction_cycles = encrypt_runtime_cycles(true, metadata_size);
+      break;
+    case DECRYPT:
+      prediction_cycles = encrypt_runtime_cycles(false, metadata_size);
+      break;
+  }
 
   // bool viable;
   // cfgid = rr_viable_cfgid();
@@ -254,7 +286,7 @@ void schedule_run_on_acc(metadata_t* metadata) {
   metadata->given_accelerator = true;
   metadata->given_accid = 0;
   metadata->blocked_cycles = 0;
-  metadata->start_acc_cycle = read_csr(time);
+  metadata->start_cycle = read_csr(time);
 #endif
 
   // i = 10000;
@@ -268,10 +300,20 @@ void schedule_run_on_acc(metadata_t* metadata) {
 
 void schedule_release_and_update(metadata_t* metadata) {
 #ifdef USE_REROCC
-  // this is already globally synchronized
-  rr_fence(metadata->given_cfgid); // clear tlb
-  rr_release(metadata->given_cfgid); // TODO: do we need to fence before this? does this clear tlb?
-  printf("SCHED: release\n");
+  if (metadata->given_accelerator) {
+    // inject latency to see any issues
+    int r = rand() % 10000000000;
+    printf("SCHED: delay for %d\n", r);
+    while (r > 0) {
+      --r;
+    }
+
+    printf("SCHED: release cfgid:%ld\n", metadata->given_cfgid);
+    // this is already globally synchronized
+    rr_fence(metadata->given_cfgid); // clear tlb
+    rr_release(metadata->given_cfgid); // TODO: do we need to fence before this? does this clear tlb?
+    printf("SCHED: release\n");
+  }
 
   // uint64_t size;
   // const void* descriptor_ptr; // also compression (for when comp_ratio can't be determined immediately)
@@ -287,8 +329,13 @@ void schedule_release_and_update(metadata_t* metadata) {
   //   all_acc_runtimes[metadata->acc_type].avg_runtime_ns = ((avg_runtime_ns * count) + metadata->runtime) / count;
   // }
 #endif
-  uint64_t runtime_cycles = metadata->start_acc_cycle - read_csr(time);
-  printf("SCHED: release: atyp:%d rc:%ldc,%ldns bc:%ld\n", metadata->acc_type, runtime_cycles, metadata->runtime, metadata->blocked_cycles);
+  uint64_t runtime_cycles = read_csr(time) - metadata->start_cycle;
+  printf("SCHED: release: acctype:%d sched_rc:%ldc provided_rc:%ldc provided_ns:%ldns blocked_cycles:%ld\n",
+         metadata->acc_type,
+         runtime_cycles,
+         metadata->runtime_cycles,
+         metadata->runtime_ns,
+         metadata->blocked_cycles);
 }
 
 #define MAX_THREADS (10000) // arb. to start

@@ -12,11 +12,11 @@ typedef enum acc_type {
   PROTOBUF_DESER,
   COMPRESS,
   DECOMPRESS,
-  ENCRYPT_DECRYPT,
+  ENCRYPT,
+  DECRYPT,
 } acc_type_t;
 
 // fill arr + len with arr/len of the accelerator wanted
-// TODO: must be thread-safe
 void get_acc_ids(acc_type_t acc_type, uint8_t** arr, uint8_t* len);
 
 typedef struct metadata {
@@ -36,11 +36,11 @@ typedef struct metadata {
   uint8_t given_cfgid;
   uint8_t given_accid;
   uint64_t blocked_cycles;
-  uint64_t start_acc_cycle;
+  uint64_t start_cycle;
 
   // provide to scheduler (before schedule_release_and_update)
-  uint64_t runtime;
-  bool enc_or_dec;
+  uint64_t runtime_cycles; // either this
+  uint64_t runtime_ns; // or this
 } metadata_t;
 
 void init_scheduler(void);

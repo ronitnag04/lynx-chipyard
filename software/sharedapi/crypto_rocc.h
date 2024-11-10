@@ -23,9 +23,9 @@ void AESCBCAccelNonblocking(bool encrypt,
                 uint64_t iv0,
                 uint64_t iv1,
                 uint8_t* result,
-                int* success_flag);
+                uint64_t* success_flag);
 
-int AESCBCAccel(bool encrypt,
+uint64_t AESCBCAccel(bool encrypt,
                 const uint8_t* data,
                 size_t data_length,
                 uint64_t key0,
@@ -36,7 +36,7 @@ int AESCBCAccel(bool encrypt,
                 uint64_t iv1,
                 uint8_t* result);
 
-volatile int AESCBCBlockOnCompletion(volatile int * completion_flag);
+volatile uint64_t AESCBCBlockOnCompletion(volatile uint64_t * completion_flag);
 
 #endif
 

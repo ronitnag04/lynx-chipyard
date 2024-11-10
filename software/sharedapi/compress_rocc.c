@@ -160,7 +160,7 @@ size_t GetSnappyDecompressSize(uint8_t* compressed_data, size_t len) {
 }
 
 size_t SnappyCompress(uint8_t* src, size_t src_sz, uint8_t* dest) {
-  volatile int cmpflag = 0;
+  volatile uint64_t cmpflag = 0;
   // Fence -> Allocate write region (dest)
   ROCC_INSTRUCTION(SNAPPY_COMP_OPCODE, 0);//0
   // Set hash table size: pick from 9 to 14
@@ -170,7 +170,7 @@ size_t SnappyCompress(uint8_t* src, size_t src_sz, uint8_t* dest) {
   // Source info
   ROCC_INSTRUCTION_SS(SNAPPY_COMP_OPCODE, (uint64_t)src, (uint64_t)src_sz, 1);//1
   // Destination info
-  ROCC_INSTRUCTION_SS(SNAPPY_COMP_OPCODE, (uint64_t)dest, (uint64_t)cmpflag, 2);//2
+  ROCC_INSTRUCTION_SS(SNAPPY_COMP_OPCODE, (uint64_t)dest, (uint64_t)&cmpflag, 2);//2
   size_t out_size;
   ROCC_INSTRUCTION_D(SNAPPY_COMP_OPCODE, out_size, 3);//3
   asm volatile ("fence");
@@ -181,14 +181,14 @@ size_t SnappyCompress(uint8_t* src, size_t src_sz, uint8_t* dest) {
 }
 
 size_t SnappyDecompress(uint8_t* src, size_t src_sz, uint8_t* dest) {
-  volatile int cmpflag = 0;
+  volatile uint64_t cmpflag = 0;
   // SnappyDecompressAccelSetup
   ROCC_INSTRUCTION(SNAPPY_DECOMP_OPCODE, 0);//0
   // DecompressSetDynamicHistSize
   ROCC_INSTRUCTION_S(SNAPPY_DECOMP_OPCODE, 64UL<<10, 4);//4
   // SnappyAccelRawUncompress(comp data, comp len, write region)
   ROCC_INSTRUCTION_SS(SNAPPY_DECOMP_OPCODE, (uint64_t)src, (uint64_t)src_sz, 1);//1
-  ROCC_INSTRUCTION_SS(SNAPPY_DECOMP_OPCODE, (uint64_t)dest, (uint64_t)cmpflag, 2);//2
+  ROCC_INSTRUCTION_SS(SNAPPY_DECOMP_OPCODE, (uint64_t)dest, (uint64_t)&cmpflag, 2);//2
   uint64_t retval;
   ROCC_INSTRUCTION_D(SNAPPY_DECOMP_OPCODE, retval, 3);//3
   asm volatile ("fence");
