@@ -19,7 +19,8 @@ typedef enum acc_type {
 // fill arr + len with arr/len of the accelerator wanted
 void get_acc_ids(acc_type_t acc_type, uint8_t** arr, uint8_t* len);
 
-typedef struct metadata {
+// align needed so you can use the lower bit to determine if something is running or not in queues
+typedef struct __attribute__((aligned(16))) {
   // provide to scheduler (before schedule_run_on_acc)
   acc_type_t acc_type;
   uint8_t opcode;
