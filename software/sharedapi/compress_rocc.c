@@ -171,16 +171,16 @@ size_t SnappyCompress(uint8_t* src, size_t src_sz, uint8_t* dest) {
   ROCC_INSTRUCTION_SS(SNAPPY_COMP_OPCODE, (uint64_t)src, (uint64_t)src_sz, 1);//1
   // Destination info
   ROCC_INSTRUCTION_SS(SNAPPY_COMP_OPCODE, (uint64_t)dest, (uint64_t)&cmpflag, 2);//2
-  size_t out_size;
-  ROCC_INSTRUCTION_D(SNAPPY_COMP_OPCODE, out_size, 3);//3
+  size_t retval;
+  ROCC_INSTRUCTION_D(SNAPPY_COMP_OPCODE, retval, 3);//3
   asm volatile ("fence");
   while (!cmpflag) {
     asm volatile ("fence");
   }
-  return out_size;
+  return cmpflag; // retval and cmpflag are both holding the output written amt
 }
 
-size_t SnappyDecompress(uint8_t* src, size_t src_sz, uint8_t* dest) {
+bool SnappyDecompress(uint8_t* src, size_t src_sz, uint8_t* dest) {
   volatile uint64_t cmpflag = 0;
   // SnappyDecompressAccelSetup
   ROCC_INSTRUCTION(SNAPPY_DECOMP_OPCODE, 0);//0

@@ -18,7 +18,7 @@ size_t ZStdDecompress(volatile uint8_t* workspace, uint8_t* src, size_t src_sz, 
 #define SNAPPY_COMP_OPCODE 1
 size_t GetSnappyDecompressSize(uint8_t* compressed_data, size_t len);
 size_t SnappyCompress(uint8_t* src, size_t src_sz, uint8_t* dest);
-size_t SnappyDecompress(uint8_t* src, size_t src_sz, uint8_t* dest);
+bool SnappyDecompress(uint8_t* src, size_t src_sz, uint8_t* dest);
 
 #endif
 
