@@ -187,10 +187,11 @@ reg_t rerocc_cluster_t::compress(compress_state_t* compress_state, rocc_insn_t i
       rm(STRINGIZE_VALUE_OF(CUR_DIR) "/snappydecomped");
       rm(STRINGIZE_VALUE_OF(CUR_DIR) "/snappydecomped.comp");
       break;
-    case 3: // Check snappycompletion
+    case 3: // Check snappycompletion (RTL returns the osize in the cmpflag + rocc output)
       printf("DEBUG: check snappycompletion 0x%lx\n", compress_state->cmpflagp);
       p->get_mmu()->store<compflag_t>(compress_state->cmpflagp, compress_state->osize);
       printf("DEBUG: done with snappycompletion\n");
+      return compress_state->osize;
       break;
 
     default:
