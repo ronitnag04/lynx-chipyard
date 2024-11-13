@@ -50,6 +50,22 @@ class HyperscaleEightCoreRocketBaseConfig extends Config(
   new freechips.rocketchip.rocket.WithNHugeCores(8) ++
   new chipyard.config.AbstractConfig)
 
+class Hyperscale16CoreRocketBaseConfig extends Config(
+  new HyperscaleUncore ++
+  new freechips.rocketchip.rocket.WithNHugeCores(16) ++
+  new chipyard.config.AbstractConfig)
+
+class Hyperscale24CoreRocketBaseConfig extends Config(
+  new HyperscaleUncore ++
+  new freechips.rocketchip.rocket.WithNHugeCores(16) ++
+  new chipyard.config.AbstractConfig)
+
+class Hyperscale32CoreRocketBaseConfig extends Config(
+  new HyperscaleUncore ++
+  new freechips.rocketchip.rocket.WithNHugeCores(32) ++
+  new chipyard.config.AbstractConfig)
+
+
 // class HyperscaleEightCoreMegaBoomBaseConfig extends Config(
 //   new HyperscaleUncore ++
 //   new boom.v3.common.WithCloneBoomTiles(7, 0) ++
@@ -70,6 +86,26 @@ class HyperscaleTotal2Config extends Config(
 class HyperscaleTotal4Config extends Config(
   new HyperscaleReRoCCAccelerators ++
   new HyperscaleFourCoreRocketBaseConfig
+)
+
+class HyperscaleTotal8Config extends Config(
+  new HyperscaleReRoCCAccelerators ++
+  new HyperscaleEightCoreRocketBaseConfig
+)
+
+class HyperscaleTotal16Config extends Config(
+  new HyperscaleReRoCCAccelerators ++
+  new Hyperscale16CoreRocketBaseConfig
+)
+
+class HyperscaleTotal24Config extends Config(
+  new HyperscaleReRoCCAccelerators ++
+  new Hyperscale24CoreRocketBaseConfig
+)
+
+class HyperscaleTotal32Config extends Config(
+  new HyperscaleReRoCCAccelerators ++
+  new Hyperscale32CoreRocketBaseConfig
 )
 
 class HyperscaleMinimalConfig extends Config(

@@ -292,3 +292,97 @@ fullcfg-4cpu-nonmt-30:
     post_build_hook: null
     metasim_customruntimeconfig: null
     bit_builder_recipe: bit-builder-recipes/xilinx_alveo_u250.yaml
+
+#############################
+
+fullcfg-2cpu-aws:
+    PLATFORM: f1
+    TARGET_PROJECT: firesim
+    TARGET_PROJECT_MAKEFRAG: ../../../generators/firechip/chip/src/main/makefrag/firesim
+    DESIGN: FireSim
+    TARGET_CONFIG: WithJumboFrames_WithNIC_FireSimHyperscaleTotal2Config
+    PLATFORM_CONFIG: WithAutoCounter_MTModels_MCRams_FRFCFS16GBQuadRank_BaseF1Config
+    deploy_quintuplet: null
+    platform_config_args:
+        fpga_frequency: 7
+        build_strategy: GRPC0
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/f1.yaml
+
+fullcfg-4cpu-aws:
+    PLATFORM: f1
+    TARGET_PROJECT: firesim
+    TARGET_PROJECT_MAKEFRAG: ../../../generators/firechip/chip/src/main/makefrag/firesim
+    DESIGN: FireSim
+    TARGET_CONFIG: WithJumboFrames_WithNIC_FireSimHyperscaleTotal4Config
+    PLATFORM_CONFIG: WithAutoCounter_MTModels_MCRams_FRFCFS16GBQuadRank_BaseF1Config
+    deploy_quintuplet: null
+    platform_config_args:
+        fpga_frequency: 7
+        build_strategy: GRPC0
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/f1.yaml
+
+fullcfg-8cpu-aws:
+    PLATFORM: f1
+    TARGET_PROJECT: firesim
+    TARGET_PROJECT_MAKEFRAG: ../../../generators/firechip/chip/src/main/makefrag/firesim
+    DESIGN: FireSim
+    TARGET_CONFIG: WithJumboFrames_WithNIC_FireSimHyperscaleTotal8Config
+    PLATFORM_CONFIG: WithAutoCounter_MTModels_MCRams_FRFCFS16GBQuadRank_BaseF1Config
+    deploy_quintuplet: null
+    platform_config_args:
+        fpga_frequency: 7
+        build_strategy: GRPC0
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/f1.yaml
+
+fullcfg-16cpu-aws:
+    PLATFORM: f1
+    TARGET_PROJECT: firesim
+    TARGET_PROJECT_MAKEFRAG: ../../../generators/firechip/chip/src/main/makefrag/firesim
+    DESIGN: FireSim
+    TARGET_CONFIG: WithJumboFrames_WithNIC_FireSimHyperscaleTotal16Config
+    PLATFORM_CONFIG: WithAutoCounter_MTModels_MCRams_FRFCFS16GBQuadRank_BaseF1Config
+    deploy_quintuplet: null
+    platform_config_args:
+        fpga_frequency: 7
+        build_strategy: GRPC0
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/f1.yaml
+
+fullcfg-24cpu-aws:
+    PLATFORM: f1
+    TARGET_PROJECT: firesim
+    TARGET_PROJECT_MAKEFRAG: ../../../generators/firechip/chip/src/main/makefrag/firesim
+    DESIGN: FireSim
+    TARGET_CONFIG: WithJumboFrames_WithNIC_FireSimHyperscaleTotal24Config
+    PLATFORM_CONFIG: WithAutoCounter_MTModels_MCRams_FRFCFS16GBQuadRank_BaseF1Config
+    deploy_quintuplet: null
+    platform_config_args:
+        fpga_frequency: 7
+        build_strategy: GRPC0
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/f1.yaml
+
+fullcfg-32cpu-aws:
+    PLATFORM: f1
+    TARGET_PROJECT: firesim
+    TARGET_PROJECT_MAKEFRAG: ../../../generators/firechip/chip/src/main/makefrag/firesim
+    DESIGN: FireSim
+    TARGET_CONFIG: WithJumboFrames_WithNIC_FireSimHyperscaleTotal32Config
+    PLATFORM_CONFIG: WithAutoCounter_MTModels_MCRams_FRFCFS16GBQuadRank_BaseF1Config
+    deploy_quintuplet: null
+    platform_config_args:
+        fpga_frequency: 7
+        build_strategy: GRPC0
+    post_build_hook: null
+    metasim_customruntimeconfig: null
+    bit_builder_recipe: bit-builder-recipes/f1.yaml
+
+
