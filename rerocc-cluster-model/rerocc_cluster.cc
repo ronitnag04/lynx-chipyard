@@ -36,6 +36,7 @@ static void rm(char* file) {
 
 void rerocc_cluster_t::write_to_file(char* dstfile, reg_t srcptr, reg_t size) {
   rm(dstfile);
+  printf("DEBUG: Writing %ld bytes to file\n", size);
   FILE* file = fopen(dstfile, "w");
   assert(file != NULL);
   for (size_t i = 0; i < size; ++i) {
@@ -57,6 +58,7 @@ size_t rerocc_cluster_t::write_from_file(char* srcfile, reg_t destptr) {
     p->get_mmu()->store<uint8_t>(destptr + i, temp);
   }
   fclose(file);
+  printf("DEBUG: Read %ld bytes from file\n", file_bytes);
   return file_bytes;
 }
 
@@ -187,11 +189,8 @@ reg_t rerocc_cluster_t::compress(compress_state_t* compress_state, rocc_insn_t i
       break;
     case 3: // Check snappycompletion
       printf("DEBUG: check snappycompletion 0x%lx\n", compress_state->cmpflagp);
-      p->get_mmu()->store<compflag_t>(compress_state->cmpflagp, 1);
+      p->get_mmu()->store<compflag_t>(compress_state->cmpflagp, compress_state->osize);
       printf("DEBUG: done with snappycompletion\n");
-      //cmpflagp = osize; // Return output size
-      //cmpflagp = (requests_processed==somevalue) ? 1 : 0;
-      return compress_state->osize;
       break;
 
     default:
@@ -224,13 +223,9 @@ reg_t rerocc_cluster_t::decompress(decompress_state_t* decompress_state, rocc_in
       break;
     case 3: // Check snappydecompletion
       printf("DEBUG: check snappydecompletion 0x%lx\n", decompress_state->cmpflagp);
-      p->get_mmu()->store<compflag_t>(decompress_state->cmpflagp, 1);
+      p->get_mmu()->store<compflag_t>(decompress_state->cmpflagp, decompress_state->osize);
       printf("DEBUG: done with snappydecompletion\n");
-      //cmpflagp = osize; // Return output size
-      //cmpflagp = (requests_processed==somevalue) ? 1 : 0;
-      return decompress_state->osize;
       break;
-
     default:
       illegal_instruction();
       break;
@@ -240,27 +235,28 @@ reg_t rerocc_cluster_t::decompress(decompress_state_t* decompress_state, rocc_in
 
 // todo: technically this should also be bounded by opcode
 reg_t rerocc_cluster_t::dispatch(uint8_t accid, rocc_insn_t insn, reg_t xs1, reg_t xs2) {
-  switch (accid) {
-    case 0:
-      return aescbc(accid, &aes_state[0], insn, xs1, xs2);
-    case 1:
-      return aescbc(accid, &aes_state[1], insn, xs1, xs2);
-    case 2:
-      return memcpy(&memcpy_state[0], insn, xs1, xs2);
-    case 3:
-      return memcpy(&memcpy_state[1], insn, xs1, xs2);
-    case 4:
-    case 5:
-    case 6:
-    case 7:
-      printf("Unsupported accid:%d. No proto ser/des implemented.\n", accid);
-      illegal_instruction();
-    case 8:
-      return compress(&compress_state[0], insn, xs1, xs2);
-    case 9:
-      return decompress(&decompress_state[0], insn, xs1, xs2);
-  }
-  return 0;
+  // switch (accid) {
+  //   case 0:
+  //     return aescbc(accid, &aes_state[0], insn, xs1, xs2);
+  //   case 1:
+  //     return aescbc(accid, &aes_state[1], insn, xs1, xs2);
+  //   case 2:
+  //     return memcpy(&memcpy_state[0], insn, xs1, xs2);
+  //   case 3:
+  //     return memcpy(&memcpy_state[1], insn, xs1, xs2);
+  //   case 4:
+  //   case 5:
+  //   case 6:
+  //   case 7:
+  //     printf("Unsupported accid:%d. No proto ser/des implemented.\n", accid);
+  //     illegal_instruction();
+  //   case 8:
+  //     return compress(&compress_state[0], insn, xs1, xs2);
+  //   case 9:
+  //     return decompress(&decompress_state[0], insn, xs1, xs2);
+  // }
+  // return 0;
+  return compress(&compress_state[0], insn, xs1, xs2);
 }
 
 define_rerocc_funcs(rerocc_cluster_t, STRINGIZE_VALUE_OF(EXTENSION_NAME), dispatch)

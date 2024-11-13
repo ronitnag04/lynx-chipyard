@@ -90,3 +90,12 @@ class HMemcpyConfig extends Config(
   new HyperscaleUncore ++
   new freechips.rocketchip.rocket.WithNHugeCores(1) ++
   new chipyard.config.AbstractConfig)
+
+class HyperscaleCompressConfig extends Config(
+  new rerocc.WithReRoCC(reRoCCManagerParams=rerocc.manager.ReRoCCTileParams(l2TLBEntries=512, l2TLBWays=4)) ++ // matches prior aurora-like setup
+  // idN-1
+  new compressacc.WithSnappyCompressor(Some(BankedScratchpadParams(0x60000000L, 256 << 10))) ++
+  // id0
+  new HyperscaleUncore ++
+  new freechips.rocketchip.rocket.WithNHugeCores(1) ++
+  new chipyard.config.AbstractConfig)
