@@ -17,7 +17,6 @@ dependencies:
 
     # misc
     - readline
-    - pycryptodome
 
     # firemarshal deps
     - qemu # from ucb-bar channel - https://github.com/ucb-bar/qemu-feedstock
@@ -119,3 +118,4 @@ dependencies:
     - fsspec
     - pip:
         - fab-classic>=1.19.2
+        - bcrypt<4.0.0
