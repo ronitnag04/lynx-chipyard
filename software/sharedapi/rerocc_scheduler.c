@@ -107,21 +107,108 @@ static size_t proto_runtime_ns(bool ser, void* desc_ptr, size_t size) {
   return 0;
 }
 
+#if defined(USE_FEEDBACK)
+// Each linear model should have xtx, xty, and ab as global variables
+// For example, double xtx[2][4] = {
+//   {1,2,3,4},
+//   {5,6,7,8}
+// };
+// where xtx[0] is for accelerator type 0 and so on.
+double comp_xtx[4] = {1234, 12, 12, 1};
+double comp_xty[2] = {12345, 345};
+#endif
+// ab is the model paramter, such that y=ax+b.
+// ab[0] is a and ab[1] is b (Reverse of math convention...)
+double comp_ab[2] = {1234, 1234};
+
+// Closed-form solution of linear regression, accounting all data points
+// y = ax+b. Provide a new datapoint (x, y).
+void update_linear(int accid, double x, double y){
+  // Pick the correct xtx and xty using the accid 
+//  xtx[0] += x*x; xtx[1] += x; xtx[2] += x; xtx[3] += 1;
+//  xty[0] += x*y; xty[1] += y;
+//  ab[0] = 1/(xtx[0]*xtx[3]-xtx[1]*xtx[2])*(xtx[3]*xty[0]-xtx[1]*xty[1]);
+//  ab[1] = 1/(xtx[0]*xtx[3]-xtx[1]*xtx[2])*(-xtx[2]*xty[0]-xtx[0]*xty[1]);
+  return;
+}
+
+// Linear interpolation
+void update_encrypt(int accid, size_t size, double throughput){
+// TODO: match the throughput unit (b/ns = Gb/s)
+// Find the range that fits - takes O(n)
+  if(accid==encrypt){
+    for(int i=1; i<MAX_ENC_DEC_SAMPLES+1; ++i){
+      if(enc_size_sampled[i-1] <= size && size <= enc_size_sampled[i]){
+        enc_size_sampled[i] = size; //Replace the max of the range
+        enc_b_per_ns[i] = throughput/8; 
+        return;
+      }
+    }
+  }
+  else if(accid==decrypt){
+    for(int i=1; i<MAX_ENC_DEC_SAMPLES+1; ++i){
+      if(dec_size_sampled[i-1] <= size && size <= dec_size_sampled[i]){
+        dec_size_sampled[i] = size; //Replace the max of the range
+        dec_b_per_ns[i] = throughput/8; 
+        return;
+      }
+    }
+  }
+  else{
+    printf("Tried to update encryption but accelerator is not encryptor!\n");
+  }
+}
+
+void update(int accid, size_t size, uint64_t runtime){
+  // I need the variables like file size, proto type, compressed file size
+  double throughput = (double)size/1000000000/runtime; //Gb/s
+  if(accid==proto){
+    update_linear(accid, size, throughput); 
+  }
+  else if(accid==comp){
+    update_linear(accid, ratio, throughput);  
+  }
+  else if{//encryption
+    update_encrypt(accid, size, throughput);
+  }
+  else{
+    //Throw an error
+  }
+} 
+
+// For comp: We fix a type to a specific file, and use the ratio of that file
+double type_to_comp_ratio[] = {0.123, 0.456, 0.789, ...};
+static size_t compress_runtime_ns(bool comp, size_t decomp_size, size_t comp_size, int type){
+  // comp=0: Decomp, comp=1: Comp
+  double ratio = comp ? type_to_comp_ratio[type]: decomp_size/comp_size;
+  double throughput = 1; // Be aware of the unit! Should be bytes per sec.
+  if(ratio < 0.67) {
+    throughput = comp ? 1/(a*ratio+b) : a*ratio+b;
+  }
+  else {
+    throughput = comp ? 1/(a*ratio+b) : 1/(a*ratio+b);
+  }
+  return (comp ? comp_size : decomp_size)/throughput;
+}
+
 // TODO: collected for AES128... need on firesim
+// Make the encryption model variables global variables
+#define MAX_ENC_DEC_SAMPLES (10)
+size_t enc_sizes_sampled[MAX_ENC_DEC_SAMPLES + 1] = {0, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192};
+size_t dec_sizes_sampled[MAX_ENC_DEC_SAMPLES + 1] = {0, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192};
+
+// this is in bits (all are rounded to ints)
+size_t enc_b_per_ns[MAX_ENC_DEC_SAMPLES + 1] = {0, 2, 3, 6, 9, 14, 19, 23, 26, 28, 29};
+size_t dec_b_per_ns[MAX_ENC_DEC_SAMPLES + 1] = {0, 1, 3, 5, 9, 14, 20, 25, 28, 30, 31};
+
 static size_t encrypt_runtime_ns(bool enc, size_t size) {
   assert(size != 0);
   // collect from baremetal testing w/ no contention
-#define MAX_ENC_DEC_SAMPLES (10)
-  size_t sizes_sampled[MAX_ENC_DEC_SAMPLES + 1] = {0, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192};
-
-  // this is in bits (all are rounded to ints)
-  size_t enc_b_per_ns[MAX_ENC_DEC_SAMPLES + 1] = {0, 2, 3, 6, 9, 14, 19, 23, 26, 28, 29};
-  size_t dec_b_per_ns[MAX_ENC_DEC_SAMPLES + 1] = {0, 1, 3, 5, 9, 14, 20, 25, 28, 30, 31};
-
   size_t max_idx = MAX_ENC_DEC_SAMPLES + 2;
   for (size_t i = 0; i < MAX_ENC_DEC_SAMPLES + 1; ++i) {
     printf("SCHED: sz:%ld v.s. samplesz:%ld\n", size, sizes_sampled[i]);
-    if (size < sizes_sampled[i]) {
+    size_t sizes_sampled = enc ? enc_sizes_sampled[i] : dec_sizes_sampled[i];
+    if (size < sizes_sampled) {
       max_idx = i;
       break;
     }
@@ -655,6 +742,10 @@ void schedule_release_and_update(metadata_t* metadata) {
   int cpuid = sched_getcpu();
 #endif
   uint64_t runtime_cycles = read_csr(time) - metadata->start_cycle;
+#if defined(USE_FEEDBACK)
+  //TODO: where do I get the file size?
+  update(metadata->acc_type, file_size, runtime_ns);
+#endif
   printf("SCHED: release: acc_type:%d sched_rc:%ldc provided_rc:%ldc provided_ns:%ldns blocked_cycles:%ld\n",
          metadata->acc_type,
          runtime_cycles,
