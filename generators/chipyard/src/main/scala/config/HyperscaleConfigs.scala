@@ -101,5 +101,3 @@ class HyperscaleSnappyCompressConfig extends Config(
   new HyperscaleUncore ++
   new freechips.rocketchip.rocket.WithNHugeCores(1) ++
   new chipyard.config.AbstractConfig)
-
-

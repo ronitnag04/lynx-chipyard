@@ -40,7 +40,7 @@ uint8_t* AESCBCAccelSetup(size_t write_region_size) {
     return fixed_alloc_region;
 }
 
-volatile int AESCBCBlockOnCompletion(volatile int * completion_flag) {
+volatile uint64_t AESCBCBlockOnCompletion(volatile uint64_t * completion_flag) {
     uint64_t retval;
     ROCC_INSTRUCTION_D(AES_OPCODE, retval, FUNCT_CHECK_COMPLETION);
     __asm__ __volatile__ ("fence");
@@ -50,6 +50,15 @@ volatile int AESCBCBlockOnCompletion(volatile int * completion_flag) {
     }
     return *completion_flag;
 }
+
+#define FUNCT_SFENCE 0
+#define FUNCT_SRC_INFO 1
+#define FUNCT_MODE 4
+#define FUNCT_KEY_0 5
+#define FUNCT_KEY_1 6
+#define FUNCT_IV 7
+#define FUNCT_DEST_INFO 2
+#define FUNCT_CHECK_COMPLETION 3
 
 void AESCBCAccelNonblocking(bool encrypt,
                             const uint8_t* data,
@@ -61,7 +70,7 @@ void AESCBCAccelNonblocking(bool encrypt,
                             uint64_t iv0,
                             uint64_t iv1,
                             uint8_t* result,
-                            int* success_flag) {
+                            uint64_t* success_flag) {
     assert (data_length % 16 == 0 && "Data length must be divisible by block size of 128b (16B)");
     ROCC_INSTRUCTION_SS(AES_OPCODE,
                         (uint64_t)key0,
@@ -94,7 +103,7 @@ void AESCBCAccelNonblocking(bool encrypt,
                         FUNCT_DEST_INFO);
 }
 
-int AESCBCAccel(bool encrypt,
+uint64_t AESCBCAccel(bool encrypt,
                 const uint8_t* data,
                 size_t data_length,
                 uint64_t key0,
@@ -104,7 +113,7 @@ int AESCBCAccel(bool encrypt,
                 uint64_t iv0,
                 uint64_t iv1,
                 uint8_t* result) {
-    int completion_flag = 0;
+    uint64_t completion_flag = 0;
 
     AESCBCAccelNonblocking(encrypt,
                             data,

@@ -11,6 +11,7 @@ SO := lib$(EXTENSION_NAME).so
 CURRENT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 SNAPPY_COMP_BIN := $(CURRENT_DIR)/../generators/compress-acc/software-snappy/snappy/build-writecomp/snappy_test_tool
 SNAPPY_DECOMP_BIN := $(CURRENT_DIR)/../generators/compress-acc/software-snappy/snappy/build-writedecomp/snappy_test_tool
+OPENSSL_BIN := $(shell which openssl)
 
 default: $(SO)
 
@@ -20,6 +21,7 @@ $(SO): rerocc_cluster.cc
 		-DCUR_DIR=$(CURRENT_DIR) \
 		-DSNAPPY_COMP_BIN=$(SNAPPY_COMP_BIN) \
 		-DSNAPPY_DECOMP_BIN=$(SNAPPY_DECOMP_BIN) \
+		-DOPENSSL_BIN=$(OPENSSL_BIN) \
 		$^
 
 .PHONY: install
