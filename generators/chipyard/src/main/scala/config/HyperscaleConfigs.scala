@@ -35,77 +35,56 @@ class HyperscaleUncore extends Config(
   new freechips.rocketchip.subsystem.WithoutTLMonitors
 )
 
-class HyperscaleTwoCoreRocketBaseConfig extends Config(
+class HyperscaleNRocketBaseConfig(cores: Int = 1) extends Config(
   new HyperscaleUncore ++
-  new freechips.rocketchip.rocket.WithNHugeCores(2) ++
+  new freechips.rocketchip.rocket.WithNHugeCores(cores) ++
   new chipyard.config.AbstractConfig)
 
-class HyperscaleFourCoreRocketBaseConfig extends Config(
-  new HyperscaleUncore ++
-  new freechips.rocketchip.rocket.WithNHugeCores(4) ++
-  new chipyard.config.AbstractConfig)
-
-class HyperscaleEightCoreRocketBaseConfig extends Config(
-  new HyperscaleUncore ++
-  new freechips.rocketchip.rocket.WithNHugeCores(8) ++
-  new chipyard.config.AbstractConfig)
-
-class Hyperscale16CoreRocketBaseConfig extends Config(
-  new HyperscaleUncore ++
-  new freechips.rocketchip.rocket.WithNHugeCores(16) ++
-  new chipyard.config.AbstractConfig)
-
-class Hyperscale24CoreRocketBaseConfig extends Config(
-  new HyperscaleUncore ++
-  new freechips.rocketchip.rocket.WithNHugeCores(16) ++
-  new chipyard.config.AbstractConfig)
-
-class Hyperscale32CoreRocketBaseConfig extends Config(
-  new HyperscaleUncore ++
-  new freechips.rocketchip.rocket.WithNHugeCores(32) ++
-  new chipyard.config.AbstractConfig)
-
-
-// class HyperscaleEightCoreMegaBoomBaseConfig extends Config(
+// class Hyperscale8CoreMegaBoomBaseConfig extends Config(
 //   new HyperscaleUncore ++
 //   new boom.v3.common.WithCloneBoomTiles(7, 0) ++
 //   new boom.v3.common.WithNMegaBooms(1) ++
 //   new chipyard.config.AbstractConfig)
 
 // for now using rocket since it works with rerocc
-class HyperscaleTotalConfig extends Config(
-  new HyperscaleReRoCCAccelerators ++
-  new HyperscaleEightCoreRocketBaseConfig
-)
+// class HyperscaleTotalConfig extends Config(
+//   new HyperscaleReRoCCAccelerators ++
+//   new Hyperscale8CoreRocketBaseConfig
+// )
 
 class HyperscaleTotal2Config extends Config(
   new HyperscaleReRoCCAccelerators ++
-  new HyperscaleTwoCoreRocketBaseConfig
+  new HyperscaleNRocketBaseConfig(2)
 )
 
 class HyperscaleTotal4Config extends Config(
   new HyperscaleReRoCCAccelerators ++
-  new HyperscaleFourCoreRocketBaseConfig
+  new HyperscaleNRocketBaseConfig(4)
 )
 
 class HyperscaleTotal8Config extends Config(
   new HyperscaleReRoCCAccelerators ++
-  new HyperscaleEightCoreRocketBaseConfig
+  new HyperscaleNRocketBaseConfig(8)
+)
+
+class HyperscaleTotal12Config extends Config(
+  new HyperscaleReRoCCAccelerators ++
+  new HyperscaleNRocketBaseConfig(12)
 )
 
 class HyperscaleTotal16Config extends Config(
   new HyperscaleReRoCCAccelerators ++
-  new Hyperscale16CoreRocketBaseConfig
+  new HyperscaleNRocketBaseConfig(16)
 )
 
 class HyperscaleTotal24Config extends Config(
   new HyperscaleReRoCCAccelerators ++
-  new Hyperscale24CoreRocketBaseConfig
+  new HyperscaleNRocketBaseConfig(24)
 )
 
 class HyperscaleTotal32Config extends Config(
   new HyperscaleReRoCCAccelerators ++
-  new Hyperscale32CoreRocketBaseConfig
+  new HyperscaleNRocketBaseConfig(32)
 )
 
 class HyperscaleMinimalConfig extends Config(
@@ -114,29 +93,15 @@ class HyperscaleMinimalConfig extends Config(
   new memcpyacc.WithMemcpyAccel ++
   new aes.WithAESCBCAccel(Some(BankedScratchpadParams(0x30000000L, 256 << 10))) ++
   // id0
-  new HyperscaleUncore ++
-  new freechips.rocketchip.rocket.WithNHugeCores(1) ++
-  new chipyard.config.AbstractConfig)
+  new HyperscaleNRocketBaseConfig(1))
 
-class HMemcpyConfig extends Config(
+class HyperscaleMemcpyConfig extends Config(
   new rerocc.WithReRoCC(reRoCCManagerParams=rerocc.manager.ReRoCCTileParams(l2TLBEntries=512, l2TLBWays=4)) ++ // matches prior aurora-like setup
   // idN-1
   new memcpyacc.WithMemcpyAccel ++
   // id0
-  new HyperscaleUncore ++
-  new freechips.rocketchip.rocket.WithNHugeCores(1) ++
-  new chipyard.config.AbstractConfig)
+  new HyperscaleNRocketBaseConfig(1))
 
-class HyperscaleCompressConfig extends Config(
-  new rerocc.WithReRoCC(reRoCCManagerParams=rerocc.manager.ReRoCCTileParams(l2TLBEntries=512, l2TLBWays=4)) ++ // matches prior aurora-like setup
-  // idN-1
-  // Using 256KB spad (*8 = 2MB)
-  new compressacc.WithSnappyCompressor(Some(BankedScratchpadParams(0x60000000L, 256 << 10))) ++
-  // id0
-  new HyperscaleUncore ++
-  new freechips.rocketchip.rocket.WithNHugeCores(1) ++
-  new chipyard.config.AbstractConfig)
- 
 class HyperscaleSnappyCompressConfig extends Config(
   new rerocc.WithReRoCC(reRoCCManagerParams=rerocc.manager.ReRoCCTileParams(l2TLBEntries=512, l2TLBWays=4)) ++ // matches prior aurora-like setup
   // idN-1
@@ -144,6 +109,4 @@ class HyperscaleSnappyCompressConfig extends Config(
   new compressacc.WithSnappyCompressor(Some(BankedScratchpadParams(0x30000000L, 256 << 10))) ++
   new compressacc.WithSnappyDecompressor(Some(BankedScratchpadParams(0x40000000L, 256 << 10))) ++
   // id0
-  new HyperscaleUncore ++
-  new freechips.rocketchip.rocket.WithNHugeCores(1) ++
-  new chipyard.config.AbstractConfig)
+  new HyperscaleNRocketBaseConfig(1))
