@@ -14,6 +14,55 @@
 #include "helpers.h"
 #include "queue.h"
 
+//#define USE_FEEDBACK (1)
+
+// ----- Section for Runtime Estimation Models ----- //
+
+#define MAX_ENC_DEC_SAMPLES (10)
+
+// Make the encryption model variables global variables
+size_t enc_sizes_sampled[MAX_ENC_DEC_SAMPLES + 1] = {0, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192};
+size_t dec_sizes_sampled[MAX_ENC_DEC_SAMPLES + 1] = {0, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192};
+// this is in bits (all are rounded to ints)
+size_t enc_b_per_ns[MAX_ENC_DEC_SAMPLES + 1] = {0, 2, 3, 6, 9, 14, 19, 23, 26, 28, 29};
+size_t dec_b_per_ns[MAX_ENC_DEC_SAMPLES + 1] = {0, 1, 3, 5, 9, 14, 20, 25, 28, 30, 31};
+#if defined(USE_FEEDBACK)
+// Each linear model should have xtx, xty, and ab as global variables
+// For example, double xtx[2][4] = {
+//   {1,2,3,4},
+//   {5,6,7,8}
+// };
+// where xtx[0] is for accelerator type 0 and so on.
+// xtx[0]=sum of x^2, xtx[1]=[2]=sum of x, xtx[3]=sum of 1
+double xtx[4][4] = {
+  {1234, 12, 12, 1},
+  {1234, 12, 12, 1},
+  {1234, 12, 12, 1},
+  {1234, 12, 12, 1}
+};
+// xty[0]=sum of xy, xty[1]=sum of y
+double xty[4][2] = {
+  {12345, 345},
+  {12345, 345},
+  {12345, 345},
+  {12345, 345}
+};
+#endif
+// ab is the model paramter, such that y=ax+b.
+// ab[1] is a and ab[0] is b (Math convention)
+// For compression, there can be more than one model...
+double ab[4][2] = {
+  {1234, 1234},
+  {1234, 1234},
+  {1234, 1234},
+  {1234, 1234},
+  {5.7044,-0.065}, //Decomp, ratio<0.67. x=ratio, y=decomp speed. R^2=0.64. 
+  
+};
+
+// ----------------------------------------------- //
+
+
 #define MAX_PROTOBUF_SER_IDS (2)
 uint8_t protobuf_ser_accids[MAX_PROTOBUF_SER_IDS] = {6, 7};
 
@@ -107,21 +156,87 @@ static size_t proto_runtime_ns(bool ser, void* desc_ptr, size_t size) {
   return 0;
 }
 
+// Closed-form solution of linear regression, accounting all data points
+// y = ax+b. Provide a new datapoint (x, y).
+void update_linear(acc_type_t acc_type, double x, double y){
+  // Pick the correct xtx and xty using the accid 
+//  xtx[0] += x*x; xtx[1] += x; xtx[2] += x; xtx[3] += 1;
+//  xty[0] += x*y; xty[1] += y;
+//  ab[1] = 1/(xtx[0]*xtx[3]-xtx[1]*xtx[2])*(xtx[3]*xty[0]-xtx[1]*xty[1]);
+//  ab[0] = 1/(xtx[0]*xtx[3]-xtx[1]*xtx[2])*(-xtx[2]*xty[0]-xtx[0]*xty[1]);
+  return;
+}
+
+// Replace a data point with the new one
+void update_encrypt(acc_type_t acc_type, size_t size, double throughput){
+// TODO: match the throughput unit (b/ns = Gb/s)
+// Find the range that fits - takes O(n)
+  if(acc_type==ENCRYPT){
+    for(int i=1; i<MAX_ENC_DEC_SAMPLES+1; ++i){
+      if(enc_sizes_sampled[i-1] <= size && size <= enc_sizes_sampled[i]){
+        enc_sizes_sampled[i] = size; //Replace the max of the range
+        enc_b_per_ns[i] = throughput/8; 
+        return;
+      }
+    }
+  }
+  else if(acc_type==DECRYPT){
+    for(int i=1; i<MAX_ENC_DEC_SAMPLES+1; ++i){
+      if(dec_sizes_sampled[i-1] <= size && size <= dec_sizes_sampled[i]){
+        dec_sizes_sampled[i] = size; //Replace the max of the range
+        dec_b_per_ns[i] = throughput/8; 
+        return;
+      }
+    }
+  }
+  else{
+    printf("Tried to update encryption but accelerator is not encryptor!\n");
+  }
+}
+
+void update(acc_type_t acc_type, size_t size, uint64_t runtime){
+  // I need the variables like file size, proto type, compressed file size
+  double throughput = (double)size/1000000000/runtime; //Gb/s
+  if(acc_type==PROTOBUF_SER || acc_type==PROTOBUF_DESER){
+    update_linear(acc_type, size, throughput); 
+  }
+  else if(acc_type==COMPRESS || acc_type==DECOMPRESS){
+    double ratio = size / size; //FIXME: Need ratio
+    // Depending on the ratio and comp/decomp, update differently
+    update_linear(acc_type, ratio, throughput);
+  }
+  else if(acc_type==ENCRYPT || acc_type==DECRYPT){//encryption
+    update_encrypt(acc_type, size, throughput);
+  }
+  else{
+    //Throw an error
+  }
+} 
+
+// TODO: For comp: We fix a type to a specific file, and use the ratio of that file
+double type_to_comp_ratio[] = {0.123, 0.456, 0.789, 0.000};
+static size_t compress_runtime_ns(bool comp, size_t decomp_size, double compression_ratio, int proto_type){
+  // comp=0: Decomp, comp=1: Comp
+  double ratio = comp ? type_to_comp_ratio[proto_type]: compression_ratio;
+  double throughput = 1; // Be aware of the unit! Should be bytes per sec.
+  if(ratio < 0.67) {
+    throughput = comp ? 1/(ab[COMPRESS][1]*ratio+ab[COMPRESS][0]) : ab[DECOMPRESS][1]*ratio+ab[DECOMPRESS][0];
+  }
+  else {
+    throughput = comp ? 1/(ab[COMPRESS][1]*ratio+ab[COMPRESS][0]) : 1/(ab[DECOMPRESS][1]*ratio+ab[DECOMPRESS][0]);
+  }
+  return (comp ? decomp_size*compression_ratio : decomp_size)/throughput;
+}
+
 // TODO: collected for AES128... need on firesim
 static size_t encrypt_runtime_ns(bool enc, size_t size) {
   assert(size != 0);
   // collect from baremetal testing w/ no contention
-#define MAX_ENC_DEC_SAMPLES (10)
-  size_t sizes_sampled[MAX_ENC_DEC_SAMPLES + 1] = {0, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192};
-
-  // this is in bits (all are rounded to ints)
-  size_t enc_b_per_ns[MAX_ENC_DEC_SAMPLES + 1] = {0, 2, 3, 6, 9, 14, 19, 23, 26, 28, 29};
-  size_t dec_b_per_ns[MAX_ENC_DEC_SAMPLES + 1] = {0, 1, 3, 5, 9, 14, 20, 25, 28, 30, 31};
-
   size_t max_idx = MAX_ENC_DEC_SAMPLES + 2;
   for (size_t i = 0; i < MAX_ENC_DEC_SAMPLES + 1; ++i) {
-    printf("SCHED: sz:%ld v.s. samplesz:%ld\n", size, sizes_sampled[i]);
-    if (size < sizes_sampled[i]) {
+    size_t size_sampled = enc ? enc_sizes_sampled[i] : dec_sizes_sampled[i];
+    printf("SCHED: sz:%ld v.s. samplesz:%ld\n", size, size_sampled);
+    if (size < size_sampled) {
       max_idx = i;
       break;
     }
@@ -130,6 +245,7 @@ static size_t encrypt_runtime_ns(bool enc, size_t size) {
   printf("SCHED: max_idx:%ld\n", max_idx);
 
   size_t* b_per_ns = (enc ? enc_b_per_ns : dec_b_per_ns);
+  size_t* sizes_sampled = (enc ? enc_sizes_sampled : dec_sizes_sampled);
 
   size_t size_b = 8 * size;
   if (max_idx == MAX_ENC_DEC_SAMPLES + 2) {
@@ -311,10 +427,11 @@ uint64_t get_est_acc_runtime_ns(metadata_t* metadata) {
       prediction_ns = proto_runtime_ns(false, (void*)metadata->descriptor_ptr, metadata->size);
       break;
     case COMPRESS:
-      prediction_ns = 0;
+      //TODO: compression ratio is unknown for the compressor. Pass the proto type (Now set to 0).
+      prediction_ns = compress_runtime_ns(true, metadata->size, metadata->compression_ratio, 0); 
       break;
     case DECOMPRESS:
-      prediction_ns = 0;
+      prediction_ns = compress_runtime_ns(false, metadata->size, metadata->compression_ratio, 0);
       break;
     case ENCRYPT:
       prediction_ns = encrypt_runtime_ns(true, metadata->size);
@@ -332,6 +449,7 @@ uint64_t get_est_cpu_runtime_ns(metadata_t* metadata) {
   return get_est_acc_runtime_ns(metadata) * 1000; // TODO: fix
 }
 
+#ifdef FCFS_RUNTIME_SKIP
 // technically this is a combo of blocking if wanting an acc, or skipping if not
 // if an accelerator is free:
 //   mark global start time, est. acc. completion time in queue
@@ -458,6 +576,7 @@ bool grab_accelerator_queued_runtime(metadata_t* in_metadata, pthread_cond_t* qu
 
   return true;
 }
+#endif
 
 // has the potential to block
 void schedule_run_on_acc(metadata_t* metadata) {
@@ -644,6 +763,9 @@ void schedule_release_and_update(metadata_t* metadata) {
     assert(q_dequeue(&acc_running_q[metadata->given_accid]));
     pthread_cond_broadcast(&queues_cond); // something happened with queues+acc, signal
     pthread_mutex_unlock(&queues_mutex);
+#if defined(USE_FEEDBACK)
+    update(metadata->acc_type, metadata->size, metadata->runtime_ns);
+#endif
 #endif
   }
 
