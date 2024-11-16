@@ -198,18 +198,6 @@ bool SnappyDecompress(uint8_t* src, size_t src_sz, uint8_t* dest) {
   return cmpflag;
 }
 
-#define PAGESIZE_BYTES 4096
-unsigned char * SnappySetupAllocRegion(size_t write_region_size) {            
-    size_t regionsize = sizeof(char) * (write_region_size);
-    //size_t regionsize = sizeof(unsigned char) * (PAGESIZE_BYTES);
-    unsigned char * fixed_alloc_region = (unsigned char*)memalign(PAGESIZE_BYTES, regionsize);
-    for (uint64_t i = 0; i < regionsize; i += PAGESIZE_BYTES) {                     
-        fixed_alloc_region[i] = 0;
-    }
-    uint64_t fixed_ptr_as_int = (uint64_t)fixed_alloc_region; 
-    assert((fixed_ptr_as_int & 0x7) == 0x0);
-    return fixed_alloc_region;
-}
 #endif
 
 #endif

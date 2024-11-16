@@ -65,13 +65,11 @@ class WithFireSimSingleTileAnnotate extends Config((site, here, up) => {
 class WithFireSimFAME5 extends Config((site, here, up) => {
   case FireSimFAME5 => true
 })
-/*
 class WithJumboFrames extends icenet.WithNICJumboFrames
 
 class WithNIC extends Config(
   new icenet.WithIceNIC(inBufFlits = 8192, outBufFlits = 8192, ctrlQueueDepth = 64)
 )
-*/
 
 // Adds a small/large NVDLA to the system
 class WithNVDLALarge extends nvidia.blocks.dla.WithNVDLA("large")
