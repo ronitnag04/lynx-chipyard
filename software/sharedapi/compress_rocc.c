@@ -5,13 +5,15 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <malloc.h>
+#include <stdio.h>
 #include "rocc.h"
 #include "compress_rocc.h"
 #include "helpers.h"
 
 #define COMP_EXTEND 0 // for compression. for decompression this is 0
 
-#define accprintf(...) (0)
+//#define accprintf(...) (0)
+#define accprintf(...) printf(__VA_ARGS__);
 
 size_t GetZStdDecompressSize(uint8_t* compressed_data, size_t len){
   #define rshl(x, y) ((x) >> (y))

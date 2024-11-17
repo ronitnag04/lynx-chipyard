@@ -4,6 +4,7 @@
 
 #include <inttypes.h>
 #include <assert.h>
+#include <stdio.h>
 #include "rocc.h"
 #include "proto_rocc.h"
 #include "helpers.h"
@@ -14,7 +15,8 @@
 #define FUNCT_SER_MEM_SETUP 3
 #define FUNCT_SER_CHECK_COMPLETION 4
 
-#define accprintf(...) (0)
+//#define accprintf(...) (0)
+#define accprintf(...) printf(__VA_ARGS__);
 
 void SerClearAccelTLB(void) {
     ROCC_INSTRUCTION(PROTOACC_SER_OPCODE, FUNCT_SER_SFENCE); // should clear the accel TLB

@@ -4,6 +4,7 @@
 
 #include <assert.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <inttypes.h>
 
 #include "rocc.h"
@@ -19,7 +20,8 @@
 #define FUNCT_DEST_INFO 2
 #define FUNCT_CHECK_COMPLETION 3
 
-#define accprintf(...) (0)
+//#define accprintf(...) (0)
+#define accprintf(...) printf(__VA_ARGS__);
 
 void AESCBCClearAccelTLB(void) {
     ROCC_INSTRUCTION(AES_OPCODE, FUNCT_SFENCE); // should clear the accel TLB
