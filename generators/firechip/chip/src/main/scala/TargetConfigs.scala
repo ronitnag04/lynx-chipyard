@@ -519,3 +519,17 @@ class FireSimHyperscaleMinimalConfig extends Config(
   new WithDefaultFireSimBridges ++
   new WithFireSimHyperscaleConfigTweaks ++
   new chipyard.HyperscaleMinimalConfig )
+
+class DTMFireSimHyperscaleTotal8Config extends Config(
+  //new WithChipyardClonedTiles ++
+  new chipyard.harness.WithSerialTLTiedOff ++
+  new WithDefaultFireSimBridges ++
+  new WithFireSimHyperscaleConfigTweaks ++
+  new chipyard.DTMHyperscaleTotal8Config)
+
+class DTMFireSimHyperscaleTotal2Config extends Config(
+  //new WithChipyardClonedTiles ++
+  new chipyard.harness.WithSerialTLTiedOff ++
+  new WithDefaultFireSimBridges ++
+  new WithFireSimHyperscaleConfigTweaks ++
+  new chipyard.DTMHyperscaleTotal2Config)

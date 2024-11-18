@@ -17,6 +17,7 @@ void ForcePagedIn(void* region, size_t size) {
 
 // note: mlock versions of these functions take a long time to run
 void ForcePagedInOverride(void* region, size_t size, bool override_no_mlock) {
+  accprintf("I: paging in %p of size %ld (try mlock?: %d)\n", region, size, !override_no_mlock);
   bool can_use_mlock = false;
 #if defined(__linux) && defined(USE_MLOCK)
   can_use_mlock = true;
@@ -37,6 +38,7 @@ void ForcePagedOut(void* region, size_t size) {
 }
 
 void ForcePagedOutOverride(void* region, size_t size, bool override_no_mlock) {
+  accprintf("I: paging out %p of size %ld (try mlock?: %d)\n", region, size, !override_no_mlock);
   bool can_use_mlock = false;
 #if defined(__linux) && defined(USE_MLOCK)
   can_use_mlock = true;
@@ -55,6 +57,7 @@ size_t MultipleOf(size_t in, size_t multiple_of) {
 
 void* AllocAligned(size_t size, size_t* alloc_size) {
   size_t mult_size = MultipleOf(size, MAX_BUS_WIDTH); // round up to nearest multiple of MAX_BUS_WIDTH (buswidth) (also 64 since accelerator deals with 64 only)
+  accprintf("I: malloc for %ld bytes\n", mult_size);
   void* region = memalign(PAGESIZE_BYTES, mult_size);
   if (region == NULL) {
     accprintf("E: malloc failed: nullptr returned\n");

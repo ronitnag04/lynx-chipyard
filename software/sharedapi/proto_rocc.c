@@ -29,7 +29,7 @@ void SerCreateArenas(size_t num_string_pointers, size_t total_string_data_bytes,
     // string data allocation
     size_t string_data_region_size;
     uint8_t* string_data_region = (uint8_t*)AllocAligned(sizeof(uint8_t) * total_string_data_bytes, &string_data_region_size);
-    ForcePagedIn((void*)string_data_region, string_data_region_size);
+    ForcePagedInOverride((void*)string_data_region, string_data_region_size, true);
     uint64_t string_data_region_ptr_as_int = (uint64_t)string_data_region;
     uint64_t string_data_region_ptr_as_int_tail = string_data_region_ptr_as_int + (uint64_t)string_data_region_size;
     accprintf("I: SDR: %lld bytes alloc'ed, tail at 0x%016llx, start at 0x%016llx\n", (uint64_t)string_data_region_size, string_data_region_ptr_as_int_tail, string_data_region_ptr_as_int);
@@ -37,7 +37,7 @@ void SerCreateArenas(size_t num_string_pointers, size_t total_string_data_bytes,
     // string pointer allocation
     size_t string_pointer_region_size;
     uint8_t** string_pointer_region = (uint8_t**)AllocAligned(sizeof(uint8_t*) * num_string_pointers, &string_pointer_region_size);
-    ForcePagedIn((void*)string_pointer_region, string_pointer_region_size);
+    ForcePagedInOverride((void*)string_pointer_region, string_pointer_region_size, true);
     // TODO: unsure what this does exactly
     string_pointer_region[0] = (uint8_t*)string_data_region_ptr_as_int_tail;
     string_pointer_region += 1;

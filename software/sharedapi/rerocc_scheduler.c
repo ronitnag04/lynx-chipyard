@@ -56,8 +56,8 @@ double ab[4][2] = {
   {1234, 1234},
   {1234, 1234},
   {1234, 1234},
-  {5.7044,-0.065}, //Decomp, ratio<0.67. x=ratio, y=decomp speed. R^2=0.64. 
-  
+  {5.7044,-0.065}, //Decomp, ratio<0.67. x=ratio, y=decomp speed. R^2=0.64.
+
 };
 
 // ----------------------------------------------- //
@@ -129,6 +129,19 @@ void init_scheduler(void) {
 
   int num_cores = get_nprocs();
   printf("SCHED: init scheduler for %d cores\n", num_cores);
+
+  // double-check time measurements
+  struct timespec start, end;
+  uint64_t start_c = read_csr(cycle);
+  clock_gettime(CLOCK_MONOTONIC, &start);
+  uint64_t t = 10000000000;
+  while (t != 0) {
+    --t;
+  }
+  uint64_t end_c = read_csr(cycle);
+  clock_gettime(CLOCK_MONOTONIC, &end);
+  uint64_t elapsed_time = (end.tv_sec - start.tv_sec) * 1000000000UL + (end.tv_nsec - start.tv_nsec);
+  printf("SCHED: measured time: cycles:%ld ns:%ld\n", end_c - start_c, elapsed_time);
 }
 
 typedef struct proto_rt_entry_t {
@@ -159,7 +172,7 @@ static size_t proto_runtime_ns(bool ser, void* desc_ptr, size_t size) {
 // Closed-form solution of linear regression, accounting all data points
 // y = ax+b. Provide a new datapoint (x, y).
 void update_linear(acc_type_t acc_type, double x, double y){
-  // Pick the correct xtx and xty using the accid 
+  // Pick the correct xtx and xty using the accid
 //  xtx[0] += x*x; xtx[1] += x; xtx[2] += x; xtx[3] += 1;
 //  xty[0] += x*y; xty[1] += y;
 //  ab[1] = 1/(xtx[0]*xtx[3]-xtx[1]*xtx[2])*(xtx[3]*xty[0]-xtx[1]*xty[1]);
@@ -175,7 +188,7 @@ void update_encrypt(acc_type_t acc_type, size_t size, double throughput){
     for(int i=1; i<MAX_ENC_DEC_SAMPLES+1; ++i){
       if(enc_sizes_sampled[i-1] <= size && size <= enc_sizes_sampled[i]){
         enc_sizes_sampled[i] = size; //Replace the max of the range
-        enc_b_per_ns[i] = throughput/8; 
+        enc_b_per_ns[i] = throughput/8;
         return;
       }
     }
@@ -184,7 +197,7 @@ void update_encrypt(acc_type_t acc_type, size_t size, double throughput){
     for(int i=1; i<MAX_ENC_DEC_SAMPLES+1; ++i){
       if(dec_sizes_sampled[i-1] <= size && size <= dec_sizes_sampled[i]){
         dec_sizes_sampled[i] = size; //Replace the max of the range
-        dec_b_per_ns[i] = throughput/8; 
+        dec_b_per_ns[i] = throughput/8;
         return;
       }
     }
@@ -198,7 +211,7 @@ void update(acc_type_t acc_type, size_t size, uint64_t runtime){
   // I need the variables like file size, proto type, compressed file size
   double throughput = (double)size/1000000000/runtime; //Gb/s
   if(acc_type==PROTOBUF_SER || acc_type==PROTOBUF_DESER){
-    update_linear(acc_type, size, throughput); 
+    update_linear(acc_type, size, throughput);
   }
   else if(acc_type==COMPRESS || acc_type==DECOMPRESS){
     double ratio = size / size; //FIXME: Need ratio
@@ -211,7 +224,7 @@ void update(acc_type_t acc_type, size_t size, uint64_t runtime){
   else{
     //Throw an error
   }
-} 
+}
 
 // TODO: For comp: We fix a type to a specific file, and use the ratio of that file
 double type_to_comp_ratio[] = {0.123, 0.456, 0.789, 0.000};
@@ -428,7 +441,7 @@ uint64_t get_est_acc_runtime_ns(metadata_t* metadata) {
       break;
     case COMPRESS:
       //TODO: compression ratio is unknown for the compressor. Pass the proto type (Now set to 0).
-      prediction_ns = compress_runtime_ns(true, metadata->size, metadata->compression_ratio, 0); 
+      prediction_ns = compress_runtime_ns(true, metadata->size, metadata->compression_ratio, 0);
       break;
     case DECOMPRESS:
       prediction_ns = compress_runtime_ns(false, metadata->size, metadata->compression_ratio, 0);
@@ -658,9 +671,9 @@ void schedule_run_on_acc(metadata_t* metadata) {
   }
 
   metadata->blocked_cycles = 0;
-  metadata->start_cycle = read_csr(time);
+  metadata->start_cycle = read_csr(cycle);
 #elif defined(FCFS_BLOCK)
-  uint64_t start = read_csr(time);
+  uint64_t start = read_csr(cycle);
   pthread_mutex_lock(&main_mutex);
   acq = grab_accelerator(metadata, accids, accids_len, &cfgid, &cur_accid);
   while (!acq) {
@@ -669,7 +682,7 @@ void schedule_run_on_acc(metadata_t* metadata) {
     acq = grab_accelerator(metadata, accids, accids_len, &cfgid, &cur_accid);
   }
   pthread_mutex_unlock(&main_mutex);
-  uint64_t end = read_csr(time);
+  uint64_t end = read_csr(cycle);
 
   printf("SCHED: fully acquired: accid:%ld\n", cur_accid);
   metadata->blocked_cycles = end - start;
@@ -679,7 +692,7 @@ void schedule_run_on_acc(metadata_t* metadata) {
   metadata->given_accid = cur_accid;
 #elif defined(FCFS_BLOCK_QUEUED)
   bool previously_enqueued = false;
-  uint64_t start = read_csr(time);
+  uint64_t start = read_csr(cycle);
   pthread_mutex_lock(&queues_mutex);
   acq = grab_accelerator_queued(metadata, &queues_cond, &previously_enqueued, accids, accids_len, &cfgid, &cur_accid); // can potentially signal
   while (!acq) {
@@ -688,7 +701,7 @@ void schedule_run_on_acc(metadata_t* metadata) {
     acq = grab_accelerator_queued(metadata, &queues_cond, &previously_enqueued, accids, accids_len, &cfgid, &cur_accid); // can potentially signal
   }
   pthread_mutex_unlock(&queues_mutex);
-  uint64_t end = read_csr(time);
+  uint64_t end = read_csr(cycle);
 
   printf("SCHED: fully acquired: accid:%ld\n", cur_accid);
   metadata->blocked_cycles = end - start;
@@ -699,7 +712,7 @@ void schedule_run_on_acc(metadata_t* metadata) {
 #elif defined(FCFS_RUNTIME_SKIP)
   bool previously_enqueued = false;
   bool run_on_cpu = false;
-  uint64_t start = read_csr(time);
+  uint64_t start = read_csr(cycle);
   pthread_mutex_lock(&queues_mutex);
   // in this case acq means "break out of loop" not that it acquired an accelerator
   acq = grab_accelerator_queued_runtime(metadata, &queues_cond, &previously_enqueued, &run_on_cpu, accids, accids_len, &cfgid, &cur_accid); // can potentially signal
@@ -709,7 +722,7 @@ void schedule_run_on_acc(metadata_t* metadata) {
     acq = grab_accelerator_queued_runtime(metadata, &queues_cond, &previously_enqueued, &run_on_cpu, accids, accids_len, &cfgid, &cur_accid); // can potentially signal
   }
   pthread_mutex_unlock(&queues_mutex);
-  uint64_t end = read_csr(time);
+  uint64_t end = read_csr(cycle);
 
   printf("SCHED: was acquired?: runcpu:%d accid:%ld\n", run_on_cpu, cur_accid);
   metadata->blocked_cycles = end - start;
@@ -723,7 +736,7 @@ void schedule_run_on_acc(metadata_t* metadata) {
   metadata->given_accelerator = true;
   metadata->given_accid = 0;
   metadata->blocked_cycles = 0;
-  metadata->start_cycle = read_csr(time);
+  metadata->start_cycle = read_csr(cycle);
 #endif
 }
 
@@ -776,7 +789,7 @@ void schedule_release_and_update(metadata_t* metadata) {
   sched_setaffinity(0/*current thread*/, sizeof(cpu_set_t), &cpuset);
   int cpuid = sched_getcpu();
 #endif
-  uint64_t runtime_cycles = read_csr(time) - metadata->start_cycle;
+  uint64_t runtime_cycles = read_csr(cycle) - metadata->start_cycle;
   printf("SCHED: release: acc_type:%d sched_rc:%ldc provided_rc:%ldc provided_ns:%ldns blocked_cycles:%ld\n",
          metadata->acc_type,
          runtime_cycles,

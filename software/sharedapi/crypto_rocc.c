@@ -20,8 +20,8 @@
 #define FUNCT_DEST_INFO 2
 #define FUNCT_CHECK_COMPLETION 3
 
-//#define accprintf(...) (0)
-#define accprintf(...) printf(__VA_ARGS__);
+#define accprintf(...) (0)
+//#define accprintf(...) printf(__VA_ARGS__);
 
 void AESCBCClearAccelTLB(void) {
     ROCC_INSTRUCTION(AES_OPCODE, FUNCT_SFENCE); // should clear the accel TLB
