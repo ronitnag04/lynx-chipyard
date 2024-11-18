@@ -7,6 +7,7 @@ DEFAULT_MEM_START_ADDR=0x80000000
 
 NHARTS=1
 BINARY=""
+IMG=""
 PC="$DEFAULT_MEM_START_ADDR"
 INSN=
 INSNS=0
@@ -58,6 +59,9 @@ do
 	-b )
 	    shift
 	    BINARY=$1 ;;
+	-g )
+	    shift
+	    IMG=$1 ;;
 	-p )
 	    shift
 	    PC=$1 ;;
@@ -104,6 +108,7 @@ rm -rf $OUTPATH
 mkdir -p $OUTPATH
 
 SPIKEFLAGS=""
+#HACK
 
 if [ -z "$MEMOVERRIDE" ] ; then
     BASEMEM="$(($DEFAULT_MEM_START_ADDR)):$((0x10000000))"
@@ -144,10 +149,11 @@ RAWMEM_ELF=$OUTPATH/raw.elf
 LOADMEM_ELF=$OUTPATH/mem.elf
 CMDS_FILE=$OUTPATH/cmds_tmp.txt
 SPIKECMD_FILE=$OUTPATH/spikecmd.sh
+SPIKEOUT_FILE=$OUTPATH/spikeout
 
 echo "Generating state capture spike interactive commands in $CMDS_FILE"
 if [ ! -z "$INSN" ]; then
-    echo "until insn 0 $INSN" >> $CMDS_FILE
+    echo "until abe $INSN $INSN" >> $CMDS_FILE
 else
     echo "until pc 0 $PC" >> $CMDS_FILE
 fi
@@ -201,11 +207,11 @@ do
 done
 echo "quit" >> $CMDS_FILE
 
-echo "spike -d --debug-cmd=$CMDS_FILE $SPIKEFLAGS $BINARY" > $SPIKECMD_FILE
+echo "INCORRECT (missing libspikedevices): spike -d --debug-cmd=$CMDS_FILE $SPIKEFLAGS $BINARY" > $SPIKECMD_FILE
 
 echo "Capturing state at checkpoint to spikeout"
 echo $NHARTS > $LOADARCH_FILE
-spike -d --debug-cmd=$CMDS_FILE $SPIKEFLAGS $BINARY 2>> $LOADARCH_FILE
+spike -d --debug-cmd=$CMDS_FILE $SPIKEFLAGS  --extlib=libspikedevices.so --device=sifive_uart --device="iceblk,img=$IMG" $BINARY 2>> $LOADARCH_FILE
 sed -i '/stdout/d' $LOADARCH_FILE
 
 echo "Finding tohost/fromhost in elf file to inject in new elf"
