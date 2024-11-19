@@ -59,6 +59,7 @@ void* AllocAligned(size_t size, size_t* alloc_size) {
   size_t mult_size = MultipleOf(size, MAX_BUS_WIDTH); // round up to nearest multiple of MAX_BUS_WIDTH (buswidth) (also 64 since accelerator deals with 64 only)
   accprintf("I: malloc for %ld bytes\n", mult_size);
   void* region = memalign(PAGESIZE_BYTES, mult_size);
+  accprintf("I: post malloc: %p\n", region);
   if (region == NULL) {
     accprintf("E: malloc failed: nullptr returned\n");
   }

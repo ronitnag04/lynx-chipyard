@@ -8,3 +8,13 @@ fullcfg-8cpu:
     bitstream_tar: file:///scratch/from-abe/cl_xilinx_alveo_u250-firesim-FireSim-WithJumboFrames_WithNIC_FireSimHyperscaleTotal8Config-WithAutoCounter_MTModels_MCRams_FRFCFS16GBQuadRank_BaseXilinxAlveoU250Config_firesim.tar.gz
     deploy_quintuplet_override: null
     custom_runtime_config: null
+
+fullcfg-1cpu-nonet-dtm-15:
+    bitstream_tar: file:///scratch/from-abe/cl_xilinx_alveo_u250-firesim-FireSim-DTMFireSimHyperscaleTotal1Config-WithAutoCounter_FRFCFS16GBQuadRank_BaseXilinxAlveoU250Config_firesim.tar.gz
+    deploy_quintuplet_override: null
+    custom_runtime_config: null
+
+fullcfg-8cpu-dtm-15:
+    bitstream_tar: file:///scratch/from-abe/cl_xilinx_alveo_u250-firesim-FireSim-WithJumboFrames_WithNIC_DTMFireSimHyperscaleTotal8Config-WithAutoCounter_MTModels_MCRams_FRFCFS16GBQuadRank_BaseXilinxAlveoU250Config_firesim.tar.gz
+    deploy_quintuplet_override: null
+    custom_runtime_config: null

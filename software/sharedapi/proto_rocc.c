@@ -29,7 +29,8 @@ void SerCreateArenas(size_t num_string_pointers, size_t total_string_data_bytes,
     // string data allocation
     size_t string_data_region_size;
     uint8_t* string_data_region = (uint8_t*)AllocAligned(sizeof(uint8_t) * total_string_data_bytes, &string_data_region_size);
-    ForcePagedInOverride((void*)string_data_region, string_data_region_size, true);
+    accprintf("I: got here\n");
+    ForcePagedIn((void*)string_data_region, string_data_region_size);
     uint64_t string_data_region_ptr_as_int = (uint64_t)string_data_region;
     uint64_t string_data_region_ptr_as_int_tail = string_data_region_ptr_as_int + (uint64_t)string_data_region_size;
     accprintf("I: SDR: %lld bytes alloc'ed, tail at 0x%016llx, start at 0x%016llx\n", (uint64_t)string_data_region_size, string_data_region_ptr_as_int_tail, string_data_region_ptr_as_int);
@@ -37,7 +38,8 @@ void SerCreateArenas(size_t num_string_pointers, size_t total_string_data_bytes,
     // string pointer allocation
     size_t string_pointer_region_size;
     uint8_t** string_pointer_region = (uint8_t**)AllocAligned(sizeof(uint8_t*) * num_string_pointers, &string_pointer_region_size);
-    ForcePagedInOverride((void*)string_pointer_region, string_pointer_region_size, true);
+    accprintf("I: got here again\n");
+    ForcePagedIn((void*)string_pointer_region, string_pointer_region_size);
     // TODO: unsure what this does exactly
     string_pointer_region[0] = (uint8_t*)string_data_region_ptr_as_int_tail;
     string_pointer_region += 1;
@@ -52,8 +54,11 @@ void SerCreateArenas(size_t num_string_pointers, size_t total_string_data_bytes,
 }
 
 void SerSetArenaInfoAndClearTLB(volatile uint8_t** string_pointer_region, volatile uint8_t* string_data_region) {
-  SerClearAccelTLB();
-  ROCC_INSTRUCTION_SS(PROTOACC_SER_OPCODE, (uint64_t)string_data_region, (uint64_t)string_pointer_region, FUNCT_SER_MEM_SETUP);
+    accprintf("Got here\n");
+    SerClearAccelTLB();
+    accprintf("Got here again\n");
+    ROCC_INSTRUCTION_SS(PROTOACC_SER_OPCODE, (uint64_t)string_data_region, (uint64_t)string_pointer_region, FUNCT_SER_MEM_SETUP);
+    accprintf("finished this\n");
 }
 
 // OLD
@@ -61,7 +66,7 @@ volatile uint8_t ** AccelSetupAllocRegionSerializer(size_t num_string_pointers, 
     volatile uint8_t** spr; // string ptr region
     volatile uint8_t* sdr; // string data region
     SerCreateArenas(num_string_pointers, total_string_data_bytes, &spr, &sdr);
-
+    accprintf("done creating arenas: %p %p\n", spr, sdr);
     SerSetArenaInfoAndClearTLB(spr, sdr);
     return spr;
 }
@@ -93,6 +98,10 @@ void AccelSerializeToString_Helper(const void * descriptor_table_ptr, void * src
     uint64_t min_max_fieldno = access_descr_ptr[3];
 
     accprintf("Starting serialization: DescPtr:%p MsgPtr:%p\n", descriptor_table_ptr, src_base_addr);
+
+    // while (1) {
+    //     accprintf("wut is happening? got here\n");
+    // }
 
     ROCC_INSTRUCTION_SS(PROTOACC_SER_OPCODE, hasbits_offset, min_max_fieldno, FUNCT_HASBITS_INFO);
     ROCC_INSTRUCTION_SS(PROTOACC_SER_OPCODE, descriptor_table_ptr, src_base_addr, FUNCT_DO_PROTO_SERIALIZE);

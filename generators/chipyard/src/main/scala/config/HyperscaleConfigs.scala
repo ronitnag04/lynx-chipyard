@@ -105,6 +105,15 @@ class DTMHyperscaleTotal2Config extends Config(
   new HyperscaleNRocketBaseConfig(2)
 )
 
+class DTMHyperscaleTotal1Config extends Config(
+  new freechips.rocketchip.rocket.WithCease(false) ++
+  new chipyard.config.WithNPMPs(0) ++
+  new chipyard.harness.WithSerialTLTiedOff() ++
+  new chipyard.config.WithDMIDTM() ++
+  new HyperscaleReRoCCAccelerators ++
+  new HyperscaleNRocketBaseConfig(1)
+)
+
 class HyperscaleMinimalConfig extends Config(
   new rerocc.WithReRoCC(reRoCCManagerParams=rerocc.manager.ReRoCCTileParams(l2TLBEntries=512, l2TLBWays=4)) ++ // matches prior aurora-like setup
   // idN-1

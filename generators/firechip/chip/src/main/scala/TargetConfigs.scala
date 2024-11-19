@@ -88,8 +88,8 @@ class WithMinimalFireSimDesignTweaks extends Config(
   new WithBootROM ++
   // Required: Existing FAME-1 transform cannot handle black-box clock gates
   new WithoutClockGating ++
-  // Optional: Do not support debug module w. JTAG until FIRRTL stops emitting @(posedge ~clock)
-  new chipyard.config.WithNoDebug ++
+  // // Optional: Do not support debug module w. JTAG until FIRRTL stops emitting @(posedge ~clock)
+  // new chipyard.config.WithNoDebug ++
   // Required*: Removes thousands of assertions that would be synthesized (* pending PriorityMux bugfix)
   new WithoutTLMonitors
 )
@@ -467,54 +467,63 @@ class WithChipyardClonedTiles extends Config(
   new WithFireSimSingleTileAnnotate)
 
 class FireSimHyperscaleTotalConfig extends Config(
+  new chipyard.config.WithNoDebug ++
   //new WithChipyardClonedTiles ++
   new WithDefaultFireSimBridges ++
   new WithFireSimHyperscaleConfigTweaks ++
   new chipyard.HyperscaleTotalConfig)
 
 class FireSimHyperscaleTotal2Config extends Config(
+  new chipyard.config.WithNoDebug ++
   //new WithChipyardClonedTiles ++
   new WithDefaultFireSimBridges ++
   new WithFireSimHyperscaleConfigTweaks ++
   new chipyard.HyperscaleTotal2Config)
 
 class FireSimHyperscaleTotal4Config extends Config(
+  new chipyard.config.WithNoDebug ++
   //new WithChipyardClonedTiles ++
   new WithDefaultFireSimBridges ++
   new WithFireSimHyperscaleConfigTweaks ++
   new chipyard.HyperscaleTotal4Config)
 
 class FireSimHyperscaleTotal8Config extends Config(
+  new chipyard.config.WithNoDebug ++
   //new WithChipyardClonedTiles ++
   new WithDefaultFireSimBridges ++
   new WithFireSimHyperscaleConfigTweaks ++
   new chipyard.HyperscaleTotal8Config)
 
 class FireSimHyperscaleTotal12Config extends Config(
+  new chipyard.config.WithNoDebug ++
   //new WithChipyardClonedTiles ++
   new WithDefaultFireSimBridges ++
   new WithFireSimHyperscaleConfigTweaks ++
   new chipyard.HyperscaleTotal12Config)
 
 class FireSimHyperscaleTotal16Config extends Config(
+  new chipyard.config.WithNoDebug ++
   //new WithChipyardClonedTiles ++
   new WithDefaultFireSimBridges ++
   new WithFireSimHyperscaleConfigTweaks ++
   new chipyard.HyperscaleTotal16Config)
 
 class FireSimHyperscaleTotal24Config extends Config(
+  new chipyard.config.WithNoDebug ++
   //new WithChipyardClonedTiles ++
   new WithDefaultFireSimBridges ++
   new WithFireSimHyperscaleConfigTweaks ++
   new chipyard.HyperscaleTotal24Config)
 
 class FireSimHyperscaleTotal32Config extends Config(
+  new chipyard.config.WithNoDebug ++
   //new WithChipyardClonedTiles ++
   new WithDefaultFireSimBridges ++
   new WithFireSimHyperscaleConfigTweaks ++
   new chipyard.HyperscaleTotal32Config)
 
 class FireSimHyperscaleMinimalConfig extends Config(
+  new chipyard.config.WithNoDebug ++
   //new WithChipyardClonedTiles ++
   new WithDefaultFireSimBridges ++
   new WithFireSimHyperscaleConfigTweaks ++
@@ -533,3 +542,10 @@ class DTMFireSimHyperscaleTotal2Config extends Config(
   new WithDefaultFireSimBridges ++
   new WithFireSimHyperscaleConfigTweaks ++
   new chipyard.DTMHyperscaleTotal2Config)
+
+class DTMFireSimHyperscaleTotal1Config extends Config(
+  //new WithChipyardClonedTiles ++
+  new chipyard.harness.WithSerialTLTiedOff ++
+  new WithDefaultFireSimBridges ++
+  new WithFireSimHyperscaleConfigTweaks ++
+  new chipyard.DTMHyperscaleTotal1Config)
