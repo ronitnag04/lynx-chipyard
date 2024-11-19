@@ -8,8 +8,8 @@
 #define PAGESIZE_BYTES 4096
 #define MAX_BUS_WIDTH 256
 
-//#define accprintf(...) (0)
-#define accprintf(...) printf(__VA_ARGS__);
+#define accprintf(...) (0)
+//#define accprintf(...) fprintf(stderr, __VA_ARGS__);
 
 void ForcePagedIn(void* region, size_t size) {
   ForcePagedInOverride(region, size, false);
