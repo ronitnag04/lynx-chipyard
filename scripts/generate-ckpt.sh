@@ -211,8 +211,8 @@ echo "INCORRECT (missing libspikedevices): spike -d --debug-cmd=$CMDS_FILE $SPIK
 
 echo "Capturing state at checkpoint to spikeout"
 echo $NHARTS > $LOADARCH_FILE
-spike -d --debug-cmd=$CMDS_FILE $SPIKEFLAGS --extension=rerocccluster $BINARY 2>> $LOADARCH_FILE
-#spike -d --debug-cmd=$CMDS_FILE $SPIKEFLAGS  --extlib=libspikedevices.so --device=sifive_uart --device="iceblk,img=$IMG" $BINARY 2>> $LOADARCH_FILE
+#spike -d --debug-cmd=$CMDS_FILE $SPIKEFLAGS --extension=rerocccluster $BINARY 2>> $LOADARCH_FILE
+spike -d --debug-cmd=$CMDS_FILE $SPIKEFLAGS  --extlib=libspikedevices.so --device=sifive_uart --device="iceblk,img=$IMG" $BINARY 2>> $LOADARCH_FILE
 sed -i '/stdout/d' $LOADARCH_FILE
 
 echo "Finding tohost/fromhost in elf file to inject in new elf"
