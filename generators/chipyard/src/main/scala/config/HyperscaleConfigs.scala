@@ -105,12 +105,36 @@ class DTMHyperscaleTotal2Config extends Config(
   new HyperscaleNRocketBaseConfig(2)
 )
 
+class HyperscaleReRoCCAcceleratorsNoSpad extends Config(
+  new rerocc.WithReRoCC(reRoCCManagerParams=rerocc.manager.ReRoCCTileParams(l2TLBEntries=512, l2TLBWays=4)) ++ // matches prior aurora-like setup
+  // idN-1
+  // Using 256KB spad (*8 = 2MB)
+  new compressacc.WithSnappyDecompressor() ++
+  // new compressacc.WithSnappyCompressor(Some(BankedScratchpadParams(0x61000000L, 256 << 10))) ++
+  new compressacc.WithSnappyCompressor() ++
+  // // TODO: Zstd accs. are too large to duplicate
+  // new compressacc.WithZstdDecompressor4(Some(BankedScratchpadParams(0x70000000L, 256 << 10))) ++
+  // new compressacc.WithZstdCompressor(Some(BankedScratchpadParams(0x60000000L, 256 << 10))) ++
+  new protoacc.WithProtoAccelSerOnly() ++
+  new protoacc.WithProtoAccelSerOnly() ++
+  new protoacc.WithProtoAccelDeserOnly() ++
+  new protoacc.WithProtoAccelDeserOnly() ++
+  new memcpyacc.WithMemcpyAccel ++
+  new memcpyacc.WithMemcpyAccel ++
+  new aes.WithAESCBCAccel() ++
+  new aes.WithAESCBCAccel()
+  // id0
+)
+
 class DTMHyperscaleTotal1Config extends Config(
+  // new chipyard.config.WithNoUART ++                              // only use htif prints w/ checkpointing
+  // new freechips.rocketchip.subsystem.WithExtMemSize(BigInt(1024) << 20) ++
   new freechips.rocketchip.rocket.WithCease(false) ++
   new chipyard.config.WithNPMPs(0) ++
   new chipyard.harness.WithSerialTLTiedOff() ++
   new chipyard.config.WithDMIDTM() ++
-  new HyperscaleReRoCCAccelerators ++
+  // new HyperscaleReRoCCAccelerators ++
+  new HyperscaleReRoCCAcceleratorsNoSpad ++
   new HyperscaleNRocketBaseConfig(1)
 )
 

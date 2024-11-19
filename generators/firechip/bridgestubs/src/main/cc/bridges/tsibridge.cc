@@ -38,10 +38,6 @@ tsibridge_t::tsibridge_t(simif_t &simif,
   // It should be larger than the reset period.
   wait_ticks = 8;
 
-  // This particular selection is vestigial. You may change it freely.
-  // This * wait_ticks is should be larger than the reset period.
-  loading_step_size = fast_fesvr ? 8 : step_size;
-
   for (auto &arg : args) {
     if (arg.find("+fesvr-step-size=") == 0) {
       step_size = atoi(arg.c_str() + 17);
@@ -67,6 +63,10 @@ tsibridge_t::tsibridge_t(simif_t &simif,
       args_vec.push_back(arg);
     }
   }
+
+  // This particular selection is vestigial. You may change it freely.
+  // This * wait_ticks is should be larger than the reset period.
+  loading_step_size = fast_fesvr ? 8 : step_size;
 
   int argc_count = args_vec.size() - 1;
   tsi_argv = new char *[args_vec.size()];

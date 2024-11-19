@@ -3,7 +3,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 
-#define fprintf(stdout, fmt, ...) (0)
+//#define fprintf(stdout, fmt, ...) (0)
 
 firesim_dtm_t::firesim_dtm_t(int argc, char **argv, bool can_have_loadmem)
     : testchip_dtm_t(argc, argv, can_have_loadmem), is_busy(false),
@@ -87,6 +87,7 @@ bool firesim_dtm_t::has_loadmem_reqs() {
 bool firesim_dtm_t::recv_loadmem_write_req(firesim_loadmem_t &loadmem) {
   if (loadmem_write_reqs.empty())
     return false;
+  //fprintf(stdout, "loadmem_write_req: left %ld\n", loadmem_write_reqs.size());
   auto r = loadmem_write_reqs.front();
   loadmem.addr = r.addr;
   loadmem.size = r.size;
@@ -97,6 +98,7 @@ bool firesim_dtm_t::recv_loadmem_write_req(firesim_loadmem_t &loadmem) {
 bool firesim_dtm_t::recv_loadmem_read_req(firesim_loadmem_t &loadmem) {
   if (loadmem_read_reqs.empty())
     return false;
+  //fprintf(stdout, "loadmem_read_req: left %ld\n", loadmem_read_reqs.size());
   auto r = loadmem_read_reqs.front();
   loadmem.addr = r.addr;
   loadmem.size = r.size;
