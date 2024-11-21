@@ -1,0 +1,21 @@
+# Requires that PROTOBUF_INSTALL_DIR is set
+
+ifndef PROTOBUF_INSTALL_DIR
+$(error Unset PROTOBUF_INSTALL_DIR)
+endif
+
+X86INSTALLDIR=$(PROTOBUF_INSTALL_DIR)/x86
+RISCVINSTALLDIR=$(PROTOBUF_INSTALL_DIR)/riscv
+
+PROTOC = $(X86INSTALLDIR)/bin/protoc
+
+RVPREFIX = riscv64-unknown-linux-gnu
+RVCPP = $(RVPREFIX)-g++
+RVSTRIP = $(RVPREFIX)-strip
+RVOBJDUMP = $(RVPREFIX)-objdump
+
+X86CPP = g++
+X86STRIP = strip
+X86OBJDUMP = objdump
+
+CPPFLAGS = -std=c++14 -static -g3 -O3 -DNDEBUG

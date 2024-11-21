@@ -1,0 +1,9 @@
+syntax = "proto2";
+
+package protolib;
+
+option cc_enable_arenas = true;
+
+message Int32ProtoDefinition {
+  optional int32 f1 = 1;
+}

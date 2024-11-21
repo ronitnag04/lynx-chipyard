@@ -1,0 +1,6 @@
+*.pb.*
+*.riscv
+*.x86
+_build
+_install
+*.dump

@@ -166,3 +166,6 @@
 [submodule "software/fleetbench"]
 	path = software/fleetbench
 	url = https://github.com/abejgonzalez/hyperscale-grpc-fleetbench.git
+[submodule "use-old-proto/protobuf-library-for-accel-ae"]
+	path = use-old-proto/protobuf-library-for-accel-ae
+	url = https://github.com/sagark/protobuf-library-for-accel-ae
