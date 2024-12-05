@@ -116,8 +116,8 @@ fi
 
 echo "Final sparse ELF file created: $OUTPUT_ELF"
 
-# # Optional: Clean up the work directory
-# # Uncomment the following line if you want to remove intermediate files
-# rm -rf "$WORK_DIR"
+# Optional: Clean up the work directory
+# Uncomment the following line if you want to remove intermediate files
+rm -rf "$WORK_DIR"
 
 exit 0

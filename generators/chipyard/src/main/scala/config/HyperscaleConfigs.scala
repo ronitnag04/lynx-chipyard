@@ -127,14 +127,21 @@ class HyperscaleReRoCCAcceleratorsNoSpad extends Config(
 )
 
 class DTMHyperscaleTotal1Config extends Config(
-  // new chipyard.config.WithNoUART ++                              // only use htif prints w/ checkpointing
-  // new freechips.rocketchip.subsystem.WithExtMemSize(BigInt(1024) << 20) ++
+  new chipyard.harness.WithCospike ++
+  new chipyard.config.WithTraceIO ++
+  new freechips.rocketchip.rocket.WithDebugROB ++
+  new chipyard.config.WithL2TLBs(0, 1) ++
+  new chipyard.harness.WithSimBlockDevice ++                // drive block-device IOs with SimBlockDevice
+  new testchipip.iceblk.WithBlockDevice ++
+  //new chipyard.config.WithUARTFIFOEntries(16384, 16384) ++ // huge so minimize delay on printing
+  new chipyard.config.WithNoUART ++                              // only use htif prints w/ checkpointing
+  new freechips.rocketchip.subsystem.WithExtMemSize(BigInt(256) << 20) ++
   new freechips.rocketchip.rocket.WithCease(false) ++
   new chipyard.config.WithNPMPs(0) ++
   new chipyard.harness.WithSerialTLTiedOff() ++
   new chipyard.config.WithDMIDTM() ++
   // new HyperscaleReRoCCAccelerators ++
-  new HyperscaleReRoCCAcceleratorsNoSpad ++
+  // new HyperscaleReRoCCAcceleratorsNoSpad ++
   new HyperscaleNRocketBaseConfig(1)
 )
 

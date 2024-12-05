@@ -145,9 +145,11 @@ fi
 SPIKEFLAGS+=" --pmpregions=0 --isa=$ISA -p$NHARTS"
 
 LOADARCH_FILE=$OUTPATH/loadarch
+LOADARCH_FILE2=$OUTPATH/good-trace.log
 RAWMEM_ELF=$OUTPATH/raw.elf
 LOADMEM_ELF=$OUTPATH/mem.elf
 CMDS_FILE=$OUTPATH/cmds_tmp.txt
+CMDS_FILE2=$OUTPATH/cmds_tmp2.txt
 SPIKECMD_FILE=$OUTPATH/spikecmd.sh
 SPIKEOUT_FILE=$OUTPATH/spikeout
 
@@ -189,6 +191,12 @@ do
     echo "reg $h mtval" >> $CMDS_FILE
     echo "reg $h mip" >> $CMDS_FILE
 
+    echo "reg $h misa" >> $CMDS_FILE
+    echo "reg $h mcounteren" >> $CMDS_FILE
+    echo "reg $h scounteren" >> $CMDS_FILE
+    echo "reg $h mcountinhibit" >> $CMDS_FILE
+    echo "reg $h tselect" >> $CMDS_FILE
+
     echo "reg $h mcycle" >> $CMDS_FILE
     echo "reg $h minstret" >> $CMDS_FILE
 
@@ -209,10 +217,21 @@ echo "quit" >> $CMDS_FILE
 
 echo "INCORRECT (missing libspikedevices): spike -d --debug-cmd=$CMDS_FILE $SPIKEFLAGS $BINARY" > $SPIKECMD_FILE
 
+echo "until abe 0x20013 0x20013" >> $CMDS_FILE2
+echo "commits" >> $CMDS_FILE2
+echo "untiln abe $INSN $INSN" >> $CMDS_FILE2
+echo "r 10000000" >> $CMDS_FILE2
+echo "quit" >> $CMDS_FILE2
+
 echo "Capturing state at checkpoint to spikeout"
 echo $NHARTS > $LOADARCH_FILE
 #spike -d --debug-cmd=$CMDS_FILE $SPIKEFLAGS --extension=rerocccluster $BINARY 2>> $LOADARCH_FILE
-spike -d --debug-cmd=$CMDS_FILE $SPIKEFLAGS  --extlib=libspikedevices.so --device=sifive_uart --device="iceblk,img=$IMG" $BINARY 2>> $LOADARCH_FILE
+#spike -d --debug-cmd=$CMDS_FILE $SPIKEFLAGS  --extlib=libspikedevices.so --device=sifive_uart --device="iceblk,img=$IMG" $BINARY 2>> $LOADARCH_FILE
+#spike -d --debug-cmd=$CMDS_FILE $SPIKEFLAGS  --extlib=libspikedevices.so --device="iceblk,img=$IMG" $BINARY 2>> $LOADARCH_FILE
+spike -d --debug-cmd=$CMDS_FILE $SPIKEFLAGS --extlib=libspikedevices.so --device="iceblk,img=$IMG" $BINARY 2>> $LOADARCH_FILE
+# echo "HERE"
+# spike -d --debug-cmd=$CMDS_FILE2 $SPIKEFLAGS --extlib=libspikedevices.so --device="iceblk,img=$IMG" $BINARY 2>> $LOADARCH_FILE2
+#spike -d --debug-cmd=$CMDS_FILE $SPIKEFLAGS $BINARY 2>> $LOADARCH_FILE
 sed -i '/stdout/d' $LOADARCH_FILE
 
 echo "Finding tohost/fromhost in elf file to inject in new elf"

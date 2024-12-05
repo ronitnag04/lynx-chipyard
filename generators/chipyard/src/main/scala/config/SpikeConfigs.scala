@@ -53,3 +53,22 @@ class SpikeUltraFastDevicesConfig extends Config(
   new icenet.WithIceNIC ++
   new testchipip.iceblk.WithBlockDevice ++
   new SpikeUltraFastConfig)
+
+class DTMSpike1Config extends Config(
+  // new chipyard.harness.WithCospike ++
+  // new chipyard.config.WithTraceIO ++
+  // new freechips.rocketchip.rocket.WithDebugROB ++
+  new chipyard.config.WithL2TLBs(0, 1) ++
+  new chipyard.harness.WithSimBlockDevice ++                // drive block-device IOs with SimBlockDevice
+  new testchipip.iceblk.WithBlockDevice ++
+  //new chipyard.config.WithUARTFIFOEntries(16384, 16384) ++ // huge so minimize delay on printing
+  new chipyard.config.WithNoUART ++                              // only use htif prints w/ checkpointing
+  new freechips.rocketchip.subsystem.WithExtMemSize(BigInt(256) << 20) ++
+  //new freechips.rocketchip.rocket.WithCease(false) ++
+  new chipyard.config.WithNPMPs(0) ++
+  new chipyard.harness.WithSerialTLTiedOff() ++
+  new chipyard.config.WithDMIDTM() ++
+  new chipyard.WithNSpikeCores(1) ++
+  //new chipyard.config.WithUniformBusFrequencies(2) ++               // configured to be as fast as possible
+  new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+  new chipyard.config.AbstractConfig)

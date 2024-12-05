@@ -11,7 +11,7 @@ def generate_linker_script(regions, output_filename):
         # Define a single MEMORY region
         f.write("MEMORY\n")
         f.write("{\n")
-        f.write("    MEM (rwx) : ORIGIN = 0x80000000, LENGTH = 0x400000000\n")
+        f.write("    MEM (rwx) : ORIGIN = 0x80000000, LENGTH = 0x10000000\n")
         f.write("}\n\n")
 
         # Define SECTIONS with specified origin addresses
