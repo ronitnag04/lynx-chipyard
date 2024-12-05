@@ -1,0 +1,13 @@
+diff --git a/src/google/protobuf/compiler/cpp/cpp_message.cc b/src/google/protobuf/compiler/cpp/cpp_message.cc
+index 705b799e1..3326a584b 100644
+--- a/src/google/protobuf/compiler/cpp/cpp_message.cc
++++ b/src/google/protobuf/compiler/cpp/cpp_message.cc
+@@ -639,7 +639,7 @@ MessageGenerator::MessageGenerator(
+ 
+     long long numfields = (maxfieldnum - minfieldnum) + 1;
+ 
+-    max_has_bit_index_ = numfields;
++    max_has_bit_index_ = numfields + 1; // AJG: +1 since you don't use the 0th bit ever
+     // We use -1 as a sentinel.
+     has_bit_indices_.resize(descriptor_->field_count(), -1);
+     for (auto field : optimized_order_) {

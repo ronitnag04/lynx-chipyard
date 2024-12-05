@@ -10,6 +10,7 @@ cd $SCRIPTDIR
 PROTOBUFREPO=$SCRIPTDIR/protobuf-library-for-accel-ae
 pushd $PROTOBUFREPO
 git submodule update --init --recursive
+git apply ../git.patch
 
 # use _build/ since protobuf repo already gitignores it
 X86BUILDDIR=$SCRIPTDIR/_build/x86

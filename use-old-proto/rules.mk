@@ -40,4 +40,4 @@ check-pkgconfig-x86:
 
 .PHONY: clean
 clean:
-	cd primitive-tests && rm -rf *.riscv *.x86 *.pb.cc *.pb.h
+	rm -rf *.riscv *.x86 *.pb.cc *.pb.h
