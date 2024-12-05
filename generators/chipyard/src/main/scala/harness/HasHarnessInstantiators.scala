@@ -22,7 +22,7 @@ case object MultiChipNChips extends Field[Option[Int]](None) // None means ignor
 case class MultiChipParameters(chipId: Int) extends Field[Parameters]
 case object BuildTop extends Field[Parameters => LazyModule]((p: Parameters) => new ChipTop()(p))
 case object HarnessClockInstantiatorKey extends Field[() => HarnessClockInstantiator]()
-case object HarnessBinderClockFrequencyKey extends Field[Double](100.0) // MHz
+case object HarnessBinderClockFrequencyKey extends Field[Double](500.0) // MHz
 case object MultiChipIdx extends Field[Int](0)
 case object DontTouchChipTopPorts extends Field[Boolean](true)
 
