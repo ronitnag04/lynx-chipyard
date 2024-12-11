@@ -1,6 +1,17 @@
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
+	name = "descriptor_printer",
+	hdrs = [
+		":descriptor_printer.h",
+	],
+	srcs = [
+		":descriptor_printer.c",
+	],
+	alwayslink = True,
+)
+
+cc_library(
 	name = "helpers",
 	hdrs = [
 		":helpers.h",

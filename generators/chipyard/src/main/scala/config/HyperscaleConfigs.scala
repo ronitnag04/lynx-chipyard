@@ -168,3 +168,16 @@ class HyperscaleSnappyCompressConfig extends Config(
   new compressacc.WithSnappyDecompressor(Some(BankedScratchpadParams(0x40000000L, 256 << 10))) ++
   // id0
   new HyperscaleNRocketBaseConfig(1))
+
+class CheckpointHyperscaleNRocketBaseConfig extends Config(
+  new HyperscaleReRoCCAcceleratorsNoSpad ++
+  new chipyard.config.WithNPMPs(0) ++
+  new chipyard.harness.WithSerialTLTiedOff() ++
+  new chipyard.config.WithDMIDTM() ++
+  new chipyard.config.WithNoUART ++                              // only use htif prints w/ checkpointing
+  new chipyard.config.WithL2TLBs(0, 1) ++
+  new freechips.rocketchip.rocket.WithCease(false) ++
+  new freechips.rocketchip.subsystem.WithExtMemSize(BigInt(256) << 20) ++
+  new HyperscaleUncore ++
+  new freechips.rocketchip.rocket.WithNHugeCores(1) ++
+  new chipyard.config.AbstractConfig)

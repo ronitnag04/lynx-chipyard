@@ -228,7 +228,8 @@ echo $NHARTS > $LOADARCH_FILE
 #spike -d --debug-cmd=$CMDS_FILE $SPIKEFLAGS --extension=rerocccluster $BINARY 2>> $LOADARCH_FILE
 #spike -d --debug-cmd=$CMDS_FILE $SPIKEFLAGS  --extlib=libspikedevices.so --device=sifive_uart --device="iceblk,img=$IMG" $BINARY 2>> $LOADARCH_FILE
 #spike -d --debug-cmd=$CMDS_FILE $SPIKEFLAGS  --extlib=libspikedevices.so --device="iceblk,img=$IMG" $BINARY 2>> $LOADARCH_FILE
-spike -d --debug-cmd=$CMDS_FILE $SPIKEFLAGS --extlib=libspikedevices.so --device="iceblk,img=$IMG" $BINARY 2>> $LOADARCH_FILE
+#spike -d --debug-cmd=$CMDS_FILE $SPIKEFLAGS --extlib=libspikedevices.so --device="iceblk,img=$IMG" $BINARY 2>> $LOADARCH_FILE
+spike -d --debug-cmd=$CMDS_FILE $SPIKEFLAGS $BINARY 2>> $LOADARCH_FILE
 # echo "HERE"
 # spike -d --debug-cmd=$CMDS_FILE2 $SPIKEFLAGS --extlib=libspikedevices.so --device="iceblk,img=$IMG" $BINARY 2>> $LOADARCH_FILE2
 #spike -d --debug-cmd=$CMDS_FILE $SPIKEFLAGS $BINARY 2>> $LOADARCH_FILE

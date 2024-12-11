@@ -11,6 +11,7 @@ all: $(rvtests) $(x86tests)
 	$(RVCPP) \
 		$(CPPFLAGS) \
 		-o $@ \
+		-I$(CURRENT_DIR)/../software/sharedapi \
 		$< \
 		$(protocc) \
 		`pkg-config --cflags --libs protobuf`
@@ -20,9 +21,13 @@ all: $(rvtests) $(x86tests)
 # note: pkg-config should be at the end
 %.x86: export PKG_CONFIG_PATH := $(X86INSTALLDIR)/lib/pkgconfig
 %.x86: %.cpp $(protos)
+	$(X86C) $(CFLAGS) \
+		-c $(CURRENT_DIR)/../software/sharedapi/descriptor_printer.c
 	$(X86CPP) \
 		$(CPPFLAGS) \
 		-o $@ \
+		-I$(CURRENT_DIR)/../software/sharedapi \
+		$(CURRENT_DIR)/descriptor_printer.o \
 		$< \
 		$(protocc) \
 		`pkg-config --cflags --libs protobuf`
