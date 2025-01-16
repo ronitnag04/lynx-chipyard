@@ -1,8 +1,5 @@
 #ifndef REROCC_SCHEDULER_H
 #define REROCC_SCHEDULER_H
-
-#if !defined(__x86_64__)
-
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -28,6 +25,7 @@ typedef struct __attribute__((aligned(16))) {
   // proto specific provide to scheduler (before schedule_run_on_acc)
   uint64_t size; // in bytes
   const void* descriptor_ptr; // also compression (for when comp_ratio can't be determined immediately)
+  uint64_t tid;
 
   // compression specific provide to scheduler (before schedule_run_on_acc)
   double compression_ratio;
@@ -36,11 +34,10 @@ typedef struct __attribute__((aligned(16))) {
   bool given_accelerator;
   uint8_t given_cfgid;
   uint8_t given_accid;
-  uint64_t blocked_cycles;
-  uint64_t start_cycle;
+  uint64_t blocked_sch_ns;
+  uint64_t start_sch_ns;
 
   // provide to scheduler (before schedule_release_and_update)
-  uint64_t runtime_cycles; // either this
   uint64_t runtime_ns; // or this
 } metadata_t;
 
@@ -61,11 +58,13 @@ void PassDeserInfoToScheduler(volatile uint8_t* fixed_alloc_region, volatile uin
 // TODO: must be just thread-safe
 void GetDeserInfoFromScheduler(volatile uint8_t** fixed_alloc_region_out, volatile uint8_t** array_alloc_region_out);
 
+void SetTputSer(const void* descriptor_ptr, uint32_t throughput_B_per_ns);
+
 void CompressMemSetup(void);
 void GiveCompressMemTemps(uint8_t acc_id, volatile uint8_t** litbuf_out, size_t* litbuf_sz_out, volatile uint8_t** seqbuf_out, size_t* seqbuf_sz_out);
 void DecompressMemSetup(void);
 void GiveDecompressMemTemps(uint8_t acc_id, volatile uint8_t** workspace_out, size_t* workspace_sz_out);
 
-#endif
+uint64_t get_cur_ns(void);
 
 #endif

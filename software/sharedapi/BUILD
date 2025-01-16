@@ -23,6 +23,17 @@ cc_library(
 )
 
 cc_library(
+	name = "hacks",
+	hdrs = [
+		":hacks.h",
+	],
+	srcs = [
+		":hacks.c"
+	],
+	alwayslink = True,
+)
+
+cc_library(
 	name = "queue",
 	hdrs = [
 		":queue.h",
@@ -103,7 +114,6 @@ cc_library(
 		":rerocc_scheduler.c"
 	],
 	deps = [
-		":rerocc",
 		":queue",
 		":helpers"
 	],

@@ -1,20 +1,22 @@
-#if !defined(__x86_64__)
-
 #define _GNU_SOURCE
 #include <assert.h>
 #include <pthread.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <sys/sysinfo.h>
 #include <sched.h>
 
 #include "rerocc_scheduler.h"
-#include "rerocc.h"
 #include "helpers.h"
 #include "queue.h"
 
 //#define USE_FEEDBACK (1)
+//#define printf(...) (0)
+#ifndef KEEP_ASSERTS
+#define assert(x) (x)
+#endif
 
 // ----- Section for Runtime Estimation Models ----- //
 
@@ -51,7 +53,7 @@ double xty[4][2] = {
 // ab is the model paramter, such that y=ax+b.
 // ab[1] is a and ab[0] is b (Math convention)
 // For compression, there can be more than one model...
-double ab[4][2] = {
+double ab[5][2] = {
   {1234, 1234},
   {1234, 1234},
   {1234, 1234},
@@ -63,57 +65,31 @@ double ab[4][2] = {
 // ----------------------------------------------- //
 
 
-#define MAX_PROTOBUF_SER_IDS (2)
-uint8_t protobuf_ser_accids[MAX_PROTOBUF_SER_IDS] = {6, 7};
+size_t MAX_PROTOBUF_SER_IDS;
+uint64_t protobuf_ser_accids[1000];
 
-#define MAX_PROTOBUF_DESER_IDS (2)
-uint8_t protobuf_deser_accids[MAX_PROTOBUF_DESER_IDS] = {4, 5};
-
-#define MAX_COMPRESS_IDS (1)
-uint8_t compress_accids[MAX_COMPRESS_IDS] = {8};
-
-#define MAX_DECOMPRESS_IDS (1)
-uint8_t decompress_accids[MAX_DECOMPRESS_IDS] = {9};
-
-#define MAX_ENCRYPT_DECRYPT_IDS (2)
-uint8_t encrypt_decrypt_accids[MAX_ENCRYPT_DECRYPT_IDS] = {0, 1};
-
-#define MAX_ACC_ID ((9) + 1) // max of the above ids
+#define MAX_ACC_ID (1000) // max of the above ids
 queue_t acc_running_q[MAX_ACC_ID]; // indexed by accid
 
+// HACK: fake accelerator busy or not
+bool acc_busy[MAX_ACC_ID];
+
 // fill arr + len with arr/len of the accelerator wanted
-void get_accids(acc_type_t acc_type, uint8_t** arr, uint8_t* len) {
-  switch (acc_type) {
-    case PROTOBUF_SER:
-      *arr = protobuf_ser_accids;
-      *len = MAX_PROTOBUF_SER_IDS;
-      break;
-    case PROTOBUF_DESER:
-      *arr = protobuf_deser_accids;
-      *len = MAX_PROTOBUF_DESER_IDS;
-      break;
-    case COMPRESS:
-      *arr = compress_accids;
-      *len = MAX_COMPRESS_IDS;
-      break;
-    case DECOMPRESS:
-      *arr = decompress_accids;
-      *len = MAX_DECOMPRESS_IDS;
-      break;
-    case ENCRYPT:
-    case DECRYPT:
-      *arr = encrypt_decrypt_accids;
-      *len = MAX_ENCRYPT_DECRYPT_IDS;
-      break;
-    default:
-      printf("SCHED: unsupported acc_type:%ld\n", acc_type);
-  }
+void get_accids(acc_type_t acc_type, uint64_t** arr, uint64_t* len) {
+  *arr = protobuf_ser_accids;
+  *len = MAX_PROTOBUF_SER_IDS;
 }
 
 pthread_mutex_t main_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t main_cond = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t queues_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t queues_cond = PTHREAD_COND_INITIALIZER;
+
+FILE *fp;
+
+#ifndef MAX_ACCS
+#define MAX_ACCS (2)
+#endif
 
 // scheduler can be shared between threads of a same process (client/server in 1 binary running localhost)
 // scheduler can be shared between threads of different process (client/server in 2 binaries running as localhost)
@@ -122,160 +98,77 @@ pthread_cond_t queues_cond = PTHREAD_COND_INITIALIZER;
 //
 // thus we can default to just synch. between threads of the same process
 void init_scheduler(void) {
+  //setbuf(stdout, NULL);
   // ok to clear twice (since we expect server will be setup before client)
   for (size_t i = 0; i < MAX_ACC_ID; ++i) {
     q_init(&acc_running_q[i]);
+    acc_busy[i] = false;
   }
 
-  int num_cores = get_nprocs();
-  printf("SCHED: init scheduler for %d cores\n", num_cores);
-
-  // double-check time measurements
-  struct timespec start, end;
-  uint64_t start_c = read_csr(cycle);
-  clock_gettime(CLOCK_MONOTONIC, &start);
-  uint64_t t = 10000000000;
-  while (t != 0) {
-    --t;
+  MAX_PROTOBUF_SER_IDS = MAX_ACCS;
+  for (size_t i = 0; i < MAX_ACCS; ++i) {
+    protobuf_ser_accids[i] = i;
   }
-  uint64_t end_c = read_csr(cycle);
-  clock_gettime(CLOCK_MONOTONIC, &end);
-  uint64_t elapsed_time = (end.tv_sec - start.tv_sec) * 1000000000UL + (end.tv_nsec - start.tv_nsec);
-  printf("SCHED: measured time: cycles:%ld ns:%ld\n", end_c - start_c, elapsed_time);
+
+  fp = fopen("sched.txt", "w");
+  if (fp == NULL) {
+    printf("SCHED: unable to open file\n");
+    exit(1);
+  }
+
+#ifdef PIN_CPU
+  cpu_set_t cpuset;
+  CPU_ZERO(&cpuset);
+  // pin to 1st 16c of the system (hopefully physical and not threads)
+  for (size_t i = 0; i < 16; ++i) {
+    CPU_SET(i, &cpuset);
+  }
+  sched_setaffinity(0/*current thread*/, sizeof(cpu_set_t), &cpuset); // bind current thread to current cpu
+#endif
 }
 
 typedef struct proto_rt_entry_t {
-  void* desc_ptr;
-  size_t throughput_b_per_ns; // this is in bytes
+  void* descriptor_ptr;
+  size_t ns_per_B; // this is in bytes
 } proto_rt_entry_t;
 
+#define MAX_ENTRIES 1000
 typedef struct proto_runtime_data_t {
-  proto_rt_entry_t* entries;
+  proto_rt_entry_t entries[MAX_ENTRIES];
   size_t num_entries;
 } proto_runtime_data_t;
 
 proto_runtime_data_t ser_data;
-proto_runtime_data_t deser_data;
 
-static size_t proto_runtime_ns(bool ser, void* desc_ptr, size_t size) {
-  proto_runtime_data_t* data = ser ? &ser_data : &deser_data;
-  for (size_t i = 0; i < data->num_entries; ++i) {
-    proto_rt_entry_t entry = data->entries[i];
-    if (entry.desc_ptr == desc_ptr) {
-      return size / entry.throughput_b_per_ns;
+static size_t cpu_proto_runtime_ns(void* descriptor_ptr, size_t size) {
+  for (size_t i = 0; i < ser_data.num_entries; ++i) {
+    proto_rt_entry_t entry = ser_data.entries[i];
+    if (entry.descriptor_ptr == descriptor_ptr) {
+      printf("CPU Prediction sz:%lu * ns_p_B:%lu = ns:%lu\n", size, entry.ns_per_B, size * entry.ns_per_B);
+      return size * entry.ns_per_B; // this is reverse ns_per_B
     }
   }
-  printf("SCHED: No proto prediction\n");
+
+  assert(false && "SHOULDN'T REACH HERE");
   return 0;
 }
 
-// Closed-form solution of linear regression, accounting all data points
-// y = ax+b. Provide a new datapoint (x, y).
-void update_linear(acc_type_t acc_type, double x, double y){
-  // Pick the correct xtx and xty using the accid
-//  xtx[0] += x*x; xtx[1] += x; xtx[2] += x; xtx[3] += 1;
-//  xty[0] += x*y; xty[1] += y;
-//  ab[1] = 1/(xtx[0]*xtx[3]-xtx[1]*xtx[2])*(xtx[3]*xty[0]-xtx[1]*xty[1]);
-//  ab[0] = 1/(xtx[0]*xtx[3]-xtx[1]*xtx[2])*(-xtx[2]*xty[0]-xtx[0]*xty[1]);
-  return;
-}
-
-// Replace a data point with the new one
-void update_encrypt(acc_type_t acc_type, size_t size, double throughput){
-// TODO: match the throughput unit (b/ns = Gb/s)
-// Find the range that fits - takes O(n)
-  if(acc_type==ENCRYPT){
-    for(int i=1; i<MAX_ENC_DEC_SAMPLES+1; ++i){
-      if(enc_sizes_sampled[i-1] <= size && size <= enc_sizes_sampled[i]){
-        enc_sizes_sampled[i] = size; //Replace the max of the range
-        enc_b_per_ns[i] = throughput/8;
-        return;
-      }
-    }
-  }
-  else if(acc_type==DECRYPT){
-    for(int i=1; i<MAX_ENC_DEC_SAMPLES+1; ++i){
-      if(dec_sizes_sampled[i-1] <= size && size <= dec_sizes_sampled[i]){
-        dec_sizes_sampled[i] = size; //Replace the max of the range
-        dec_b_per_ns[i] = throughput/8;
-        return;
-      }
-    }
-  }
-  else{
-    printf("Tried to update encryption but accelerator is not encryptor!\n");
-  }
-}
-
-void update(acc_type_t acc_type, size_t size, uint64_t runtime){
-  // I need the variables like file size, proto type, compressed file size
-  double throughput = (double)size/1000000000/runtime; //Gb/s
-  if(acc_type==PROTOBUF_SER || acc_type==PROTOBUF_DESER){
-    update_linear(acc_type, size, throughput);
-  }
-  else if(acc_type==COMPRESS || acc_type==DECOMPRESS){
-    double ratio = size / size; //FIXME: Need ratio
-    // Depending on the ratio and comp/decomp, update differently
-    update_linear(acc_type, ratio, throughput);
-  }
-  else if(acc_type==ENCRYPT || acc_type==DECRYPT){//encryption
-    update_encrypt(acc_type, size, throughput);
-  }
-  else{
-    //Throw an error
-  }
-}
-
-// TODO: For comp: We fix a type to a specific file, and use the ratio of that file
-double type_to_comp_ratio[] = {0.123, 0.456, 0.789, 0.000};
-static size_t compress_runtime_ns(bool comp, size_t decomp_size, double compression_ratio, int proto_type){
-  // comp=0: Decomp, comp=1: Comp
-  double ratio = comp ? type_to_comp_ratio[proto_type]: compression_ratio;
-  double throughput = 1; // Be aware of the unit! Should be bytes per sec.
-  if(ratio < 0.67) {
-    throughput = comp ? 1/(ab[COMPRESS][1]*ratio+ab[COMPRESS][0]) : ab[DECOMPRESS][1]*ratio+ab[DECOMPRESS][0];
-  }
-  else {
-    throughput = comp ? 1/(ab[COMPRESS][1]*ratio+ab[COMPRESS][0]) : 1/(ab[DECOMPRESS][1]*ratio+ab[DECOMPRESS][0]);
-  }
-  return (comp ? decomp_size*compression_ratio : decomp_size)/throughput;
-}
-
-// TODO: collected for AES128... need on firesim
-static size_t encrypt_runtime_ns(bool enc, size_t size) {
-  assert(size != 0);
-  // collect from baremetal testing w/ no contention
-  size_t max_idx = MAX_ENC_DEC_SAMPLES + 2;
-  for (size_t i = 0; i < MAX_ENC_DEC_SAMPLES + 1; ++i) {
-    size_t size_sampled = enc ? enc_sizes_sampled[i] : dec_sizes_sampled[i];
-    printf("SCHED: sz:%ld v.s. samplesz:%ld\n", size, size_sampled);
-    if (size < size_sampled) {
-      max_idx = i;
-      break;
+void update_ser(const void* descriptor_ptr, uint32_t ns_per_B){
+  for (size_t i = 0; i < ser_data.num_entries; ++i) {
+    proto_rt_entry_t* entry = &ser_data.entries[i];
+    // override prior entry w/ avg of the two
+    if (entry->descriptor_ptr == descriptor_ptr) {
+      entry->ns_per_B = (entry->ns_per_B + ns_per_B) / 2;
+      entry->ns_per_B = entry->ns_per_B == 0 ? 1 : entry->ns_per_B;
+      printf("Updating prediction %p with %ldns/B (input: %ldns/B)\n", descriptor_ptr, entry->ns_per_B, ns_per_B);
+      return;
     }
   }
 
-  printf("SCHED: max_idx:%ld\n", max_idx);
-
-  size_t* b_per_ns = (enc ? enc_b_per_ns : dec_b_per_ns);
-  size_t* sizes_sampled = (enc ? enc_sizes_sampled : dec_sizes_sampled);
-
-  size_t size_b = 8 * size;
-  if (max_idx == MAX_ENC_DEC_SAMPLES + 2) {
-    printf("SCHED: enc:%d do max est: maxtp:%ld\n", enc, b_per_ns[MAX_ENC_DEC_SAMPLES]);
-    return size_b / b_per_ns[MAX_ENC_DEC_SAMPLES];
-  } else {
-    // do interpolation to get close-ish throughput
-    size_t min_idx = max_idx - 1;
-    printf("SCHED: enc:%d interpolate: max:%ld min:%ld\n", enc, max_idx, min_idx);
-    size_t max_tput = b_per_ns[max_idx];
-    size_t min_tput = b_per_ns[min_idx];
-    printf("SCHED: enc:%d interpolate: maxtp:%ld mintp:%ld\n", enc, max_tput, min_tput);
-    return (size_b * (sizes_sampled[max_idx] - sizes_sampled[min_idx])) / ((size - sizes_sampled[min_idx]) * (max_tput - min_tput));
-  }
+  assert(false && "SHOULDN'T REACH HERE");
 }
 
-static bool is_queue_empty(uint8_t* accids, size_t accids_len, size_t* empty_queue_id) {
+static bool is_queue_empty(uint64_t* accids, size_t accids_len, size_t* empty_queue_id) {
   for (size_t i = 0; i < accids_len; ++i) {
     printf("SCHED: testing queueid:%lu sz:%lu\n", accids[i], q_size(&acc_running_q[accids[i]]));
     if (q_empty(&acc_running_q[accids[i]])) {
@@ -287,16 +180,17 @@ static bool is_queue_empty(uint8_t* accids, size_t accids_len, size_t* empty_que
   return false;
 }
 
-static bool is_ready_to_acquire(uint8_t* accids, size_t accids_len, size_t* ready_queue_id, metadata_t* in_metadata) {
+static bool is_ready_to_acquire(uint64_t* accids, size_t accids_len, size_t* ready_queue_id, metadata_t* in_metadata) {
   elem_t peek_metadata;
   for (size_t i = 0; i < accids_len; ++i) {
-    assert(q_peek(&acc_running_q[accids[i]], &peek_metadata));
-    printf("SCHED: peeked queueid:%lu peeked:%lx in:%lx masked:%lx\n", accids[i], peek_metadata.metadata, (uint64_t)in_metadata, (peek_metadata.metadata & (~METADATA_MASK)));
-    if ((peek_metadata.metadata & (~METADATA_MASK)) == (uint64_t)in_metadata) {
-      printf("SCHED: metadata match\n");
-      assert((peek_metadata.metadata & METADATA_MASK) == 0); // should be not running
-      *ready_queue_id = accids[i];
-      return true;
+    if (q_peek(&acc_running_q[accids[i]], &peek_metadata)) {
+      printf("SCHED: peek queueid:%lu peeked:%lx in:%lx\n", accids[i], peek_metadata.metadata, in_metadata->tid);
+      if (peek_metadata.metadata == in_metadata->tid) {
+        printf("SCHED: metadata match\n");
+        assert(!peek_metadata.running); // should be not running
+        *ready_queue_id = accids[i];
+        return true;
+      }
     }
   }
   return false;
@@ -306,7 +200,7 @@ static bool is_ready_to_acquire(uint8_t* accids, size_t accids_len, size_t* read
 // if queue = empty -> then nothing running
 // if queue has elem -> that elem is either running or is up next to run
 // if queue has multiple elems -> 1 elem is same as above, next ones are waiting
-bool grab_accelerator_queued(metadata_t* in_metadata, pthread_cond_t* queues_cond, bool* previously_enqueued, uint8_t* accids, size_t accids_len, int32_t* out_cfgid, size_t* out_accid) {
+bool grab_accelerator_queued(metadata_t* in_metadata, pthread_cond_t* queues_cond, bool* previously_enqueued, uint64_t* accids, size_t accids_len, int32_t* out_cfgid, size_t* out_accid) {
   size_t cur_accid;
   bool any_queue_empty = is_queue_empty(accids, accids_len, &cur_accid);
 
@@ -353,23 +247,11 @@ bool grab_accelerator_queued(metadata_t* in_metadata, pthread_cond_t* queues_con
 
   // either a q is empty (i.e. accel not in use) or a q's 1st element is waiting for accel and just needs to be allocated
 
-  int cfgid = rr_viable_cfgid(); // per CPU
-  if (cfgid == -1) {
-    printf("SCHED: unable to grab cfgid\n");
-    return false;
-  }
-  *out_cfgid = cfgid;
-  printf("SCHED: set cfgid:%d\n", cfgid);
-
-  if (!rr_is_viable_opcode(in_metadata->opcode, cfgid)) {
-    printf("SCHED: unable to grab opcode:%d with cfgid:%d\n", in_metadata->opcode, cfgid);
-    return false;
-  }
-  rr_set_opc(in_metadata->opcode, cfgid); // per CPU
-  printf("SCHED: set opcode:%d\n", in_metadata->opcode);
+  *out_cfgid = -1;
 
   printf("SCHED: acquiring accid:%lu\n", cur_accid);
-  assert(rr_acquire_single(cfgid, cur_accid)); // per CPU
+  assert(!acc_busy[cur_accid]);
+  acc_busy[cur_accid] = true;
   *out_accid = cur_accid;
 
   if (!was_waiting) {
@@ -378,7 +260,7 @@ bool grab_accelerator_queued(metadata_t* in_metadata, pthread_cond_t* queues_con
     e.metadata = (uint64_t)in_metadata | METADATA_MASK;
     assert(q_enqueue(&acc_running_q[cur_accid], e));
   } else {
-    printf("SCHED: poke queueid:%lu to %lx\n", (uint64_t)in_metadata | METADATA_MASK);
+    printf("SCHED: poke queueid:%lu to %lx\n", cur_accid, (uint64_t)in_metadata | METADATA_MASK);
     elem_t peeked_metadata;
     assert(q_peek(&acc_running_q[cur_accid], &peeked_metadata));
     assert(peeked_metadata.metadata == (uint64_t)in_metadata);
@@ -390,39 +272,28 @@ bool grab_accelerator_queued(metadata_t* in_metadata, pthread_cond_t* queues_con
 }
 
 void pthread_cond_wait_wrapper(const char* prefix, pthread_cond_t *restrict cond, pthread_mutex_t *restrict mutex) {
-  //pthread_cond_wait(cond, mutex);
-  struct timespec timeout;
-  clock_gettime(CLOCK_REALTIME, &timeout);
-  timeout.tv_sec += 30;
-  if (pthread_cond_timedwait(cond, mutex, &timeout)) {
-    printf("TIMEOUT:%s: tid:%lu cpuid:%lu\n", prefix, pthread_self(), sched_getcpu());
-    exit(1);
-  }
+  pthread_cond_wait(cond, mutex);
+  // struct timespec timeout;
+  // clock_gettime(CLOCK_BOOTTIME, &timeout);
+  // timeout.tv_sec += 30;
+  // if (pthread_cond_timedwait(cond, mutex, &timeout)) {
+  //   printf("TIMEOUT:%s: tid:%lu cpuid:%lu\n", prefix, pthread_self(), sched_getcpu());
+  //   exit(1);
+  // }
 }
 
-bool grab_accelerator(metadata_t* in_metadata, uint8_t* accids, size_t accids_len, int32_t* out_cfgid, size_t* out_accid) {
-  int cfgid = rr_viable_cfgid(); // per CPU
-  if (cfgid == -1) {
-    printf("SCHED: unable to grab cfgid\n");
-    return false;
-  }
-  *out_cfgid = cfgid;
-  printf("SCHED: set cfgid:%d\n", cfgid);
-
-  if (!rr_is_viable_opcode(in_metadata->opcode, cfgid)) {
-    printf("SCHED: unable to grab opcode:%d with cfgid:%d\n", in_metadata->opcode, cfgid);
-    return false;
-  }
-  rr_set_opc(in_metadata->opcode, cfgid); // per CPU
-  printf("SCHED: set opcode:%d\n", in_metadata->opcode);
+bool grab_accelerator(metadata_t* in_metadata, uint64_t* accids, size_t accids_len, int32_t* out_cfgid, size_t* out_accid) {
+  *out_cfgid = -1;
 
   bool acq = false;
   for (size_t i = 0; i < accids_len; ++i) {
     printf("SCHED: attempting acquire of %lu\n", accids[i]);
-    acq = rr_acquire_single(cfgid, accids[i]); // per CPU
-    if (acq) {
-      *out_accid = accids[i];
-      printf("SCHED: acquired accid:%d to cfgid:%d\n", *out_accid, cfgid);
+    uint64_t accid = accids[i];
+    if (!acc_busy[accid]) {
+      *out_accid = accid;
+      acc_busy[accid] = true;
+      acq = true;
+      printf("SCHED: acquired accid:%d to cfgid:%d\n", *out_accid, -1);
       break;
     }
   }
@@ -431,63 +302,104 @@ bool grab_accelerator(metadata_t* in_metadata, uint8_t* accids, size_t accids_le
 }
 
 uint64_t get_est_acc_runtime_ns(metadata_t* metadata) {
-  uint64_t prediction_ns = 0;
-  switch (metadata->acc_type) {
-    case PROTOBUF_SER:
-      prediction_ns = proto_runtime_ns(true, (void*)metadata->descriptor_ptr, metadata->size);
-      break;
-    case PROTOBUF_DESER:
-      prediction_ns = proto_runtime_ns(false, (void*)metadata->descriptor_ptr, metadata->size);
-      break;
-    case COMPRESS:
-      //TODO: compression ratio is unknown for the compressor. Pass the proto type (Now set to 0).
-      prediction_ns = compress_runtime_ns(true, metadata->size, metadata->compression_ratio, 0);
-      break;
-    case DECOMPRESS:
-      prediction_ns = compress_runtime_ns(false, metadata->size, metadata->compression_ratio, 0);
-      break;
-    case ENCRYPT:
-      prediction_ns = encrypt_runtime_ns(true, metadata->size);
-      break;
-    case DECRYPT:
-      prediction_ns = encrypt_runtime_ns(false, metadata->size);
-      break;
-  }
-
-  printf("SCHED: acc_type:%d est_runtime_ns:%ld\n", metadata->acc_type, prediction_ns);
-  return prediction_ns;
+  return cpu_proto_runtime_ns((void*)metadata->descriptor_ptr, metadata->size) / ACC_SPEEDUP;
 }
 
 uint64_t get_est_cpu_runtime_ns(metadata_t* metadata) {
-  return get_est_acc_runtime_ns(metadata) * 1000; // TODO: fix
+  return cpu_proto_runtime_ns((void*)metadata->descriptor_ptr, metadata->size);
 }
 
 #ifdef FCFS_RUNTIME_SKIP
-// technically this is a combo of blocking if wanting an acc, or skipping if not
-// if an accelerator is free:
-//   mark global start time, est. acc. completion time in queue
-// else:
-//   get est. cpu completion time
-//   if est. cpu completion time is < time to wait for an accelerator (gotten from summing all requests in acc queue - (current global time - global start time of current task running)) + est. acc. runtime
-//     run on cpu
-//   else:
-//     enqueue on shortest accelerator queue, block until accelerator queue dequeued
-bool grab_accelerator_queued_runtime(metadata_t* in_metadata, pthread_cond_t* queues_cond, bool* previously_enqueued, bool* run_on_cpu, uint8_t* accids, size_t accids_len, int32_t* out_cfgid, size_t* out_accid) {
-  struct timespec time;
-  clock_gettime(CLOCK_MONOTONIC, &time);
-  uint64_t cur_time_ns = time.tv_sec * 1000000000 + time.tv_nsec;
+  /*
+   * if prev_enqueued:
+   *   if was_waiting:
+   *     change to running, break out of loop
+   *   else:
+   *     continue loop
+   * else:
+   *   if a queue is empty:
+   *     enqueue into empty queue, change to running, break out of loop
+   *   else:
+   *     all queues have elements
+   *     choose queue that is "best" to enqueue into it (only if it makes sense w.r.t running on CPU)
+   */
+bool grab_accelerator_queued_runtime(metadata_t* in_metadata, pthread_cond_t* queues_cond, bool* previously_enqueued, bool* run_on_cpu, uint64_t* accids, size_t accids_len, int32_t* out_cfgid, size_t* out_accid) {
+  uint64_t cur_time_ns = get_cur_ns();
 
-  uint64_t est_acc_runtime_ns = get_est_acc_runtime_ns(in_metadata);
+  if (*previously_enqueued) {
+    printf("SCHED: tid:%ld: previously enqueued\n", in_metadata->tid);
+    size_t cur_accid;
+    if (is_ready_to_acquire(accids, accids_len, &cur_accid, in_metadata)) {
+      printf("SCHED: tid:%ld: in front of queue, start running on q%lu\n", in_metadata->tid, cur_accid);
 
-  size_t cur_accid;
-  bool any_queue_empty = is_queue_empty(accids, accids_len, &cur_accid);
-  bool was_waiting = false;
+      // check it's not in any queue already
+#ifdef KEEP_ASSERTS
+      for (size_t i = 0; i < accids_len; ++i) {
+        if (accids[i] != cur_accid) {
+          printf("SCHED: tid:%ld: check %ld q for tid\n", in_metadata->tid, accids[i]);
+          assert(!q_found(&acc_running_q[accids[i]], in_metadata->tid));
+        }
+      }
+#endif
 
-  if (!any_queue_empty) {
-    printf("SCHED: no queues free\n");
-    if (!(*previously_enqueued)) {
-      printf("SCHED: hasn't been enqueued yet. maybe will enqueue or skip\n");
+      // modify front of queue
+      elem_t peeked_metadata;
+      assert(q_peek(&acc_running_q[cur_accid], &peeked_metadata));
+      assert(peeked_metadata.metadata == in_metadata->tid);
+      peeked_metadata.metadata = in_metadata->tid;
+      peeked_metadata.running = true;
+      peeked_metadata.ns_since_epoch = cur_time_ns;
+      assert(q_poke(&acc_running_q[cur_accid], peeked_metadata));
+      pthread_cond_broadcast(queues_cond);
 
+      // modify acc busy
+      assert(!acc_busy[cur_accid]);
+      acc_busy[cur_accid] = true;
+      *out_accid = cur_accid;
+
+      return true;
+    } else {
+      printf("SCHED: tid:%ld: waiting in queue\n", in_metadata->tid); // elem didn't get to front of the line
+      return false;
+    }
+  } else {
+    printf("SCHED: tid:%ld: not previously enqueued\n", in_metadata->tid);
+    uint64_t est_acc_runtime_ns = get_est_acc_runtime_ns(in_metadata);
+
+    size_t cur_accid;
+    if (is_queue_empty(accids, accids_len, &cur_accid)) {
+      printf("SCHED: tid:%ld: putting in empty queue q%lu\n", in_metadata->tid, cur_accid);
+
+#ifdef KEEP_ASSERTS
+      // check it's not in any queue already
+      for (size_t i = 0; i < accids_len; ++i) {
+        printf("SCHED: tid:%ld: check %ld q for tid\n", in_metadata->tid, accids[i]);
+        assert(!q_found(&acc_running_q[accids[i]], in_metadata->tid));
+      }
+#endif
+
+#ifdef KEEP_ASSERTS
+      // put into queue
+      assert(q_empty(&acc_running_q[cur_accid]));
+#endif
+      elem_t e;
+      e.ns_since_epoch = cur_time_ns;
+      e.est_acc_ns = est_acc_runtime_ns;
+      e.metadata = in_metadata->tid;
+      e.running = true;
+      assert(q_enqueue(&acc_running_q[cur_accid], e));
+      pthread_cond_broadcast(queues_cond);
+
+      // modify acc busy
+      assert(!acc_busy[cur_accid]);
+      acc_busy[cur_accid] = true;
+      *out_accid = cur_accid;
+
+      return true;
+    } else {
+      printf("SCHED: tid:%ld: all queues has some elements (maybe enqueue or skip acc)\n", in_metadata->tid);
+
+      // choose best queue (if wanting to run on acc)
       bool run_on_acc = false;
       size_t best_queue_accid = accids[0];
       uint64_t cur_min = UINT64_MAX;
@@ -495,7 +407,7 @@ bool grab_accelerator_queued_runtime(metadata_t* in_metadata, pthread_cond_t* qu
       for (size_t i = 0; i < accids_len; ++i) {
         elem_t e;
         assert(q_peek(&acc_running_q[accids[i]], &e));
-        bool is_running = ((e.metadata & METADATA_MASK) != 0);
+        bool is_running = e.running;
         uint64_t acc_block_for_at_least_ns = q_sum(&acc_running_q[accids[i]]);
         uint64_t running_or_nextup_start_ns = e.ns_since_epoch;
         uint64_t time_since_first_acc_started_ns = cur_time_ns - running_or_nextup_start_ns;
@@ -503,246 +415,295 @@ bool grab_accelerator_queued_runtime(metadata_t* in_metadata, pthread_cond_t* qu
          // only subtract if is actually running otherwise assume the worst
         int64_t ns_left_for_all_accs = acc_block_for_at_least_ns - (is_running ? time_since_first_acc_started_ns : 0);
         ns_left_for_all_accs = (ns_left_for_all_accs > 0 ? ns_left_for_all_accs : 0);
-        printf("SCHED: queueid:%d is_running:%d sum:%ld timesincestart:%ld nsleft:%ld\n", accids[i], is_running, acc_block_for_at_least_ns, time_since_first_acc_started_ns, ns_left_for_all_accs);
+        printf("SCHED: tid:%ld: q%lu is_running:%d sum:%ld timesincestart:%ld nsleft:%ld\n", in_metadata->tid, accids[i], is_running, acc_block_for_at_least_ns, time_since_first_acc_started_ns, ns_left_for_all_accs);
 
         if (est_cpu_runtime_ns > (ns_left_for_all_accs + est_acc_runtime_ns)) {
-          printf("SCHED: cpu expected to take longer than accs: cpu:%ld accs:%ld\n", est_cpu_runtime_ns, ns_left_for_all_accs + est_acc_runtime_ns);
+          printf("SCHED: tid:%ld: cpu expected to take longer than accs: cpu:%ld accs:%ld\n", in_metadata->tid, est_cpu_runtime_ns, ns_left_for_all_accs + est_acc_runtime_ns);
           run_on_acc = true;
           // find the accid queue that would be fastest
           if (est_acc_runtime_ns < cur_min) {
             cur_min = est_acc_runtime_ns;
             best_queue_accid = accids[i];
-            printf("SCHED: best_queue_accid:%d\n", best_queue_accid);
+            printf("SCHED: tid:%ld: best_queue_accid:%d\n", in_metadata->tid, best_queue_accid);
           }
         }
       }
 
+      // here run_on_acc, best_queue_accid set
       if (run_on_acc) {
         // enqueue on best_queue_accid's queue to wait (since we are guaranteed that something is before this)
         // block waiting for a change in the queue
-        printf("SCHED: attempt enqueue into queue:%d for waiting\n", best_queue_accid);
+        printf("SCHED: tid:%ld: want to run on acc, but need to wait (attempt enqueue into q%d)\n", in_metadata->tid, best_queue_accid);
+
+#ifdef KEEP_ASSERTS
+        // check it's not in any queue already
+        for (size_t i = 0; i < accids_len; ++i) {
+          printf("SCHED: tid:%ld: check %ld q for tid\n", in_metadata->tid, accids[i]);
+          assert(!q_found(&acc_running_q[accids[i]], in_metadata->tid));
+        }
+#endif
 
         elem_t e;
         e.ns_since_epoch = cur_time_ns;
         e.est_acc_ns = est_acc_runtime_ns;
-        e.metadata = (uint64_t)in_metadata & ~METADATA_MASK;
+        e.metadata = in_metadata->tid;
+        e.running = false;
         if (q_enqueue(&acc_running_q[best_queue_accid], e)) {
-          printf("SCHED: success, enqueued for waiting\n");
+          pthread_cond_broadcast(queues_cond);
+          printf("SCHED: tid:%ld: success, enqueued for waiting\n", in_metadata->tid);
           *previously_enqueued = true;
         } else {
-          printf("SCHED: unable to enqueue for waiting\n");
+          printf("SCHED: tid:%ld: unable to enqueue for waiting\n", in_metadata->tid);
         }
+
         return false;
       } else {
-        printf("SCHED: choose to run on cpu\n");
+        printf("SCHED: tid:%ld: choose to run on cpu\n", in_metadata->tid);
         *run_on_cpu = true;
+
         return true;
-      }
-    } else {
-      printf("SCHED: was already enqueued\n"); // so check the 1st element
-      was_waiting = is_ready_to_acquire(accids, accids_len, &cur_accid, in_metadata);
-      if (!was_waiting) {
-        printf("SCHED: this thread not waiting\n"); // elem didn't get to front of the line
-        return false;
       }
     }
   }
 
-  // if here then, a queue was empty OR (prev. enqueued and was_waiting to acquire)
-  // either a q is empty (i.e. accel not in use) or a q's 1st element is waiting for accel and just needs to be allocated
-
-  int cfgid = rr_viable_cfgid(); // per CPU
-  if (cfgid == -1) {
-    printf("SCHED: unable to grab cfgid\n");
-    return false;
-  }
-  *out_cfgid = cfgid;
-  printf("SCHED: set cfgid:%d\n", cfgid);
-
-  if (!rr_is_viable_opcode(in_metadata->opcode, cfgid)) {
-    printf("SCHED: unable to grab opcode:%d with cfgid:%d\n", in_metadata->opcode, cfgid);
-    return false;
-  }
-  rr_set_opc(in_metadata->opcode, cfgid); // per CPU
-  printf("SCHED: set opcode:%d\n", in_metadata->opcode);
-
-  printf("SCHED: acquiring accid:%lu\n", cur_accid);
-  assert(rr_acquire_single(cfgid, cur_accid)); // per CPU
-  *out_accid = cur_accid;
-
-  if (!was_waiting) {
-    printf("SCHED: enqueuing queueid:%lu\n", cur_accid);
-    elem_t e;
-    e.ns_since_epoch = cur_time_ns;
-    e.est_acc_ns = est_acc_runtime_ns;
-    e.metadata = (uint64_t)in_metadata | METADATA_MASK;
-    assert(q_enqueue(&acc_running_q[cur_accid], e));
-  } else {
-    printf("SCHED: poke queueid:%lu to %lx\n", (uint64_t)in_metadata | METADATA_MASK);
-    elem_t peeked_metadata;
-    assert(q_peek(&acc_running_q[cur_accid], &peeked_metadata));
-    assert(peeked_metadata.metadata == (uint64_t)in_metadata);
-    peeked_metadata.metadata = (uint64_t)in_metadata | METADATA_MASK;
-    peeked_metadata.ns_since_epoch = cur_time_ns;
-    assert(q_poke(&acc_running_q[cur_accid], peeked_metadata));
-  }
-
-  return true;
+  assert(false && "SHOULD NOT GET HERE");
 }
 #endif
 
+
+#ifdef FCFS_RUNTIME_SKIP_OPT
+  /*
+   *   if a queue is empty:
+   *     enqueue into empty queue, change to running, break out of loop
+   *   else:
+   *     all queues have elements
+   *     choose queue that is "best" to enqueue into it (only if it makes sense w.r.t running on CPU),
+   *        enqueue means putting the cond_var into the queue and also stalling on it (if woken up then it is in the front of the q)
+   */
+
+// returns if running on cpu
+bool grab_accelerator_queued_runtime_opt(metadata_t* in_metadata, uint64_t* accids, size_t accids_len, size_t* out_accid) {
+  uint64_t est_acc_runtime_ns = get_est_acc_runtime_ns(in_metadata);
+
+  size_t cur_accid;
+  if (is_queue_empty(accids, accids_len, &cur_accid)) {
+    printf("SCHED: tid:%ld: putting in empty queue q%lu\n", in_metadata->tid, cur_accid);
+
+// #ifdef KEEP_ASSERTS
+//     // check it's not in any queue already
+//     for (size_t i = 0; i < accids_len; ++i) {
+//       printf("SCHED: tid:%ld: check %ld q for tid\n", in_metadata->tid, accids[i]);
+//       assert(!q_found(&acc_running_q[accids[i]], in_metadata->tid));
+//     }
+// #endif
+
+// #ifdef KEEP_ASSERTS
+//     // put into queue
+//     assert(q_empty(&acc_running_q[cur_accid]));
+// #endif
+
+    elem_t e;
+    e.ns_since_epoch = get_cur_ns();
+    e.est_acc_ns = est_acc_runtime_ns;// + 500; // AJG: TODO: add fudge factor (time to enqueue, do other stuff, etc), context swtich ~1us so add 1/2 of that?
+    //e.metadata = in_metadata->tid;
+    e.running = true;
+    pthread_cond_t* thread_cond; // unused
+    assert(q_enqueue_ptr(&acc_running_q[cur_accid], &e, &thread_cond));
+
+    // modify acc busy (i.e. running on acc)
+    assert(!acc_busy[cur_accid]);
+    acc_busy[cur_accid] = true;
+    *out_accid = cur_accid;
+
+    return false;
+  } else {
+    printf("SCHED: tid:%ld: all queues has some elements (maybe enqueue or skip acc)\n", in_metadata->tid);
+
+    // choose best queue (if wanting to run on acc)
+    bool run_on_acc = false;
+    size_t best_queue_accid = accids[0];
+    uint64_t cur_min = UINT64_MAX;
+    uint64_t est_cpu_runtime_ns = get_est_cpu_runtime_ns(in_metadata);
+    for (size_t i = 0; i < accids_len; ++i) {
+      elem_t e;
+      assert(q_peek(&acc_running_q[accids[i]], &e));
+      bool is_running = e.running;
+      uint64_t acc_block_for_at_least_ns = q_sum(&acc_running_q[accids[i]]);
+      uint64_t running_or_nextup_start_ns = e.ns_since_epoch; // when enqueued and is running this time is valid (i.e. time from when acc was grabbed/started work)
+      uint64_t time_since_first_acc_started_ns = get_cur_ns() - running_or_nextup_start_ns;
+
+       // only subtract if is actually running otherwise assume the worst
+      int64_t ns_left_for_all_accs = acc_block_for_at_least_ns - (is_running ? time_since_first_acc_started_ns : 0);
+      ns_left_for_all_accs = (ns_left_for_all_accs > 0 ? ns_left_for_all_accs : 0);
+      printf("SCHED: tid:%ld: q%lu is_running:%d sum:%ld timesincestart:%ld nsleft:%ld\n", in_metadata->tid, accids[i], is_running, acc_block_for_at_least_ns, time_since_first_acc_started_ns, ns_left_for_all_accs);
+
+      if (est_cpu_runtime_ns > (ns_left_for_all_accs + est_acc_runtime_ns)) {
+        printf("SCHED: tid:%ld: cpu expected to take longer than accs: cpu:%ld accs:%ld\n", in_metadata->tid, est_cpu_runtime_ns, ns_left_for_all_accs + est_acc_runtime_ns);
+        run_on_acc = true;
+        // find the accid queue that would be fastest
+        if (est_acc_runtime_ns < cur_min) {
+          cur_min = est_acc_runtime_ns;
+          best_queue_accid = accids[i];
+          printf("SCHED: tid:%ld: best_queue_accid:%d\n", in_metadata->tid, best_queue_accid);
+        }
+      }
+    }
+
+    // here run_on_acc, best_queue_accid set
+    if (run_on_acc) {
+      // enqueue on best_queue_accid's queue to wait (since we are guaranteed that something is before this)
+      // block waiting for a change in the queue
+      printf("SCHED: tid:%ld: want to run on acc, but need to wait (attempt enqueue into q%d)\n", in_metadata->tid, best_queue_accid);
+
+// #ifdef KEEP_ASSERTS
+//       // check it's not in any queue already
+//       for (size_t i = 0; i < accids_len; ++i) {
+//         printf("SCHED: tid:%ld: check %ld q for tid\n", in_metadata->tid, accids[i]);
+//         assert(!q_found(&acc_running_q[accids[i]], in_metadata->tid));
+//       }
+// #endif
+
+      if (q_full(&acc_running_q[best_queue_accid])) {
+        printf("SCHED: tid:%ld: blocking, queue is full\n", in_metadata->tid);
+        pthread_cond_wait(acc_running_q[best_queue_accid].full_cond, &queues_mutex);
+        printf("SCHED: tid:%ld: unblocking, queue has space\n", in_metadata->tid);
+      }
+
+      // TODO: enqueue gives a ptr which you can fill (also access the cond var)
+      elem_t e;
+      e.est_acc_ns = est_acc_runtime_ns;// + 500; // AJG: see fudge factor comment above
+      //e.metadata = in_metadata->tid;
+      e.running = false;
+      pthread_cond_t* thread_cond;
+      assert(q_enqueue_ptr(&acc_running_q[best_queue_accid], &e, &thread_cond));
+      printf("SCHED: tid:%ld: success, enqueued for waiting, blocking\n", in_metadata->tid);
+      pthread_cond_wait(thread_cond, &queues_mutex);
+      printf("SCHED: tid:%ld: success, acc should be free and ready to run this thread\n", in_metadata->tid);
+      // i.e. this element is now at the front (need to change running to true, and set time)
+// #ifdef KEEP_ASSERTS
+//       assert(q_peek(&acc_running_q[best_queue_accid], &e));
+//       //assert(e.metadata == in_metadata->tid);
+//       assert(e.running == false);
+// #endif
+      assert(q_poke_running(&acc_running_q[best_queue_accid], get_cur_ns())); // updates running and time at same time (i.e. acc started)
+
+      // modify acc busy
+      assert(!acc_busy[best_queue_accid]);
+      acc_busy[best_queue_accid] = true;
+      *out_accid = best_queue_accid;
+
+      return false;
+    } else {
+      printf("SCHED: tid:%ld: choose to run on cpu\n", in_metadata->tid);
+      return true;
+    }
+  }
+}
+#endif
+
+uint64_t get_cur_ns(void) {
+  struct timespec ts;
+  clock_gettime(CLOCK_BOOTTIME, &ts);
+  return (1e9 * ts.tv_sec) + ts.tv_nsec;
+}
+
 // has the potential to block
 void schedule_run_on_acc(metadata_t* metadata) {
-  setbuf(stdout, NULL);
+  metadata->start_sch_ns = get_cur_ns();
   pthread_t tid = pthread_self();
-  printf("SCHED: schedule_run_on_acc: tid:%lu coreid:%lu meta:%p acc_type:%d opcode:%d\n", tid, sched_getcpu(), metadata, metadata->acc_type, metadata->opcode);
-  switch (metadata->acc_type) {
-    case PROTOBUF_SER:
-    case PROTOBUF_DESER:
-      printf("SCHED: proto ser/des: size:%lu descptr:%p\n", metadata->size, metadata->descriptor_ptr);
-      break;
-    case COMPRESS:
-      printf("SCHED: compress: size:%lu descptr:%p\n", metadata->size, metadata->descriptor_ptr);
-      break;
-    case DECOMPRESS:
-      printf("SCHED: decompress: size:%lu descptr:%p compratio:%.2f\n", metadata->size, metadata->descriptor_ptr, metadata->compression_ratio);
-      break;
-    case ENCRYPT:
-    case DECRYPT:
-      printf("SCHED: enc: size:%lu\n", metadata->size);
-      break;
-    default:
-      printf("SCHED: unsupported acc_type:%ld\n", metadata->acc_type);
-  }
+  metadata->tid = tid;
 
-  metadata->given_accelerator = false;
-
-#ifdef USE_REROCC
-  // need to pin current thread id to a specific CPU s.t. acquire + release happen on the same CPU
-  // otherwise you can have a race where CPUN can acquire and CPUM can release keeping the accelerator locked.
-  cpu_set_t cpuset;
-  CPU_ZERO(&cpuset);
-  int cpuid = sched_getcpu();
-  CPU_SET(cpuid, &cpuset); // set affinity to current cpu
-  sched_setaffinity(0/*current thread*/, sizeof(cpu_set_t), &cpuset); // bind current thread to current cpu
-
-  uint8_t* accids;
-  uint8_t accids_len;
+#if defined(FCFS_SKIP)
+  uint64_t* accids;
+  uint64_t accids_len;
   get_accids(metadata->acc_type, &accids, &accids_len);
-
   // grabbing a cfgid, then accelerator, then opcode are combined (since a cfgid + accid + opc lifetimes are matched)
-  int32_t cfgid;
   bool acq = false;
   size_t cur_accid;
-#if defined(FCFS_SKIP)
-  bool viable;
-  cfgid = rr_viable_cfgid(); // this is per-core so no need to lock
-  printf("SCHED: using cfgid:%d\n", cfgid);
-  if (cfgid == -1) {
-    metadata->given_accelerator = false;
-    return;
-  }
-
+  pthread_mutex_lock(&main_mutex);
   for (size_t i = 0; i < accids_len; ++i) {
     printf("SCHED: attempting acquire of %lu\n", accids[i]);
-    acq = rr_acquire_single(cfgid, accids[i]); // this is synch. across SoC so no need to lock
-    if (acq) {
-      cur_accid = accids[i];
+    uint64_t accid = accids[i];
+    if (!acc_busy[accid]) {
+      cur_accid = accid;
+      acc_busy[accid] = true;
+      acq = true;
       break;
     }
   }
-
-  printf("SCHED: acq:%d cur_accid:%lu\n", acq, cur_accid);
-
-  // order matters, need to acquire 1st
-  // need to check if the accelerator is being used AND if the opcode is available
-  viable = rr_is_viable_opcode(metadata->opcode, cfgid); // this is per-core so no need to lock
-  printf("SCHED: viable:%d\n", viable);
-  if (acq && viable) {
-    metadata->given_accelerator = true;
-    metadata->given_cfgid = cfgid;
-    metadata->given_accid = cur_accid;
-    rr_set_opc(metadata->opcode/*accelopcode*/, cfgid/*cfgreg*/);
-    printf("SCHED: fully acquired: accid:%ld\n", cur_accid);
-  } else if (acq) {
-    printf("SCHED: releasing due to blocked opcode\n");
-    // opcode not available since another acc has it on this core, drop the accelerator
-    rr_release(cfgid);
-  }
-
-  metadata->blocked_cycles = 0;
-  metadata->start_cycle = read_csr(cycle);
-#elif defined(FCFS_BLOCK)
-  uint64_t start = read_csr(cycle);
-  pthread_mutex_lock(&main_mutex);
-  acq = grab_accelerator(metadata, accids, accids_len, &cfgid, &cur_accid);
-  while (!acq) {
-    pthread_cond_wait_wrapper("atomic_acq", &main_cond, &main_mutex);
-    printf("SCHED: wait over: tid:%lu\n", tid);
-    acq = grab_accelerator(metadata, accids, accids_len, &cfgid, &cur_accid);
-  }
   pthread_mutex_unlock(&main_mutex);
-  uint64_t end = read_csr(cycle);
 
-  printf("SCHED: fully acquired: accid:%ld\n", cur_accid);
-  metadata->blocked_cycles = end - start;
-  metadata->start_cycle = end;
-  metadata->given_accelerator = true;
-  metadata->given_cfgid = cfgid;
-  metadata->given_accid = cur_accid;
-#elif defined(FCFS_BLOCK_QUEUED)
-  bool previously_enqueued = false;
-  uint64_t start = read_csr(cycle);
-  pthread_mutex_lock(&queues_mutex);
-  acq = grab_accelerator_queued(metadata, &queues_cond, &previously_enqueued, accids, accids_len, &cfgid, &cur_accid); // can potentially signal
-  while (!acq) {
-    pthread_cond_wait_wrapper("atomic_acq", &queues_cond, &queues_mutex);
-    printf("SCHED: wait over: tid:%lu\n", tid);
-    acq = grab_accelerator_queued(metadata, &queues_cond, &previously_enqueued, accids, accids_len, &cfgid, &cur_accid); // can potentially signal
+  // printf("SCHED: acq:%d cur_accid:%lu\n", acq, cur_accid);
+
+  if (acq) {
+    metadata->given_accelerator = true;
+    metadata->given_accid = cur_accid;
+    printf("SCHED: fully acquired: accid:%ld\n", cur_accid);
+  } else {
+    metadata->given_accelerator = false;
+    printf("SCHED: not acquired\n");
   }
-  pthread_mutex_unlock(&queues_mutex);
-  uint64_t end = read_csr(cycle);
-
-  printf("SCHED: fully acquired: accid:%ld\n", cur_accid);
-  metadata->blocked_cycles = end - start;
-  metadata->start_cycle = end;
+  //metadata->blocked_sch_ns = 0;
+#elif defined(UNLIMITED)
   metadata->given_accelerator = true;
-  metadata->given_cfgid = cfgid;
-  metadata->given_accid = cur_accid;
+  //metadata->blocked_sch_ns = 0;
 #elif defined(FCFS_RUNTIME_SKIP)
+  uint64_t* accids;
+  uint64_t accids_len;
+  get_accids(metadata->acc_type, &accids, &accids_len);
+  // grabbing a cfgid, then accelerator, then opcode are combined (since a cfgid + accid + opc lifetimes are matched)
+  bool acq = false;
+  size_t cur_accid;
   bool previously_enqueued = false;
   bool run_on_cpu = false;
-  uint64_t start = read_csr(cycle);
+  int32_t cfgid;
+  uint64_t start = get_cur_ns();
   pthread_mutex_lock(&queues_mutex);
+  printf("SCHED: tid:%lu grabbed lock (m:%p)\n", tid, metadata);
   // in this case acq means "break out of loop" not that it acquired an accelerator
   acq = grab_accelerator_queued_runtime(metadata, &queues_cond, &previously_enqueued, &run_on_cpu, accids, accids_len, &cfgid, &cur_accid); // can potentially signal
   while (!acq) {
-    pthread_cond_wait_wrapper("atomic_acq", &queues_cond, &queues_mutex);
-    printf("SCHED: wait over: tid:%lu\n", tid);
+    printf("SCHED: do wait: tid:%lu (m:%p)\n", tid, metadata);
+    //pthread_cond_signal(&queues_cond);
+    //pthread_cond_wait_wrapper("rt", &queues_cond, &queues_mutex);
+    pthread_cond_wait(&queues_cond, &queues_mutex);
+    printf("SCHED: wait over: tid:%lu (m:%p)\n", tid, metadata);
     acq = grab_accelerator_queued_runtime(metadata, &queues_cond, &previously_enqueued, &run_on_cpu, accids, accids_len, &cfgid, &cur_accid); // can potentially signal
   }
   pthread_mutex_unlock(&queues_mutex);
-  uint64_t end = read_csr(cycle);
+  printf("SCHED: tid:%lu unlock (m:%p)\n", tid, metadata);
+  uint64_t end = get_cur_ns();
 
-  printf("SCHED: was acquired?: runcpu:%d accid:%ld\n", run_on_cpu, cur_accid);
-  metadata->blocked_cycles = end - start;
-  metadata->start_cycle = end;
+  printf("SCHED: tid:%lu was acquired?: runcpu:%d accid:%ld\n", tid, run_on_cpu, cur_accid);
+  //metadata->blocked_sch_ns = end - start;
   metadata->given_accelerator = !run_on_cpu;
   metadata->given_cfgid = cfgid;
   metadata->given_accid = cur_accid;
-#endif
+#elif defined(FCFS_RUNTIME_SKIP_OPT)
+  uint64_t* accids;
+  uint64_t accids_len;
+  get_accids(metadata->acc_type, &accids, &accids_len);
+  // grabbing a cfgid, then accelerator, then opcode are combined (since a cfgid + accid + opc lifetimes are matched)
+  size_t cur_accid;
+  pthread_mutex_lock(&queues_mutex);
+  printf("SCHED: tid:%lu grabbed lock (m:%p)\n", tid, metadata);
+  metadata->given_accelerator = !grab_accelerator_queued_runtime_opt(metadata, accids, accids_len, &cur_accid); // can potentially signal
+  pthread_mutex_unlock(&queues_mutex);
+  printf("SCHED: tid:%lu unlock (m:%p)\n", tid, metadata);
 
+  printf("SCHED: tid:%lu was acquired?: runcpu:%d accid:%ld\n", tid, !metadata->given_accelerator, cur_accid);
+  //metadata->blocked_sch_ns = end - start;
+  //metadata->given_cfgid = 0;
+  metadata->given_accid = cur_accid;
 #else
-  metadata->given_accelerator = true;
-  metadata->given_accid = 0;
-  metadata->blocked_cycles = 0;
-  metadata->start_cycle = read_csr(cycle);
+  metadata->given_accelerator = false;
+  //metadata->blocked_sch_ns = 0;
 #endif
 }
 
 static void delay(void) {
   // inject latency to see any issues
-  int r = rand() % 10000000;
+  int r = rand() % 10000000000;
   printf("SCHED: delay for %d\n", r);
   while (r > 0) {
     --r;
@@ -751,169 +712,157 @@ static void delay(void) {
 
 // TODO: only acquire and release if another CPU wants it... i.e. pay penalty only once
 void schedule_release_and_update(metadata_t* metadata) {
-  setbuf(stdout, NULL); // TODO: remove this
-  int coreid = sched_getcpu();
-  pthread_t tid = pthread_self();
-  printf("SCHED: release: tid:%lu coreid:%lu meta:%p given:%d accid:%ld\n", tid, coreid, metadata, metadata->given_accelerator, metadata->given_accid);
-#ifdef USE_REROCC
+  printf("SCHED: release: tid:%lu meta:%p given:%d accid:%ld\n", metadata->tid, metadata, metadata->given_accelerator, metadata->given_accid);
   if (metadata->given_accelerator) {
-    delay();
-    printf("SCHED: doing release tid:%lu coreid:%lu cfgid:%ld accid:%ld\n", tid, coreid, metadata->given_cfgid, metadata->given_accid);
-    // this is already globally synchronized
-    rr_fence(metadata->given_cfgid); // wait until acc is idle (not busy) + cpu fence
-    rr_release(metadata->given_cfgid); // clear accelerator tlb (i.e. acc sfence)
-#if defined(FCFS_BLOCK)
-    pthread_cond_broadcast(&main_cond); // something happened with accs, signal
-#elif defined(FCFS_BLOCK_QUEUED)
-    pthread_mutex_lock(&queues_mutex);
-    printf("SCHED: release dequeue: tid:%lu coreid:%lu meta:%p given:%d accid:%ld\n", tid, coreid, metadata, metadata->given_accelerator, metadata->given_accid);
-    assert(q_dequeue(&acc_running_q[metadata->given_accid]));
-    pthread_cond_broadcast(&queues_cond); // something happened with queues+acc, signal
-    pthread_mutex_unlock(&queues_mutex);
+    printf("SCHED: doing release tid:%lu cfgid:%ld accid:%ld\n", metadata->tid, metadata->given_cfgid, metadata->given_accid);
+#if defined(FCFS_SKIP)
+    pthread_mutex_lock(&main_mutex);
+    acc_busy[metadata->given_accid] = false;
+    pthread_mutex_unlock(&main_mutex);
 #elif defined(FCFS_RUNTIME_SKIP)
     pthread_mutex_lock(&queues_mutex);
-    printf("SCHED: release dequeue: tid:%lu coreid:%lu meta:%p given:%d accid:%ld\n", tid, coreid, metadata, metadata->given_accelerator, metadata->given_accid);
+    printf("SCHED: release dequeue: tid:%lu meta:%p given:%d accid:%ld\n", metadata->tid, metadata, metadata->given_accelerator, metadata->given_accid);
+#ifdef KEEP_ASSERTS
+    elem_t e;
+    assert(q_peek(&acc_running_q[metadata->given_accid], &e));
+    assert(e.metadata == metadata->tid);
+    assert(e.running == true);
+#endif
     assert(q_dequeue(&acc_running_q[metadata->given_accid]));
+    printf("SCHED: tid:%ld: check curq%ld for tid\n", metadata->tid, metadata->given_accid);
+#ifdef KEEP_ASSERTS
+    assert(!q_found(&acc_running_q[metadata->given_accid], metadata->tid));
+    uint64_t* accids;
+    uint64_t accids_len;
+    get_accids(metadata->acc_type, &accids, &accids_len);
+    // check it's not in any queue already
+    for (size_t i = 0; i < accids_len; ++i) {
+      printf("SCHED: tid:%ld: release check %ld q for tid\n", metadata->tid, accids[i]);
+      assert(!q_found(&acc_running_q[accids[i]], metadata->tid));
+    }
+#endif
+    acc_busy[metadata->given_accid] = false;
     pthread_cond_broadcast(&queues_cond); // something happened with queues+acc, signal
     pthread_mutex_unlock(&queues_mutex);
-#if defined(USE_FEEDBACK)
-    update(metadata->acc_type, metadata->size, metadata->runtime_ns);
-#endif
+    printf("SCHED: tid:%lu unlock\n", metadata->tid);
+
+#elif defined(FCFS_RUNTIME_SKIP_OPT)
+    pthread_mutex_lock(&queues_mutex);
+    printf("SCHED: release dequeue: tid:%lu meta:%p given:%d accid:%ld\n", metadata->tid, metadata, metadata->given_accelerator, metadata->given_accid);
+// #ifdef KEEP_ASSERTS
+//     elem_t e;
+//     assert(q_peek(&acc_running_q[metadata->given_accid], &e));
+//     //assert(e.metadata == metadata->tid);
+//     assert(e.running == true);
+// #endif
+    acc_busy[metadata->given_accid] = false;
+    assert(q_dequeue(&acc_running_q[metadata->given_accid]));
+    printf("SCHED: tid:%ld: check curq%ld for tid\n", metadata->tid, metadata->given_accid);
+// #ifdef KEEP_ASSERTS
+//     //assert(!q_found(&acc_running_q[metadata->given_accid], metadata->tid));
+//     uint64_t* accids;
+//     uint64_t accids_len;
+//     get_accids(metadata->acc_type, &accids, &accids_len);
+//     // check it's not in any queue already
+//     for (size_t i = 0; i < accids_len; ++i) {
+//       printf("SCHED: tid:%ld: release check %ld q for tid\n", metadata->tid, accids[i]);
+//       //assert(!q_found(&acc_running_q[accids[i]], metadata->tid));
+//     }
+// #endif
+
+    // the next element in the current queue should grab the acc and start (use it's cond var to start it)
+    if (!q_empty(&acc_running_q[metadata->given_accid])) {
+      elem_t e;
+      assert(q_peek(&acc_running_q[metadata->given_accid], &e));
+      printf("SCHED: tid:%ld: signal next thread to start\n", metadata->tid);
+      pthread_cond_signal(e.thread_cond);
+    }
+
+    // done after signaling for next acc to start because full will take a while anyways to this should be last
+    // want to immediately enqueue work on acc over filling q
+    pthread_cond_signal(acc_running_q[metadata->given_accid].full_cond); // signal to any threads blocked on full that it isn't anymore
+
+    pthread_mutex_unlock(&queues_mutex);
+    printf("SCHED: tid:%lu unlock\n", metadata->tid);
 #endif
   }
 
-  // unbind current thread to current CPU (s.t. it can run on any CPU)
-  // do after any rerocc stuff
-  cpu_set_t cpuset;
-  CPU_ZERO(&cpuset);
-  sched_setaffinity(0/*current thread*/, sizeof(cpu_set_t), &cpuset);
-  int cpuid = sched_getcpu();
+#if (defined(FCFS_RUNTIME_SKIP) || defined(FCFS_RUNTIME_SKIP_OPT)) && defined(USE_FEEDBACK)
+  pthread_mutex_lock(&queues_mutex);
+  // updating cpu time
+  update_ser(metadata->descriptor_ptr,
+             metadata->given_accelerator ?
+             (metadata->runtime_ns * ACC_SPEEDUP) / metadata->size :
+             metadata->runtime_ns / metadata->size);
+  pthread_mutex_unlock(&queues_mutex);
 #endif
-  uint64_t runtime_cycles = read_csr(cycle) - metadata->start_cycle;
-  printf("SCHED: release: acc_type:%d sched_rc:%ldc provided_rc:%ldc provided_ns:%ldns blocked_cycles:%ld\n",
+
+  uint64_t runtime_sch_ns = get_cur_ns() - metadata->start_sch_ns;
+  printf("SCHED: release: ga:%d acc_type:%d sched_r_ns:%luns provided_r_ns:%luns blocked_sch_ns:%lu\n",
+         metadata->given_accelerator,
          metadata->acc_type,
-         runtime_cycles,
-         metadata->runtime_cycles,
-         metadata->runtime_ns,
-         metadata->blocked_cycles);
+         runtime_sch_ns,
+         metadata->runtime_ns, 0);
+         /*metadata->blocked_sch_ns);*/
+  // need to know if grabbed accel, time blacked, time to run w/ accel (plus misc. setup), time from sched.
+  //
+  // if was given accel
+  // <---------------------------------------> sched time (runtime_sch_ns)
+  //      <-----------------> time for acc run (runtime_ns)
+  // <---->  time blocked waiting for acc (blocked_sch_ns)
+  //
+  // else if not
+  // <----------------------------------------> time for cpu run (runtime_ns)
+  fprintf(fp, "%d,%d,%lu,%lu,%lu\n",
+          metadata->given_accelerator,
+          metadata->given_accid,
+          runtime_sch_ns,
+          metadata->runtime_ns, 0);
+          /*metadata->blocked_sch_ns);*/
+  //fflush(fp);
 }
-
-#define MAX_THREADS (10000) // arb. to start
-
-// HACKY:
-// assuming shared across translation units
-// assuming only written at start, can be read by multiple threads
-typedef struct ser_data {
-  volatile uint8_t** string_pointer_region;
-  volatile uint8_t* string_data_region;
-} ser_data_t;
-ser_data_t sched_ser_data[MAX_THREADS];
-size_t num_sched_ser_data = 0;
-size_t sched_ser_data_idx = 0;
 
 void PassSerInfoToScheduler(volatile uint8_t** string_pointer_region, volatile uint8_t* string_data_region) {
-  assert(num_sched_ser_data < MAX_THREADS);
-  sched_ser_data[num_sched_ser_data].string_pointer_region = string_pointer_region;
-  sched_ser_data[num_sched_ser_data].string_data_region = string_data_region;
-  ++num_sched_ser_data;
 }
 
-// TODO: threadsafe
 void GetSerInfoFromScheduler(volatile uint8_t*** string_pointer_region_out, volatile uint8_t** string_data_region_out) {
-  if (sched_ser_data_idx == num_sched_ser_data) {
-    // rollover back to 0
-    sched_ser_data_idx = 0;
-  }
-  ser_data_t* v = &sched_ser_data[sched_ser_data_idx];
-  *string_pointer_region_out = v->string_pointer_region;
-  *string_data_region_out = v->string_data_region;
-  ++sched_ser_data_idx;
 }
-
-// HACKY:
-// assuming shared across translation units
-// assuming only written at start, can be read by multiple threads
-typedef struct deser_data {
-  volatile uint8_t* fixed_alloc_region;
-  volatile uint8_t* array_alloc_region;
-} deser_data_t;
-deser_data_t sched_deser_data[MAX_THREADS];
-size_t num_sched_deser_data = 0;
-size_t sched_deser_data_idx = 0;
 
 void PassDeserInfoToScheduler(volatile uint8_t* fixed_alloc_region, volatile uint8_t* array_alloc_region) {
-  assert(num_sched_deser_data < MAX_THREADS);
-  // TODO: use different struct. for now just reuse even w/ wrong names
-  sched_deser_data[num_sched_deser_data].fixed_alloc_region = fixed_alloc_region;
-  sched_deser_data[num_sched_deser_data].array_alloc_region = array_alloc_region;
-  ++num_sched_deser_data;
 }
 
-// TODO: threadsafe
 void GetDeserInfoFromScheduler(volatile uint8_t** fixed_alloc_region_out, volatile uint8_t** array_alloc_region_out) {
-  if (sched_deser_data_idx == num_sched_deser_data) {
-    // rollover back to 0
-    sched_deser_data_idx = 0;
-  }
-  deser_data_t* v = &sched_deser_data[sched_deser_data_idx];
-  *fixed_alloc_region_out = v->fixed_alloc_region;
-  *array_alloc_region_out = v->array_alloc_region;
-  ++sched_deser_data_idx;
 }
 
-typedef struct comp_data {
-  uint8_t accid;
-  volatile uint8_t* litbuf;
-  size_t litbuf_sz;
-  volatile uint8_t* seqbuf;
-  size_t seqbuf_sz;
-} comp_data_t;
-comp_data_t sched_comp_data[MAX_COMPRESS_IDS];
-
-// called from client/server
 void CompressMemSetup(void) {
-  const size_t buffer_size_wanted = 64UL << 10;
-  for (size_t i = 0; i < MAX_COMPRESS_IDS; ++i) {
-    sched_comp_data[i].accid = compress_accids[i];
-    sched_comp_data[i].litbuf = AllocAligned(buffer_size_wanted, &(sched_comp_data[i].litbuf_sz));
-    sched_comp_data[i].seqbuf = AllocAligned(buffer_size_wanted, &(sched_comp_data[i].seqbuf_sz));
-  }
 }
 
 void GiveCompressMemTemps(uint8_t accid, volatile uint8_t** litbuf_out, size_t* litbuf_sz_out, volatile uint8_t** seqbuf_out, size_t* seqbuf_sz_out) {
-  for (size_t i = 0; i < MAX_COMPRESS_IDS; ++i) {
-    if (sched_comp_data[i].accid = accid) {
-      *litbuf_out = sched_comp_data[i].litbuf;
-      *litbuf_sz_out = sched_comp_data[i].litbuf_sz;
-      *seqbuf_out = sched_comp_data[i].seqbuf;
-      *seqbuf_sz_out = sched_comp_data[i].seqbuf_sz;
-    }
-  }
 }
 
-typedef struct decomp_data {
-  uint8_t accid;
-  volatile uint8_t* workspace;
-  size_t workspace_sz;
-} decomp_data_t;
-decomp_data_t sched_decomp_data[MAX_DECOMPRESS_IDS];
-
-// called from client/server
 void DecompressMemSetup(void) {
-  const size_t buffer_size_wanted = 64UL << 10; // must be large enough to hold all decompressed data
-  for (size_t i = 0; i < MAX_DECOMPRESS_IDS; ++i) {
-    sched_decomp_data[i].accid = decompress_accids[i];
-    sched_decomp_data[i].workspace = AllocAligned(buffer_size_wanted, &(sched_decomp_data[i].workspace_sz));
-  }
 }
 
 void GiveDecompressMemTemps(uint8_t accid, volatile uint8_t** workspace_out, size_t* workspace_sz_out) {
-  for (size_t i = 0; i < MAX_DECOMPRESS_IDS; ++i) {
-    if (sched_decomp_data[i].accid = accid) {
-      *workspace_out = sched_decomp_data[i].workspace;
-      *workspace_sz_out = sched_decomp_data[i].workspace_sz;
-    }
-  }
 }
 
-#endif
+void SetTputSer(const void* descriptor_ptr, uint32_t ns_per_B) {
+  proto_runtime_data_t* data = &ser_data;
+  for (size_t i = 0; i < data->num_entries; ++i) {
+    proto_rt_entry_t* entry = &data->entries[i];
+    // override prior entry w/ avg of the two
+    if (entry->descriptor_ptr == descriptor_ptr) {
+      entry->ns_per_B = (entry->ns_per_B + ns_per_B) / 2;
+      entry->ns_per_B = entry->ns_per_B == 0 ? 1 : entry->ns_per_B;
+      fprintf(stderr, "Overrode %p with %ldns/B (input: %ldns/B)\n", descriptor_ptr, entry->ns_per_B, ns_per_B);
+      return;
+    }
+  }
+
+  assert(data->num_entries < MAX_ENTRIES);
+  fprintf(stderr, "Added throughput %ldns/B (if 0->1) for %p\n", ns_per_B, descriptor_ptr);
+  data->entries[data->num_entries].descriptor_ptr = (void*)descriptor_ptr;
+  ns_per_B = (ns_per_B == 0) ? 1 : ns_per_B;
+  data->entries[data->num_entries].ns_per_B = ns_per_B;
+  data->num_entries += 1;
+}
