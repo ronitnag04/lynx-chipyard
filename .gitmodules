@@ -93,7 +93,7 @@
 	url = https://github.com/riscv/riscv-openocd.git
 [submodule "toolchains/riscv-tools/riscv-pk"]
 	path = toolchains/riscv-tools/riscv-pk
-	url = https://github.com/riscv-software-src/riscv-pk.git
+	url = https://github.com/abejgonzalez/riscv-pk.git
 [submodule "toolchains/riscv-tools/riscv-spike-devices"]
 	path = toolchains/riscv-tools/riscv-spike-devices
 	url = https://github.com/ucb-bar/spike-devices.git
