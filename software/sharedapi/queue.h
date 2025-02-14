@@ -1,8 +1,8 @@
 #ifndef QUEUE_H
 #define QUEUE_H
 
-//#define qprintf(...) (0)
-#define qprintf(...) printf(__VA_ARGS__)
+#define qprintf(...) (0)
+//#define qprintf(...) printf(__VA_ARGS__)
 
 #define METADATA_MASK ((uint64_t)1)
 typedef struct {
@@ -13,7 +13,7 @@ typedef struct {
   pthread_cond_t* thread_cond;
 } elem_t;
 
-#define MAX_QUEUE_SIZE 100
+#define MAX_QUEUE_SIZE (RQUEUE_SIZE)
 
 typedef struct {
   elem_t items[MAX_QUEUE_SIZE];
@@ -22,6 +22,7 @@ typedef struct {
   size_t size;
   uint64_t sum_ns;
   pthread_cond_t* full_cond;
+  size_t max_size;
 } queue_t;
 
 void q_init(queue_t* q) {
@@ -29,6 +30,7 @@ void q_init(queue_t* q) {
   q->rear = 0;
   q->sum_ns = 0;
   q->size = 0;
+  q->max_size = 0;
 
   q->full_cond = (pthread_cond_t *)malloc(sizeof(pthread_cond_t));
   pthread_cond_init(q->full_cond, NULL);
@@ -41,6 +43,7 @@ void q_init(queue_t* q) {
 bool q_empty(queue_t* q) { return q->size == 0; }
 bool q_full(queue_t* q) { return q->size == MAX_QUEUE_SIZE; }
 size_t q_size(queue_t* q) { return q->size; }
+size_t q_maxsize(queue_t* q) { return q->max_size; }
 
 bool q_found(queue_t* q, uint64_t meta) {
   if (q_empty(q)) {
@@ -73,8 +76,11 @@ bool q_enqueue(queue_t* q, elem_t value) {
   q->items[q->rear] = value;
   q->rear = (q->rear + 1) % MAX_QUEUE_SIZE;
   q->size++;
+  if (q->size > q->max_size) {
+    q->max_size = q->size;
+  }
 
-#if defined(FCFS_RUNTIME_SKIP) || defined(FCFS_RUNTIME_SKIP_OPT)
+#if defined(FCFS_RUNTIME_SKIP) || defined(FCFS_RUNTIME_SKIP_OPT) || defined(FCFS_BLOCK_SPINLOCK)
   q->sum_ns += value.est_acc_ns;
   qprintf("QUEUE: enqueued sum_ns:%lu\n", q->sum_ns);
 #endif
@@ -98,8 +104,11 @@ bool q_enqueue_ptr(queue_t* q, elem_t* value, pthread_cond_t** cond) {
   *cond = q->items[q->rear].thread_cond;
   q->rear = (q->rear + 1) % MAX_QUEUE_SIZE;
   q->size++;
+  if (q->size > q->max_size) {
+    q->max_size = q->size;
+  }
 
-#if defined(FCFS_RUNTIME_SKIP) || defined(FCFS_RUNTIME_SKIP_OPT)
+#if defined(FCFS_RUNTIME_SKIP) || defined(FCFS_RUNTIME_SKIP_OPT) || defined(FCFS_BLOCK_SPINLOCK)
   q->sum_ns += value->est_acc_ns;
   qprintf("QUEUE: enqueued sum_ns:%lu\n", q->sum_ns);
 #endif
@@ -113,7 +122,7 @@ bool q_dequeue(queue_t* q) {
     return false;
   }
 
-#if defined(FCFS_RUNTIME_SKIP) || defined(FCFS_RUNTIME_SKIP_OPT)
+#if defined(FCFS_RUNTIME_SKIP) || defined(FCFS_RUNTIME_SKIP_OPT) || defined(FCFS_BLOCK_SPINLOCK)
   q->sum_ns -= q->items[q->front].est_acc_ns;
   qprintf("QUEUE: dequeued sum_ns:%lu\n", q->sum_ns);
 #endif

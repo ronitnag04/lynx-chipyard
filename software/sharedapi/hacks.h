@@ -14,4 +14,8 @@ size_t GetPreSerializedLen(size_t id);
 
 void GetPreSerializedDataTime(size_t id, uint8_t* dstbuffer, size_t* time_ns);
 
+size_t GetPreSerializedTime(size_t id);
+
+size_t GetLargestId(void);
+
 #endif

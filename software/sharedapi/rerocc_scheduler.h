@@ -25,6 +25,7 @@ typedef struct __attribute__((aligned(16))) {
   // proto specific provide to scheduler (before schedule_run_on_acc)
   uint64_t size; // in bytes
   const void* descriptor_ptr; // also compression (for when comp_ratio can't be determined immediately)
+  size_t mid;
   uint64_t tid;
 
   // compression specific provide to scheduler (before schedule_run_on_acc)
@@ -58,13 +59,11 @@ void PassDeserInfoToScheduler(volatile uint8_t* fixed_alloc_region, volatile uin
 // TODO: must be just thread-safe
 void GetDeserInfoFromScheduler(volatile uint8_t** fixed_alloc_region_out, volatile uint8_t** array_alloc_region_out);
 
-void SetTputSer(const void* descriptor_ptr, uint32_t throughput_B_per_ns);
+void SchedSetEstimatedCPUTput(size_t id, size_t len, uint64_t time_ns);
 
 void CompressMemSetup(void);
 void GiveCompressMemTemps(uint8_t acc_id, volatile uint8_t** litbuf_out, size_t* litbuf_sz_out, volatile uint8_t** seqbuf_out, size_t* seqbuf_sz_out);
 void DecompressMemSetup(void);
 void GiveDecompressMemTemps(uint8_t acc_id, volatile uint8_t** workspace_out, size_t* workspace_sz_out);
-
-uint64_t get_cur_ns(void);
 
 #endif

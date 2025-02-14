@@ -34,9 +34,29 @@ cc_library(
 )
 
 cc_library(
+	name = "rqueue",
+	hdrs = [
+		":rqueue.h",
+		":atomic_defs.h",
+	],
+	srcs = [
+		":rqueue.c"
+	],
+	alwayslink = True,
+)
+
+cc_library(
 	name = "queue",
 	hdrs = [
 		":queue.h",
+	],
+	alwayslink = True,
+)
+
+cc_library(
+	name = "queueagain",
+	hdrs = [
+		":queueagain.h",
 	],
 	alwayslink = True,
 )
@@ -109,12 +129,15 @@ cc_library(
 	name = "rerocc_scheduler",
 	hdrs = [
 		":rerocc_scheduler.h",
+		":atomic_defs.h",
 	],
 	srcs = [
 		":rerocc_scheduler.c"
 	],
 	deps = [
 		":queue",
+		":queueagain",
+		":rqueue",
 		":helpers"
 	],
 	alwayslink = True,

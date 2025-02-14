@@ -7,33 +7,29 @@
 #include <string.h>
 
 typedef struct {
-  size_t id; // unique id (i.e. hash of buff)
+  bool filled;
   uint8_t* buff; // pre-serialized data
   size_t len; // len given by CPU serialization
   uint64_t time_ns; // time to serialize on the CPU
 } entry_t;
 
-size_t num_entries;
 entry_t entries[1000];
 
 void ResetSerializedData(void) {
-  num_entries = 0;
 }
 
+// use the id given to index into the array
 void FillPreSerializedData(size_t id, uint8_t* srcbuffer, size_t len, uint64_t time_ns) {
   //printf("FillPreSerializedData: In: uniqid:%lu, len:%d, timens:%lu\n", id, len, time_ns);
 
-  for (size_t i = 0; i < num_entries; ++i) {
-    entry_t* entry = &entries[i];
-    if (id == entry->id) {
-      return; // keep old entry
-    }
+  assert(id < 1000);
+
+  entry_t* entry = &entries[id];
+  if (entry->filled) {
+    return; // keep old entry
   }
 
-  assert(num_entries < 1000);
-
-  entry_t* entry = &entries[num_entries];
-  entry->id = id;
+  entry->filled = true;
   entry->buff = malloc(len);
   if (entry->buff == NULL) {
     fprintf(stderr, "ERR: unable to malloc %d sz\n", len);
@@ -42,9 +38,7 @@ void FillPreSerializedData(size_t id, uint8_t* srcbuffer, size_t len, uint64_t t
   entry->len = len;
   entry->time_ns = time_ns;
 
-  ++num_entries;
-
-  fprintf(stderr, "Adding pre-serialized data: eid:%d, uniqid:%lu, len:%d, timens:%lu\n", num_entries-1, entry->id, len, time_ns);
+  fprintf(stderr, "Adding pre-serialized data: uniqid:%lu, len:%d, timens:%lu\n", id, len, time_ns);
   // for (size_t i = 0; i < len; ++i) {
   //   printf("%02x", srcbuffer[i]);
   // }
@@ -53,40 +47,39 @@ void FillPreSerializedData(size_t id, uint8_t* srcbuffer, size_t len, uint64_t t
 
 // averages things out
 void UpdatePreSerializedData(size_t id, uint64_t time_ns) {
-  for (size_t i = 0; i < num_entries; ++i) {
-    entry_t* entry = &entries[i];
-    if (id == entry->id) {
-      entry->time_ns = (entry->time_ns + time_ns) / 2;
-      //printf("Updating pre-serialized time: uniqid:%lu, (in)timens:%lu (out)timens:%lu\n", entry->id, time_ns, entry->time_ns);
-      return;
+  entry_t* entry = &entries[id];
+  assert(entry->filled);
+  entry->time_ns = (entry->time_ns + time_ns) / 2;
+  //printf("Updating pre-serialized time: uniqid:%lu, (in)timens:%lu (out)timens:%lu\n", id, time_ns, entry->time_ns);
+}
+
+size_t GetLargestId(void) {
+  size_t max = 0;
+  for (size_t i = 0; i < 1000; ++i) {
+    entry_t* entry = &entries[1000 - i];
+    if (entry->filled) {
+      return 1000 - i + 1;
     }
   }
+  assert(false);
 }
 
 size_t GetPreSerializedLen(size_t id) {
   //printf("Grabbing %lu (len)\n", id);
-  for (size_t i = 0; i < num_entries; ++i) {
-    entry_t* entry = &entries[i];
-    if (id == entry->id) {
-      return entry->len;
-    }
-  }
-  assert(false);
+  return entries[id].len;
 }
 
 void GetPreSerializedDataTime(size_t id, uint8_t* dstbuffer, size_t* time_ns) {
   //printf("Grabbing %lu (data)\n", id);
-  for (size_t i = 0; i < num_entries; ++i) {
-    entry_t* entry = &entries[i];
-    if (id == entry->id) {
-      memcpy(dstbuffer, entry->buff, entry->len);
-      *time_ns = entry->time_ns;
-      // for (size_t i = 0; i < entry->len; ++i) {
-      //   printf("(%02x:%02x)", dstbuffer[i], entry->buff[i]);
-      // }
-      // printf("\n");
-      return;
-    }
-  }
-  assert(false);
+  entry_t* entry = &entries[id];
+  memcpy(dstbuffer, entry->buff, entry->len);
+  *time_ns = entry->time_ns;
+  // for (size_t i = 0; i < entry->len; ++i) {
+  //   printf("(%02x:%02x)", dstbuffer[i], entry->buff[i]);
+  // }
+  // printf("\n");
+}
+
+size_t GetPreSerializedTime(size_t id) {
+  return entries[id].time_ns;
 }
