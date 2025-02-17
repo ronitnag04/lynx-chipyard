@@ -100,6 +100,10 @@ FILE *fp;
 #define MAX_ACCS (2)
 #endif
 
+#ifndef RQUEUE_SIZE
+#define RQUEUE_SIZE (100)
+#endif
+
 rqueue_t* acc_running_rq[MAX_STATIC_ACCS];
 
 // scheduler can be shared between threads of a same process (client/server in 1 binary running localhost)

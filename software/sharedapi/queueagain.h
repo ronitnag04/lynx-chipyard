@@ -9,6 +9,9 @@ typedef struct {
   uint64_t metadata;
 } qagain_elem_t;
 
+#ifndef RQUEUE_SIZE
+#define RQUEUE_SIZE (100)
+#endif
 #define MAX_QUEUEAGAIN_SIZE (RQUEUE_SIZE)
 
 typedef struct {

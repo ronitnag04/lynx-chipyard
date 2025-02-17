@@ -13,6 +13,9 @@ typedef struct {
   pthread_cond_t* thread_cond;
 } elem_t;
 
+#ifndef RQUEUE_SIZE
+#define RQUEUE_SIZE (100)
+#endif
 #define MAX_QUEUE_SIZE (RQUEUE_SIZE)
 
 typedef struct {
