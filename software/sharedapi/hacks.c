@@ -81,5 +81,6 @@ void GetPreSerializedDataTime(size_t id, uint8_t* dstbuffer, size_t* time_ns) {
 }
 
 size_t GetPreSerializedTime(size_t id) {
+  //fprintf(stderr, "Get pre-serialized data: uniqid:%lu, timens:%lu\n", id, entries[id].time_ns);
   return entries[id].time_ns;
 }
