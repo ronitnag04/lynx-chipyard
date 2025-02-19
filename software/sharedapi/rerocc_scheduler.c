@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <sys/sysinfo.h>
 #include <sched.h>
-#include <x86intrin.h>
+//#include <x86intrin.h>
 #include "rerocc_scheduler.h"
 #include "helpers.h"
 #include "queue.h"

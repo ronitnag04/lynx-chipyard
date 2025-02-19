@@ -549,3 +549,9 @@ class DTMFireSimHyperscaleTotal1Config extends Config(
   new WithDefaultFireSimBridges ++
   new WithFireSimHyperscaleConfigTweaks ++
   new chipyard.DTMHyperscaleTotal1Config)
+
+class FireSimHyperscaleAllAccsReRoCCConfig extends Config(
+  new chipyard.config.WithNoDebug ++
+  new WithDefaultFireSimBridges ++
+  new WithFireSimHyperscaleConfigTweaks ++
+  new chipyard.HyperscaleAllAccsReRoCC  )

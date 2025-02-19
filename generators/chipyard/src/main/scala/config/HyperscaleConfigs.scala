@@ -181,3 +181,17 @@ class CheckpointHyperscaleNRocketBaseConfig extends Config(
   new HyperscaleUncore ++
   new freechips.rocketchip.rocket.WithNHugeCores(1) ++
   new chipyard.config.AbstractConfig)
+
+
+class HyperscaleAllAccsReRoCC extends Config(
+  new rerocc.WithReRoCC(reRoCCManagerParams=rerocc.manager.ReRoCCTileParams(l2TLBEntries=512, l2TLBWays=4)) ++ // matches prior aurora-like setup
+  // idN-1
+  new compressacc.WithSnappyDecompressor() ++
+  new compressacc.WithSnappyCompressor() ++
+  new protoacc.WithProtoAccelSerOnly() ++
+  new protoacc.WithProtoAccelDeserOnly() ++
+  new memcpyacc.WithMemcpyAccel ++
+  new aes.WithAESCBCAccel() ++
+  // id0
+  new HyperscaleNRocketBaseConfig(1)
+)

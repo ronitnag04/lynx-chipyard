@@ -3,7 +3,7 @@
 #include <riscv/mmu.h>
 #include <riscv/rerocc.h>
 
-#define printf(...) (0)
+//#define printf(...) (0)
 
 rerocc_cluster_t::rerocc_cluster_t() {
   memcpy_state[0] = {0};
@@ -236,24 +236,39 @@ reg_t rerocc_cluster_t::decompress(decompress_state_t* decompress_state, rocc_in
 
 // todo: technically this should also be bounded by opcode
 reg_t rerocc_cluster_t::dispatch(uint8_t accid, rocc_insn_t insn, reg_t xs1, reg_t xs2) {
+  // switch (accid) {
+  //   case 0:
+  //     return aescbc(accid, &aes_state[0], insn, xs1, xs2);
+  //   case 1:
+  //     return aescbc(accid, &aes_state[1], insn, xs1, xs2);
+  //   case 2:
+  //     return memcpy(&memcpy_state[0], insn, xs1, xs2);
+  //   case 3:
+  //     return memcpy(&memcpy_state[1], insn, xs1, xs2);
+  //   case 4:
+  //   case 5:
+  //   case 6:
+  //   case 7:
+  //     printf("Unsupported accid:%d. No proto ser/des implemented.\n", accid);
+  //     illegal_instruction();
+  //   case 8:
+  //     return compress(&compress_state[0], insn, xs1, xs2);
+  //   case 9:
+  //     return decompress(&decompress_state[0], insn, xs1, xs2);
+  // }
+  // return 0;
   switch (accid) {
     case 0:
       return aescbc(accid, &aes_state[0], insn, xs1, xs2);
     case 1:
-      return aescbc(accid, &aes_state[1], insn, xs1, xs2);
-    case 2:
       return memcpy(&memcpy_state[0], insn, xs1, xs2);
+    case 2:
     case 3:
-      return memcpy(&memcpy_state[1], insn, xs1, xs2);
-    case 4:
-    case 5:
-    case 6:
-    case 7:
       printf("Unsupported accid:%d. No proto ser/des implemented.\n", accid);
       illegal_instruction();
-    case 8:
+    case 4:
       return compress(&compress_state[0], insn, xs1, xs2);
-    case 9:
+    case 5:
       return decompress(&decompress_state[0], insn, xs1, xs2);
   }
   return 0;
