@@ -10,7 +10,7 @@ SO := lib$(EXTENSION_NAME).so
 
 CURRENT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 SNAPPY_COMP_BIN := $(CURRENT_DIR)/../generators/compress-acc/software-snappy/snappy/build-writecomp/snappy_test_tool
-SNAPPY_DECOMP_BIN := $(CURRENT_DIR)/../generators/compress-acc/software-snappy/snappy/build-writedecomp/snappy_test_tool
+SNAPPY_DECOMP_BIN := $(CURRENT_DIR)/../generators/compress-acc/software-snappy/snappy/build-writeuncomp/snappy_test_tool
 OPENSSL_BIN := $(shell which openssl)
 
 default: $(SO)

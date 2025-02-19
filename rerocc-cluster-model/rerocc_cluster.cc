@@ -3,7 +3,7 @@
 #include <riscv/mmu.h>
 #include <riscv/rerocc.h>
 
-//#define printf(...) (0)
+#define printf(...) (0)
 
 rerocc_cluster_t::rerocc_cluster_t() {
   memcpy_state[0] = {0};
@@ -212,11 +212,11 @@ reg_t rerocc_cluster_t::decompress(decompress_state_t* decompress_state, rocc_in
       break;
     case 2: // dest info
       decompress_state->op = xs1; decompress_state->cmpflagp = xs2;
-      printf("DEBUG: Doing snappydecompression\n");
+      printf("DEBUG: Doing snappydecompression: sz:%ld ip:%lx op:%lx\n", decompress_state->isize, decompress_state->ip, decompress_state->op);
       // Just use the snappy binary
       // 1. Load from ip(mmu) and store into a file(file pointer)
       // 2. snappydecompress that file(snappy binary) and store to op(mmu)
-      write_to_file(STRINGIZE_VALUE_OF(CUR_DIR) "/snappycomped", decompress_state->isize, decompress_state->ip);
+      write_to_file(STRINGIZE_VALUE_OF(CUR_DIR) "/snappycomped", decompress_state->ip, decompress_state->isize);
       run_command(STRINGIZE_VALUE_OF(SNAPPY_DECOMP_BIN) " " STRINGIZE_VALUE_OF(CUR_DIR) "/snappycomped");
       decompress_state->osize = write_from_file(STRINGIZE_VALUE_OF(CUR_DIR) "/snappycomped.uncomp", decompress_state->op);
       rm(STRINGIZE_VALUE_OF(CUR_DIR) "/snappycomped");
