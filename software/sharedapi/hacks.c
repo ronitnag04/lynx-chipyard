@@ -26,6 +26,9 @@ void FillPreSerializedData(size_t id, uint8_t* srcbuffer, size_t len, uint64_t t
 
   entry_t* entry = &entries[id];
   if (entry->filled) {
+    entry->time_ns = (entry->time_ns + time_ns) / 2;
+    assert(len == entry->len);
+    fprintf(stderr, "Adding pre-serialized data: uniqid:%lu Avg'ing: intimens:%lu outtimens:%lu\n", id, time_ns, entry->time_ns);
     return; // keep old entry
   }
 
@@ -50,7 +53,7 @@ void UpdatePreSerializedData(size_t id, uint64_t time_ns) {
   entry_t* entry = &entries[id];
   assert(entry->filled);
   entry->time_ns = (entry->time_ns + time_ns) / 2;
-  //printf("Updating pre-serialized time: uniqid:%lu, (in)timens:%lu (out)timens:%lu\n", id, time_ns, entry->time_ns);
+  //fprintf(stderr, "Updating pre-serialized time: uniqid:%lu, (in)timens:%lu (out)timens:%lu\n", id, time_ns, entry->time_ns);
 }
 
 size_t GetLargestId(void) {
