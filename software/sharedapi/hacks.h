@@ -18,4 +18,16 @@ size_t GetPreSerializedTime(size_t id);
 
 size_t GetLargestId(void);
 
+void Hacks_InitPreCompressedData(size_t id, uint8_t* srcbuffer, size_t len, uint64_t time_ns, uint64_t time_acc_ns, uint64_t time_c, uint64_t time_acc_c);
+size_t Hacks_GetPreCompressedCPUTimeNs(size_t id);
+void Hacks_UpdatePreCompressedCPUTimeNs(size_t id, uint64_t time_ns);
+size_t Hacks_GetPreCompressedACCTimeNs(size_t id);
+void Hacks_UpdatePreCompressedACCTimeNs(size_t id, uint64_t time_ns);
+size_t Hacks_GetPreCompressedCPUTimeC(size_t id);
+void Hacks_UpdatePreCompressedCPUTimeC(size_t id, uint64_t time_c);
+size_t Hacks_GetPreCompressedACCTimeC(size_t id);
+void Hacks_UpdatePreCompressedACCTimeC(size_t id, uint64_t time_c);
+
+
+
 #endif

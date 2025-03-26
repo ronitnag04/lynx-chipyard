@@ -40,8 +40,10 @@ typedef struct {
   bool filled;
   size_t len; // len given by CPU serialization
   uint64_t time_ns; // time to serialize on the CPU
+  uint64_t time_acc_ns; // time to serialize on the ACC
 } entry_t;
 entry_t proto_ser_entries[MAX_PAYLOADS];
+entry_t compress_entries[MAX_PAYLOADS];
 
 static size_t cpu_proto_runtime_ns(size_t mid, size_t size) {
   entry_t* entry = &proto_ser_entries[mid];
@@ -58,6 +60,32 @@ void update_cpu_proto_runtime_tput(size_t mid, size_t size, size_t duration) {
   printf("Updating prediction %d with new time %ldns (input: %ldns)\n", mid, ATOMIC_READ(proto_ser_entries[mid].time_ns), duration);
 }
 
+static size_t cpu_compress_runtime_ns(size_t mid, size_t size) {
+  entry_t* entry = &compress_entries[mid];
+  return (ATOMIC_READ(entry->time_ns) * size) / entry->len;
+}
+
+static size_t acc_compress_runtime_ns(size_t mid, size_t size) {
+  entry_t* entry = &compress_entries[mid];
+  return (ATOMIC_READ(entry->time_acc_ns) * size) / entry->len;
+}
+
+void schedule_acc_compress_runtime_ns(size_t mid, size_t* cpu, size_t* acc) {
+  entry_t* entry = &compress_entries[mid];
+  *acc = ATOMIC_READ(entry->time_acc_ns);
+  *cpu = ATOMIC_READ(entry->time_ns);
+}
+
+void update_cpu_compress_runtime_tput(size_t mid, size_t size, size_t duration) {
+  int _b = 0;
+  do {
+    size_t old = ATOMIC_READ(compress_entries[mid].time_ns);
+    _b = ATOMIC_CAS(compress_entries[mid].time_ns, old, (old + duration) / 2); // get the avg. of the two
+  } while (__builtin_expect(!_b, 0));
+  assert(ATOMIC_READ(compress_entries[mid].len) == size);
+  printf("Updating prediction %d with new time %ldns (input: %ldns)\n", mid, ATOMIC_READ(compress_entries[mid].time_ns), duration);
+}
+
 void SchedSetEstimatedCPUTput(size_t id, size_t len, uint64_t time_ns) {
   assert(id < MAX_PAYLOADS);
 
@@ -71,6 +99,22 @@ void SchedSetEstimatedCPUTput(size_t id, size_t len, uint64_t time_ns) {
   entry->time_ns = time_ns;
 
   fprintf(stderr, "Adding est. CPU throughput: uniqid:%lu, len:%d, timens:%lu\n", id, len, time_ns);
+}
+
+void Sched_InitEstimatedCompressCPUThroughput(size_t id, size_t len, uint64_t time_ns, uint64_t time_acc_ns) {
+  assert(id < MAX_PAYLOADS);
+
+  entry_t* entry = &compress_entries[id];
+  if (entry->filled) {
+    return; // keep old entry
+  }
+
+  entry->filled = true;
+  entry->len = len;
+  entry->time_ns = time_ns;
+  entry->time_acc_ns = time_acc_ns;
+
+  fprintf(stderr, "Adding est. CPU throughput: uniqid:%lu, len:%d, timens:%lu timeaccns:%lu\n", id, len, time_ns, time_acc_ns);
 }
 
 #define MAX_STATIC_ACCS (1000)
@@ -354,11 +398,14 @@ bool grab_accelerator(metadata_t* in_metadata, uint64_t* accids, size_t accids_l
 #endif
 
 uint64_t get_est_acc_runtime_ns(metadata_t* metadata) {
-  return cpu_proto_runtime_ns(metadata->mid, metadata->size) / (ACC_SPEEDUP * CYCLES_TO_NS);
+  //return cpu_proto_runtime_ns(metadata->mid, metadata->size) / (ACC_SPEEDUP * CYCLES_TO_NS);
+  //return cpu_compress_runtime_ns(metadata->mid, metadata->size) / (ACC_SPEEDUP * CYCLES_TO_NS);
+  return acc_compress_runtime_ns(metadata->mid, metadata->size);
 }
 
 uint64_t get_est_cpu_runtime_ns(metadata_t* metadata) {
-  return cpu_proto_runtime_ns(metadata->mid, metadata->size) / CYCLES_TO_NS;
+  //return cpu_proto_runtime_ns(metadata->mid, metadata->size) / CYCLES_TO_NS;
+  return cpu_compress_runtime_ns(metadata->mid, metadata->size) / CYCLES_TO_NS;
 }
 
 #ifdef FCFS_RUNTIME_SKIP
@@ -1111,6 +1158,41 @@ void schedule_run_on_acc(metadata_t* metadata) {
 #endif
 }
 
+// has the potential to block
+void schedule_override_grab_acc(metadata_t* metadata) {
+  metadata->start_sch_ns = get_cur_ns();
+  pthread_t tid = pthread_self();
+  metadata->tid = tid;
+
+  // expects that an accelerator is available to grab
+
+  uint64_t* accids;
+  uint64_t accids_len;
+  get_accids(metadata->acc_type, &accids, &accids_len);
+  // grabbing a cfgid, then accelerator, then opcode are combined (since a cfgid + accid + opc lifetimes are matched)
+  bool acq = false;
+  size_t cur_accid;
+  pthread_mutex_lock(&main_mutex);
+  for (size_t i = 0; i < accids_len; ++i) {
+    printf("SCHED: attempting acquire of %lu\n", accids[i]);
+    uint64_t accid = accids[i];
+    if (!acc_busy[accid]) {
+      cur_accid = accid;
+      acc_busy[accid] = true;
+      acq = true;
+      break;
+    }
+  }
+  pthread_mutex_unlock(&main_mutex);
+
+  // printf("SCHED: acq:%d cur_accid:%lu\n", acq, cur_accid);
+
+  assert(acq);
+  metadata->given_accelerator = true;
+  metadata->given_accid = cur_accid;
+  printf("SCHED: fully acquired: accid:%ld\n", cur_accid);
+}
+
 static void delay(void) {
   // inject latency to see any issues
   int r = rand() % 10000000000;
@@ -1249,9 +1331,15 @@ void schedule_release_and_update(metadata_t* metadata) {
 
 #if (defined(FCFS_RUNTIME_SKIP) || defined(FCFS_RUNTIME_SKIP_OPT) || defined(FCFS_BLOCK_SPINLOCK) || defined(FCFS_BLOCK_LOCKFREE) || defined(FCFS_BLOCK_MUTEX)) && defined(USE_FEEDBACK)
   // updating cpu time
-  update_cpu_proto_runtime_tput(metadata->mid,
-             metadata->size,
-             metadata->given_accelerator ? (metadata->runtime_ns * ACC_SPEEDUP) : metadata->runtime_ns);
+  // update_cpu_proto_runtime_tput(metadata->mid,
+  //            metadata->size,
+  //            metadata->given_accelerator ? (metadata->runtime_ns * ACC_SPEEDUP) : metadata->runtime_ns);
+  // update_cpu_compress_runtime_tput(metadata->mid,
+  //            metadata->size,
+  //            metadata->given_accelerator ? (metadata->runtime_ns * ACC_SPEEDUP) : metadata->runtime_ns);
+  if (!metadata->given_accelerator) {
+    update_cpu_compress_runtime_tput(metadata->mid, metadata->size, metadata->runtime_ns);
+  }
 #endif
 
   uint64_t runtime_sch_ns = get_cur_ns() - metadata->start_sch_ns;

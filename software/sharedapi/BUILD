@@ -34,6 +34,17 @@ cc_library(
 )
 
 cc_library(
+	name = "injector",
+	hdrs = [
+		":injector.h",
+	],
+	srcs = [
+		":injector.cc"
+	],
+	alwayslink = True,
+)
+
+cc_library(
 	name = "rqueue",
 	hdrs = [
 		":rqueue.h",

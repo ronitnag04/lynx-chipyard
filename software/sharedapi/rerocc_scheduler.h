@@ -48,6 +48,8 @@ void init_scheduler(void);
 // TODO: must be process and thread-safe
 void schedule_run_on_acc(metadata_t* metadata);
 
+void schedule_override_grab_acc(metadata_t* metadata);
+
 // TODO: must be process and thread-safe
 void schedule_release_and_update(metadata_t* metadata);
 
@@ -60,10 +62,13 @@ void PassDeserInfoToScheduler(volatile uint8_t* fixed_alloc_region, volatile uin
 void GetDeserInfoFromScheduler(volatile uint8_t** fixed_alloc_region_out, volatile uint8_t** array_alloc_region_out);
 
 void SchedSetEstimatedCPUTput(size_t id, size_t len, uint64_t time_ns);
+void Sched_InitEstimatedCompressCPUThroughput(size_t id, size_t len, uint64_t time_ns, uint64_t time_acc_ns);
 
 void CompressMemSetup(void);
 void GiveCompressMemTemps(uint8_t acc_id, volatile uint8_t** litbuf_out, size_t* litbuf_sz_out, volatile uint8_t** seqbuf_out, size_t* seqbuf_sz_out);
 void DecompressMemSetup(void);
 void GiveDecompressMemTemps(uint8_t acc_id, volatile uint8_t** workspace_out, size_t* workspace_sz_out);
+
+void schedule_acc_compress_runtime_ns(size_t mid, size_t* cpu, size_t* acc);
 
 #endif
