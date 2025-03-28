@@ -1343,9 +1343,9 @@ void schedule_release_and_update(metadata_t* metadata) {
 #endif
 
   uint64_t runtime_sch_ns = get_cur_ns() - metadata->start_sch_ns;
-  printf("SCHED: release: ga:%d acc_type:%d sched_r_ns:%luns provided_r_ns:%luns blocked_sch_ns:%lu q_max_size:%lu\n",
+  printf("SCHED: release: ga:%d mid:%d sched_r_ns:%luns provided_r_ns:%luns blocked_sch_ns:%lu q_max_size:%lu\n",
          metadata->given_accelerator,
-         metadata->acc_type,
+         metadata->mid,
          runtime_sch_ns,
          metadata->runtime_ns, 0, q_max_size);
          /*metadata->blocked_sch_ns);*/
@@ -1360,7 +1360,7 @@ void schedule_release_and_update(metadata_t* metadata) {
   // <----------------------------------------> time for cpu run (runtime_ns)
   fprintf(fp, "%d,%d,%lu,%lu,%lu\n",
           metadata->given_accelerator,
-          metadata->given_accid,
+          metadata->mid,
           runtime_sch_ns,
           metadata->runtime_ns,
           q_max_size
