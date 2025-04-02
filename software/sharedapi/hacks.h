@@ -27,6 +27,7 @@ size_t Hacks_GetPreCompressedCPUTimeC(size_t id);
 void Hacks_UpdatePreCompressedCPUTimeC(size_t id, uint64_t time_c);
 size_t Hacks_GetPreCompressedACCTimeC(size_t id);
 void Hacks_UpdatePreCompressedACCTimeC(size_t id, uint64_t time_c);
+void Hacks_GetCompressInput(size_t id, uint8_t** buff, size_t* len);
 
 
 

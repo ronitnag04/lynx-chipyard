@@ -149,6 +149,8 @@ cc_library(
 		":queue",
 		":queueagain",
 		":rqueue",
+		":rerocc",
+		":rocc_compress",
 		":helpers"
 	],
 	alwayslink = True,

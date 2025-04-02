@@ -44,6 +44,8 @@ typedef struct __attribute__((aligned(16))) {
 
 void init_scheduler(void);
 
+void schedule_flush_file(void);
+
 // has the potential to block
 // TODO: must be process and thread-safe
 void schedule_run_on_acc(metadata_t* metadata);

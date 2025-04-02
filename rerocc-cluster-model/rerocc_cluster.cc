@@ -11,6 +11,7 @@ rerocc_cluster_t::rerocc_cluster_t() {
   aes_state[0] = {0};
   aes_state[1] = {0};
   compress_state[0] = {0};
+  compress_state[1] = {0};
   decompress_state[0] = {0};
 
   printf("DEBUG: " STRINGIZE_VALUE_OF(CUR_DIR) "\n");
@@ -258,18 +259,25 @@ reg_t rerocc_cluster_t::dispatch(uint8_t accid, rocc_insn_t insn, reg_t xs1, reg
   // }
   // return 0;
   switch (accid) {
+    //case 0:
+    //  return aescbc(accid, &aes_state[0], insn, xs1, xs2);
+    //case 1:
+    //  return memcpy(&memcpy_state[0], insn, xs1, xs2);
+    //case 2:
+    //case 3:
+    //  printf("Unsupported accid:%d. No proto ser/des implemented.\n", accid);
+    //  illegal_instruction();
+    //case 4:
+    //  return compress(&compress_state[0], insn, xs1, xs2);
+    //case 5:
+    //  return decompress(&decompress_state[0], insn, xs1, xs2);
     case 0:
-      return aescbc(accid, &aes_state[0], insn, xs1, xs2);
-    case 1:
-      return memcpy(&memcpy_state[0], insn, xs1, xs2);
-    case 2:
-    case 3:
-      printf("Unsupported accid:%d. No proto ser/des implemented.\n", accid);
-      illegal_instruction();
-    case 4:
       return compress(&compress_state[0], insn, xs1, xs2);
-    case 5:
-      return decompress(&decompress_state[0], insn, xs1, xs2);
+    case 1:
+      return compress(&compress_state[1], insn, xs1, xs2);
+    default:
+      printf("Unsupported accid:%d\n", accid);
+      illegal_instruction();
   }
   return 0;
 }

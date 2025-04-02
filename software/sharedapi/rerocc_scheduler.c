@@ -15,6 +15,11 @@
 #include "rqueue.h"
 #include "atomic_defs.h"
 
+//#ifdef USE_COMPRESS_ACC
+//#include "compress_rocc.h"
+//#include "rerocc.h"
+//#endif
+
 #ifndef USE_PRINTS
 #define printf(...) (0)
 #endif
@@ -44,6 +49,16 @@ typedef struct {
 } entry_t;
 entry_t proto_ser_entries[MAX_PAYLOADS];
 entry_t compress_entries[MAX_PAYLOADS];
+
+typedef struct {
+  size_t given_accelerator;
+  size_t mid;
+  size_t runtime_sch_ns;
+  size_t runtime_ns;
+  size_t q_max_size;
+} stats_t;
+stats_t stats_entries[MAX_PAYLOADS];
+size_t stats_i;
 
 static size_t cpu_proto_runtime_ns(size_t mid, size_t size) {
   entry_t* entry = &proto_ser_entries[mid];
@@ -161,6 +176,8 @@ void init_scheduler(void) {
   // unbuffer stdout
   setbuf(stdout, NULL);
 #endif
+
+  stats_i = 0;
 
   // ok to clear twice (since we expect server will be setup before client)
   for (size_t i = 0; i < MAX_STATIC_ACCS; ++i) {
@@ -850,6 +867,10 @@ void schedule_run_on_acc(metadata_t* metadata) {
       cur_accid = accid;
       acc_busy[accid] = true;
       acq = true;
+//#ifdef USE_COMPRESS_ACC
+//      rr_acquire_single(accid, accid);
+//      rr_set_opc(SNAPPY_COMP_OPCODE, accid);
+//#endif
       break;
     }
   }
@@ -1180,6 +1201,10 @@ void schedule_override_grab_acc(metadata_t* metadata) {
       cur_accid = accid;
       acc_busy[accid] = true;
       acq = true;
+//#ifdef USE_COMPRESS_ACC
+//      rr_acquire_single(accid, accid);
+//      rr_set_opc(SNAPPY_COMP_OPCODE, accid);
+//#endif
       break;
     }
   }
@@ -1211,6 +1236,9 @@ void schedule_release_and_update(metadata_t* metadata) {
 #if defined(FCFS_SKIP)
     pthread_mutex_lock(&main_mutex);
     acc_busy[metadata->given_accid] = false;
+//#ifdef USE_COMPRESS_ACC
+//      rr_release(metadata->given_accid);
+//#endif
     pthread_mutex_unlock(&main_mutex);
 #elif defined(FCFS_BLOCK_MUTEX)
     printf("SCHED: release dequeue: tid:%lu meta:%p given:%d accid:%ld\n", metadata->tid, metadata, metadata->given_accelerator, metadata->given_accid);
@@ -1358,18 +1386,32 @@ void schedule_release_and_update(metadata_t* metadata) {
   //
   // else if not
   // <----------------------------------------> time for cpu run (runtime_ns)
-  fprintf(fp, "%d,%d,%lu,%lu,%lu\n",
-          metadata->given_accelerator,
-          metadata->mid,
-          runtime_sch_ns,
-          metadata->runtime_ns,
-          q_max_size
-          );//, 0);
+  stats_t* entry = &stats_entries[stats_i];
+  entry->given_accelerator = metadata->given_accelerator;
+  entry->mid               = metadata->mid;
+  entry->runtime_sch_ns    = runtime_sch_ns;
+  entry->runtime_ns        = metadata->runtime_ns;
+  entry->q_max_size        = q_max_size;
+  stats_i += 1;
   // // TODO: use this for faster speed
   // fprintf(fp, "%d\n",
   //         metadata->given_accelerator);
   //         /*metadata->blocked_sch_ns);*/
   //fflush(fp);
+}
+
+void schedule_flush_file(void) {
+    for (size_t i = 0; i < stats_i; i++) {
+        stats_t* entry = &stats_entries[i];
+        fprintf(fp, "%lu,%lu,%lu,%lu,%lu\n",
+                entry->given_accelerator,
+                entry->mid,
+                entry->runtime_sch_ns,
+                entry->runtime_ns,
+                entry->q_max_size
+        );//, 0);
+    }
+    stats_i = 0;
 }
 
 void PassSerInfoToScheduler(volatile uint8_t** string_pointer_region, volatile uint8_t* string_data_region) {

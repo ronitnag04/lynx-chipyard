@@ -70,9 +70,9 @@ private:
   reg_t aescbc(uint8_t accid, aes_state_t* aes_state, rocc_insn_t insn, reg_t xs1, reg_t xs2);
   aes_state_t aes_state[2];
   reg_t compress(compress_state_t* compress_state, rocc_insn_t insn, reg_t xs1, reg_t xs2);
-  compress_state_t compress_state[1];
+  compress_state_t compress_state[2];
   reg_t decompress(decompress_state_t* decompress_state, rocc_insn_t insn, reg_t xs1, reg_t xs2);
-  decompress_state_t decompress_state[1];
+  decompress_state_t decompress_state[2];
 
   void write_to_file(char* dstfile, reg_t srcptr, reg_t size);
   size_t write_from_file(char* srcfile, reg_t destptr);

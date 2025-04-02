@@ -132,12 +132,17 @@ size_t Hacks_GetPreCompressedACCTimeNs(size_t id) {
   return entries_c[id].time_acc_ns;
 }
 
+size_t Hacks_GetPreCompressedACCTimeC(size_t id) {
+  return entries_c[id].time_acc_c;
+}
+
 size_t Hacks_GetPreCompressedCPUTimeC(size_t id) {
   return entries_c[id].time_c;
 }
 
-size_t Hacks_GetPreCompressedACCTimeC(size_t id) {
-  return entries_c[id].time_acc_c;
+void Hacks_GetCompressInput(size_t id, uint8_t** buff, size_t* len) {
+  *buff = entries_c[id].buff; // pre-serialized data
+  *len = entries_c[id].len; // len given by CPU serialization
 }
 
 void Hacks_UpdatePreCompressedCPUTimeNs(size_t id, uint64_t time_ns) {
