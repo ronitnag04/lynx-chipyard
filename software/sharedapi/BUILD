@@ -81,6 +81,14 @@ cc_library(
 )
 
 cc_library(
+	name = "c_time",
+	hdrs = [
+		":c_time.h",
+	],
+	alwayslink = True,
+)
+
+cc_library(
 	name = "rerocc",
 	hdrs = [
 		":rerocc.h",
@@ -146,6 +154,7 @@ cc_library(
 		":rerocc_scheduler.c"
 	],
 	deps = [
+		":c_time",
 		":queue",
 		":queueagain",
 		":rqueue",
