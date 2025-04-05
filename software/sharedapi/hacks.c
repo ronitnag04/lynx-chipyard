@@ -14,6 +14,8 @@ typedef struct {
   uint64_t time_acc_ns; // time to serialize on the ACC
   uint64_t time_c; // time to serialize on the CPU
   uint64_t time_acc_c; // time to serialize on the ACC
+  uint64_t actual_time_ns;
+  uint64_t actual_time_acc_ns;
 } entry_t;
 
 entry_t entries[1000];
@@ -116,6 +118,8 @@ void Hacks_InitPreCompressedData(size_t id, uint8_t* srcbuffer, size_t len, uint
   entry->time_acc_ns = time_acc_ns;
   entry->time_c = time_c;
   entry->time_acc_c = time_acc_c;
+  entry->actual_time_ns = 0;
+  entry->actual_time_acc_ns = 0;
 
   fprintf(stderr, "Adding pre-serialized data: uniqid:%lu, len:%d, timens:%lu acctimens:%lu timec:%lu acctimec:%lu\n", id, len, time_ns, time_acc_ns, time_c, time_acc_c);
   // for (size_t i = 0; i < len; ++i) {
@@ -130,6 +134,22 @@ size_t Hacks_GetPreCompressedCPUTimeNs(size_t id) {
 
 size_t Hacks_GetPreCompressedACCTimeNs(size_t id) {
   return entries_c[id].time_acc_ns;
+}
+
+void Hacks_PutPreCompressedCPUTimeNs(size_t id, size_t time_ns) {
+  entries_c[id].actual_time_ns = time_ns;
+}
+
+void Hacks_PutPreCompressedACCTimeNs(size_t id, size_t time_ns) {
+  entries_c[id].actual_time_acc_ns = time_ns;
+}
+
+size_t Hacks_GetPreCompressedCPUTimeNsActual(size_t id) {
+  return entries_c[id].actual_time_ns;
+}
+
+size_t Hacks_GetPreCompressedACCTimeNsActual(size_t id) {
+  return entries_c[id].actual_time_acc_ns;
 }
 
 size_t Hacks_GetPreCompressedACCTimeC(size_t id) {
