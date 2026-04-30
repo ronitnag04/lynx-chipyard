@@ -117,7 +117,7 @@
 	url = https://github.com/llvm/circt.git
 [submodule "generators/protoacc"]
 	path = generators/protoacc
-	url = https://github.com/abejgonzalez/hyperscale-grpc-protoacc.git
+	url = https://github.com/ronitnag04/lynx-protoacc.git
 [submodule "generators/compress-acc"]
 	path = generators/compress-acc
 	url = https://github.com/abejgonzalez/hyperscale-grpc-compress-acc.git
