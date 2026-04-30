@@ -195,3 +195,10 @@ class HyperscaleAllAccsReRoCC extends Config(
   // id0
   new HyperscaleNRocketBaseConfig(1)
 )
+
+// Direct-attach ProtoAcc on Rocket (no ReRoCC) for Verilator-based workload benchmarking.
+class ProtoAccelRocketConfig extends Config(
+  new protoacc.WithProtoAccelSerOnly ++
+  new protoacc.WithProtoAccelDeserOnly ++
+  new freechips.rocketchip.rocket.WithNHugeCores(1) ++
+  new chipyard.config.AbstractConfig)
