@@ -30,3 +30,4 @@ project/project/
 .classpath_cache/
 .vscode/
 sparse_elf_workdir/*
+generators/chipyard/src/main/scala/config/ProtoAccelSweepConfigs.scala
