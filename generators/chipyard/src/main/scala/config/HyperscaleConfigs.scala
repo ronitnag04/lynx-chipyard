@@ -197,17 +197,12 @@ class HyperscaleAllAccsReRoCC extends Config(
 )
 
 // Direct-attach ProtoAcc on Rocket (no ReRoCC) for Verilator-based workload benchmarking.
-class ProtoAccelRocketConfig extends Config(
+class ProtoAccelRocketBaseConfig extends Config(
   new protoacc.WithProtoAccelSerOnly ++
   new protoacc.WithProtoAccelDeserOnly ++
   new freechips.rocketchip.rocket.WithNHugeCores(1) ++
   new chipyard.config.AbstractConfig)
 
-// Variant with RTL printf logging enabled for debugging the ProtoAcc datapath.
-// Every ProtoaccLogger.logInfo fires to stderr during simulation. Slow.
 class ProtoAccelRocketDebugConfig extends Config(
   new protoacc.WithProtoAccelPrintf ++
-  new protoacc.WithProtoAccelSerOnly ++
-  new protoacc.WithProtoAccelDeserOnly ++
-  new freechips.rocketchip.rocket.WithNHugeCores(1) ++
-  new chipyard.config.AbstractConfig)
+  new ProtoAccelRocketBaseConfig)
